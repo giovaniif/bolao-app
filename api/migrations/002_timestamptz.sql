@@ -1,0 +1,1 @@
+ALTER TABLE matches ALTER COLUMN market_closes_at TYPE TIMESTAMP WITH TIME ZONE USING market_closes_at AT TIME ZONE 'UTC';
