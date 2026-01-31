@@ -1,4 +1,4 @@
-.PHONY: dev deploy ngrok stop-deploy
+.PHONY: dev deploy ngrok stop-deploy seed-palpites
 
 # Modo desenvolvimento: API + Frontend com hot reload (requer postgres na 5432)
 dev:
@@ -15,3 +15,8 @@ ngrok:
 # Para o deploy (containers Docker)
 stop-deploy:
 	./scripts/stop-deploy.sh
+
+# Inserir palpites do palpites.md no banco (rodada 1)
+# Requer: postgres rodando, jogos da rodada 1 e usuários já cadastrados
+seed-palpites:
+	cd api && go run ./cmd/seed-palpites ../palpites.md

@@ -4,7 +4,8 @@ import "fmt"
 
 // Scoring implements the rules from criterios.md
 const (
-	PointsCorrectResult    = 9  // Indicação correta do vencedor ou empate
+	PointsCorrectResult    = 9  // Indicação correta do time vencedor
+	PointsCorrectDraw      = 12 // Indicação de empate sem acerto do placar
 	PointsCorrectHomeGoals = 3  // Acerto gols time mandante
 	PointsCorrectAwayGoals = 3  // Acerto gols time visitante
 	PointsExactScore       = 3  // Acerto do placar (jogos normais)
@@ -25,11 +26,15 @@ var bonusByScoreTypes = map[int]int{
 func CalculateMatchPoints(predHome, predAway, realHome, realAway int) int {
 	points := 0
 
-	// Correct result (winner or draw): 9 points
+	// Correct result: 9 pts (winner) ou 12 pts (empate)
 	predResult := matchResult(predHome, predAway)
 	realResult := matchResult(realHome, realAway)
 	if predResult == realResult {
-		points += PointsCorrectResult
+		if realResult == "draw" {
+			points += PointsCorrectDraw
+		} else {
+			points += PointsCorrectResult
+		}
 	}
 
 	// Correct home goals: 3 points

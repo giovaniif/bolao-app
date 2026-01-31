@@ -97,6 +97,32 @@ VALUES (
 - **Classificação**: baseada nos critérios definidos em `criterios.md`
 - **Rodadas parciais**: filtro por rodada para ver classificação acumulada
 
+## Seed de palpites
+
+Para importar palpites de um arquivo (ex: primeira rodada):
+
+```bash
+make seed-palpites
+# ou: cd api && go run ./cmd/seed-palpites ../palpites.md
+```
+
+O arquivo `palpites.md` deve ter:
+1. Ordem dos jogos (Mandante x Visitante)
+2. Para cada usuário: nome (username) seguido dos placares na mesma ordem
+
+Exemplo:
+```
+Ordem dos jogos:
+Vitória x Remo
+Atlético-MG x Palmeiras
+...
+
+usuario1
+1x2
+0x1
+...
+```
+
 ## Testes
 
 ```bash

@@ -33,11 +33,11 @@ func TestCalculateMatchPoints(t *testing.T) {
 		{1, 0, 1, 0, 18}, // exact score: 9+3+3+3
 		{2, 1, 2, 1, 18}, // exact score
 		{1, 0, 2, 0, 12}, // correct result+home goals: 9+3
-		{0, 0, 1, 1, 9},  // draw correct only
-		{1, 1, 1, 1, 18}, // exact draw
-		{2, 2, 3, 3, 9},  // correct result (draw), no goals, 4+ real but not exact
-		{3, 3, 3, 3, 28}, // exact 4+ goals: 9+3+3+10+3
-		{0, 0, 0, 0, 18}, // exact 0-0
+		{0, 0, 1, 1, 12}, // draw correct only (empate vale 12)
+		{1, 1, 1, 1, 21}, // exact draw (12+3+3+3)
+		{2, 2, 3, 3, 12}, // correct result (draw), no goals, 4+ real but not exact
+		{3, 3, 3, 3, 31}, // exact 4+ goals draw: 12+3+3+10+3
+		{0, 0, 0, 0, 21}, // exact 0-0 (empate: 12+3+3+3)
 		{1, 2, 1, 2, 18}, // exact 3 goals
 	}
 	for _, tt := range tests {
