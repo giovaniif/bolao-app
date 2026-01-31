@@ -12,9 +12,16 @@ Aplicativo de controle de bolão do Campeonato Brasileiro.
 
 ## Modos de execução
 
+| Modo      | API    | Frontend | Uso                         |
+|-----------|--------|----------|-----------------------------|
+| **Dev**   | 3333   | 5173     | Desenvolvimento com hot reload |
+| **Deploy**| 3335   | 5175     | Docker + ngrok (compartilhar)  |
+
+Portas diferentes evitam conflito: você pode rodar `make stop-deploy` e em seguida `make dev` sem conflito de portas.
+
 ### Modo desenvolvimento (alterações com hot reload)
 
-Para trabalhar no código com recarregamento automático:
+Para trabalhar no código:
 
 ```bash
 # 1. Suba só o banco (uma vez)
@@ -26,26 +33,24 @@ make dev
 ```
 
 - **Frontend**: http://localhost:5173 (hot reload)
-- **API**: http://localhost:3333 (reinicia ao alterar Go)
-
-> **Importante**: Se o deploy (Docker) estiver rodando, pare antes com `make stop-deploy` para liberar as portas 3333 e 5173.
+- **API**: http://localhost:3333
 
 ---
 
 ### Modo deploy (ngrok – compartilhar com usuários)
 
-Para expor a aplicação na internet via ngrok:
+Para expor a aplicação na internet:
 
 ```bash
 make deploy
 # ou: ./scripts/deploy.sh
 ```
 
-1. Sobe API + Frontend + Banco em containers
-2. Inicia ngrok e exibe a URL pública (ex: `https://abc123.ngrok-free.app`)
+1. Sobe API + Frontend + Banco em containers (portas 3335 e 5175)
+2. Inicia ngrok na porta 5175 e exibe a URL pública
 3. Compartilhe a URL com os usuários
 
-**Requisito**: [ngrok](https://ngrok.com/download) instalado e configurado (auth token opcional para URLs fixas).
+**Requisito**: [ngrok](https://ngrok.com/download) instalado.
 
 **Para parar o deploy:**
 ```bash
@@ -59,10 +64,8 @@ Depois pressione Ctrl+C no terminal do ngrok.
 ### Comandos manuais (Docker)
 
 ```bash
-# Tudo com Docker (sem ngrok)
 docker compose up --build
-
-# Frontend: http://localhost:5173 | API: http://localhost:3333
+# Frontend: http://localhost:5175 | API: http://localhost:3335
 ```
 
 ---

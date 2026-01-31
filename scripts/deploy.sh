@@ -23,8 +23,8 @@ echo ""
 echo "Aguardando serviços iniciarem..."
 sleep 5
 
-# Porta do frontend (web) exposta pelo docker compose
-WEB_PORT=5173
+# Porta do frontend (web) no deploy - diferente da dev para não conflitar
+WEB_PORT=5175
 
 echo ""
 echo "Expondo via ngrok na porta $WEB_PORT..."
