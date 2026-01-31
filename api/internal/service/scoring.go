@@ -26,14 +26,15 @@ var bonusByScoreTypes = map[int]int{
 func CalculateMatchPoints(predHome, predAway, realHome, realAway int) int {
 	points := 0
 
-	// Correct result: 9 pts (winner) ou 12 pts (empate)
+	// Correct result: 9 pts (winner) ou 12 pts (empate sem acerto do placar)
 	predResult := matchResult(predHome, predAway)
 	realResult := matchResult(realHome, realAway)
 	if predResult == realResult {
-		if realResult == "draw" {
-			points += PointsCorrectDraw
+		exactScore := predHome == realHome && predAway == realAway
+		if realResult == "draw" && !exactScore {
+			points += PointsCorrectDraw // 12: empate sem acertar o placar
 		} else {
-			points += PointsCorrectResult
+			points += PointsCorrectResult // 9: vencedor ou empate exato
 		}
 	}
 
