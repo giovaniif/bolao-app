@@ -6,44 +6,66 @@ Aplicativo de controle de bolão do Campeonato Brasileiro.
 
 - **Frontend**: React + TypeScript + Tailwind + Vite
 - **Backend**: Go + Gin + PostgreSQL
-- **Infra**: Docker Compose
+- **Infra**: Docker Compose, ngrok (deploy)
 
-## Como rodar
+---
 
-### Com Docker (recomendado)
+## Modos de execução
+
+### Modo desenvolvimento (alterações com hot reload)
+
+Para trabalhar no código com recarregamento automático:
 
 ```bash
+# 1. Suba só o banco (uma vez)
+docker compose up db -d
+
+# 2. Rode em modo dev
+make dev
+# ou: ./scripts/dev.sh
+```
+
+- **Frontend**: http://localhost:5173 (hot reload)
+- **API**: http://localhost:3333 (reinicia ao alterar Go)
+
+> **Importante**: Se o deploy (Docker) estiver rodando, pare antes com `make stop-deploy` para liberar as portas 3333 e 5173.
+
+---
+
+### Modo deploy (ngrok – compartilhar com usuários)
+
+Para expor a aplicação na internet via ngrok:
+
+```bash
+make deploy
+# ou: ./scripts/deploy.sh
+```
+
+1. Sobe API + Frontend + Banco em containers
+2. Inicia ngrok e exibe a URL pública (ex: `https://abc123.ngrok-free.app`)
+3. Compartilhe a URL com os usuários
+
+**Requisito**: [ngrok](https://ngrok.com/download) instalado e configurado (auth token opcional para URLs fixas).
+
+**Para parar o deploy:**
+```bash
+make stop-deploy
+# ou: ./scripts/stop-deploy.sh
+```
+Depois pressione Ctrl+C no terminal do ngrok.
+
+---
+
+### Comandos manuais (Docker)
+
+```bash
+# Tudo com Docker (sem ngrok)
 docker compose up --build
+
+# Frontend: http://localhost:5173 | API: http://localhost:3333
 ```
 
-- Frontend: http://localhost:5173
-- API: http://localhost:8080
-
-### Desenvolvimento local (sem Docker Compose)
-
-Rode API e frontend em terminais separados. O frontend faz proxy de `/api` para a API.
-
-**1. PostgreSQL** – precisa estar rodando na porta 5432:
-```bash
-# Opção: só o banco via Docker
-docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=bolao --name bolao-db postgres:16-alpine
-```
-
-**2. API** (terminal 1):
-```bash
-cd api
-go run ./cmd/server
-```
-- Escuta em http://localhost:3333
-- Variáveis: `DATABASE_URL`, `PORT`, `JWT_SECRET` (opcional, já tem defaults)
-
-**3. Frontend** (terminal 2):
-```bash
-cd web
-npm install && npm run dev
-```
-- App em http://localhost:5173
-- API em outra porta? Crie `web/.env` com `VITE_API_URL=http://localhost:SUA_PORTA`
+---
 
 ## Primeiro acesso
 
