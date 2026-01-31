@@ -1,19 +1,12 @@
 #!/bin/bash
-# Modo deploy: sobe a aplicação com Docker e expõe via ngrok
-# Acesso público: URL gerada pelo ngrok
+# Modo deploy: sobe a aplicação com Docker e opcionalmente ngrok
+# Ngrok em terminal separado para que Ctrl+C não derrube os containers
 
 set -e
 cd "$(dirname "$0")/.."
 
-echo "=== Modo DEPLOY (ngrok) ==="
+echo "=== Modo DEPLOY ==="
 echo ""
-
-# Verifica se ngrok está instalado
-if ! command -v ngrok &>/dev/null; then
-  echo "ngrok não encontrado. Instale em: https://ngrok.com/download"
-  echo "Ou com: snap install ngrok  /  brew install ngrok"
-  exit 1
-fi
 
 # Sobe os containers
 echo "Iniciando containers..."
@@ -23,14 +16,15 @@ echo ""
 echo "Aguardando serviços iniciarem..."
 sleep 5
 
-# Porta do frontend (web) no deploy - diferente da dev para não conflitar
 WEB_PORT=5175
 
 echo ""
-echo "Expondo via ngrok na porta $WEB_PORT..."
-echo "A URL pública aparecerá abaixo. Compartilhe com os usuários."
+echo "Containers rodando. API: http://localhost:3335 | Frontend: http://localhost:$WEB_PORT"
 echo ""
-echo "Para parar: docker compose down  (e Ctrl+C no ngrok)"
+echo "Para expor via ngrok, rode em OUTRO terminal:"
+echo "  make ngrok   (ou: ngrok http $WEB_PORT)"
 echo ""
-
-ngrok http "$WEB_PORT"
+echo "Assim, ao apertar Ctrl+C no ngrok, apenas o túnel para e os containers continuam."
+echo ""
+echo "Para parar os containers: make stop-deploy"
+echo ""

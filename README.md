@@ -42,22 +42,19 @@ make dev
 Para expor a aplicação na internet:
 
 ```bash
+# 1. Sobe os containers
 make deploy
-# ou: ./scripts/deploy.sh
+
+# 2. Em outro terminal, inicia o ngrok
+make ngrok
+# ou: ngrok http 5175
 ```
 
-1. Sobe API + Frontend + Banco em containers (portas 3335 e 5175)
-2. Inicia ngrok na porta 5175 e exibe a URL pública
-3. Compartilhe a URL com os usuários
+Ngrok em terminal separado permite Ctrl+C sem derrubar os containers — você pode reiniciar o túnel quando quiser.
 
-**Requisito**: [ngrok](https://ngrok.com/download) instalado.
-
-**Para parar o deploy:**
-```bash
-make stop-deploy
-# ou: ./scripts/stop-deploy.sh
-```
-Depois pressione Ctrl+C no terminal do ngrok.
+**Para parar:**
+- Ctrl+C no ngrok → só fecha o túnel; containers continuam
+- `make stop-deploy` → para os containers
 
 ---
 
