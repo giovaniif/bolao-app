@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/bolao-app/api/internal/auth"
 	"github.com/bolao-app/api/internal/constants"
 	"github.com/bolao-app/api/internal/models"
 	"github.com/bolao-app/api/internal/repository"
@@ -64,12 +65,14 @@ func (h *UserHandler) Create(c *gin.Context) {
 	}
 
 	user := &models.User{
-		ID:           uuid.New(),
-		Username:     req.Username,
-		DisplayName:  req.DisplayName,
-		FavoriteTeam: req.FavoriteTeam,
-		IsAdmin:      req.IsAdmin,
-		AmountPaid:   0,
+		ID:                 uuid.New(),
+		Username:           req.Username,
+		DisplayName:        req.DisplayName,
+		FavoriteTeam:       req.FavoriteTeam,
+		IsAdmin:            req.IsAdmin,
+		AmountPaid:         0,
+		PasswordHash:       auth.DefaultPasswordHash,
+		MustChangePassword: true,
 	}
 
 	if err := h.userRepo.Create(c.Request.Context(), user); err != nil {

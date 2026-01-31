@@ -11,6 +11,7 @@ export interface User {
   id: string;
   username: string;
   is_admin: boolean;
+  must_change_password?: boolean;
 }
 
 interface AuthContextType {

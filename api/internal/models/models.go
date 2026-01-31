@@ -7,14 +7,16 @@ import (
 )
 
 type User struct {
-	ID           uuid.UUID `json:"id"`
-	Username     string    `json:"username"`
-	DisplayName  string    `json:"display_name"`
-	FavoriteTeam *string   `json:"favorite_team,omitempty"`
-	IsAdmin      bool      `json:"is_admin"`
-	AmountPaid   float64   `json:"amount_paid"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	ID                 uuid.UUID `json:"id"`
+	Username           string    `json:"username"`
+	DisplayName        string    `json:"display_name"`
+	FavoriteTeam       *string   `json:"favorite_team,omitempty"`
+	IsAdmin            bool      `json:"is_admin"`
+	AmountPaid         float64   `json:"amount_paid"`
+	PasswordHash       string    `json:"-"`
+	MustChangePassword bool      `json:"must_change_password,omitempty"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
 }
 
 type Match struct {

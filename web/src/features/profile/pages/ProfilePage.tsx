@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Layout } from '../../../shared/components/Layout';
 import { Button } from '../../../shared/components/Button';
 import { Input } from '../../../shared/components/Input';
@@ -90,6 +91,14 @@ export function ProfilePage() {
         <Button type="submit" disabled={updateMutation.isPending}>
           {updateMutation.isPending ? 'Salvando...' : 'Salvar'}
         </Button>
+        <p className="text-sm">
+          <Link
+            to="/alterar-senha"
+            className="text-[var(--color-primary)] hover:underline"
+          >
+            Alterar senha
+          </Link>
+        </p>
       </form>
     </Layout>
   );

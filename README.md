@@ -69,16 +69,26 @@ docker compose up --build
 
 ## Primeiro acesso
 
-1. Crie o primeiro usuário admin via SQL:
+1. Crie o primeiro usuário admin via SQL (senha padrão inicial: `123`):
 
 ```sql
-INSERT INTO users (id, username, display_name, is_admin, amount_paid)
-VALUES (gen_random_uuid(), 'admin', 'Administrador', true, 0);
+INSERT INTO users (id, username, display_name, is_admin, amount_paid, password_hash, must_change_password)
+VALUES (
+  gen_random_uuid(),
+  'admin',
+  'Administrador',
+  true,
+  0,
+  '$2a$10$uTr26SWYWuGs.D/j0JJtf.ClwuNgzbE38JRdB76Xoyk41JKdNKkv2',
+  true
+);
 ```
 
-2. Acesse http://localhost:5173 e faça login com o usuário `admin`.
+2. Acesse o app e faça login com usuário `admin` e senha `123`.
 
-3. Como admin, cadastre os demais usuários e adicione os jogos das rodadas.
+3. No primeiro acesso, altere a senha obrigatoriamente.
+
+4. Como admin, cadastre os demais usuários (todos começam com senha `123`) e adicione os jogos das rodadas.
 
 ## Funcionalidades
 

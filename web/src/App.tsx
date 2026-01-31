@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './shared/hooks/useAuth';
 import { LoginPage } from './features/auth/pages/LoginPage';
+import { ChangePasswordPage } from './features/auth/pages/ChangePasswordPage';
 import { ClassificationPage } from './features/classification/pages/ClassificationPage';
 import { PredictionsPage } from './features/predictions/pages/PredictionsPage';
 import { AdminPage } from './features/admin/pages/AdminPage';
@@ -16,10 +17,21 @@ const queryClient = new QueryClient({
   },
 });
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+function RequireAuth({ children }: { children: React.ReactNode }) {
   const { token } = useAuth();
   if (!token) {
     return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
+}
+
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { token, user } = useAuth();
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+  if (user?.must_change_password) {
+    return <Navigate to="/alterar-senha" replace />;
   }
   return <>{children}</>;
 }
@@ -28,6 +40,14 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route
+        path="/alterar-senha"
+        element={
+          <RequireAuth>
+            <ChangePasswordPage />
+          </RequireAuth>
+        }
+      />
       <Route
         path="/"
         element={

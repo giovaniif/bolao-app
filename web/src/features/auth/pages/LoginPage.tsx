@@ -7,6 +7,7 @@ import { Input } from '../../../shared/components/Input';
 
 export function LoginPage() {
   const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login: doLogin } = useAuth();
@@ -17,13 +18,14 @@ export function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      const res = await login(username.trim());
+      const res = await login(username.trim(), password);
       doLogin(res.token, {
         id: res.user_id,
         username: res.username,
         is_admin: res.is_admin,
+        must_change_password: res.must_change_password,
       });
-      navigate('/');
+      navigate(res.must_change_password ? '/alterar-senha' : '/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao entrar');
     } finally {
@@ -38,7 +40,7 @@ export function LoginPage() {
           Bolão Brasileirão
         </h1>
         <p className="text-center text-[var(--color-text-muted)] text-sm mb-8">
-          Digite seu usuário para acessar
+          Usuário e senha para acessar
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -49,6 +51,14 @@ export function LoginPage() {
             placeholder="Seu usuário"
             autoComplete="username"
             autoFocus
+          />
+          <Input
+            label="Senha"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Sua senha"
+            autoComplete="current-password"
           />
           {error && (
             <p className="text-red-400 text-sm text-center">{error}</p>

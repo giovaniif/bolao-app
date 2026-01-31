@@ -57,6 +57,7 @@ func main() {
 	api := r.Group("/api")
 	api.Use(handler.AuthMiddleware(cfg.JWTSecret))
 	{
+		api.POST("/auth/change-password", authHandler.ChangePassword)
 		api.GET("/classification", classificationHandler.Get)
 		api.GET("/matches/rounds", matchHandler.ListRounds)
 		api.GET("/matches/round/:round", matchHandler.ListByRound)
@@ -104,7 +105,7 @@ func corsMiddleware() gin.HandlerFunc {
 }
 
 func runMigrations(ctx context.Context, pool *pgxpool.Pool) error {
-	for _, name := range []string{"001_init.sql", "002_timestamptz.sql", "003_match_partials.sql"} {
+	for _, name := range []string{"001_init.sql", "002_timestamptz.sql", "003_match_partials.sql", "004_passwords.sql"} {
 		path := filepath.Join("migrations", name)
 		content, err := os.ReadFile(path)
 		if err != nil {
