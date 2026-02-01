@@ -6,16 +6,22 @@ import {
   useSetPartial,
 } from '../hooks/usePartiais';
 import { useRounds } from '../../matches/hooks/useMatches';
-import type { MatchWithPartial } from '../api/parciaisApi';
+import { PartiaisTinderCard } from '../components/PartiaisTinderCard';
+import { PartiaisSummaryList } from '../components/PartiaisSummaryList';
+
+type ViewMode = 'list' | 'tinder';
 
 export function PartiaisPage() {
   const [round, setRound] = useState<number>(0);
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [currentCardIndex, setCurrentCardIndex] = useState(0);
+  const [partials, setPartials] = useState<Record<string, { h: number; a: number }>>({});
+  const [message, setMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+
   const { data: rounds = [] } = useRounds();
   const { data: matches = [], isLoading } = usePartialsByRound(round);
   const { data: classification = [] } = usePartialClassification(round);
   const setPartialMutation = useSetPartial(round);
-
-  const [editing, setEditing] = useState<Record<string, { h: number; a: number }>>({});
 
   useEffect(() => {
     if (rounds.length > 0 && (round === 0 || !rounds.includes(round))) {
@@ -26,30 +32,56 @@ export function PartiaisPage() {
   useEffect(() => {
     const map: Record<string, { h: number; a: number }> = {};
     for (const m of matches) {
-      const h = m.partial_home ?? 0;
-      const a = m.partial_away ?? 0;
-      map[m.id] = { h, a };
+      map[m.id] = {
+        h: m.partial_home ?? 0,
+        a: m.partial_away ?? 0,
+      };
     }
-    setEditing(map);
+    setPartials(map);
   }, [matches]);
 
-  async function handleSave(m: MatchWithPartial) {
-    const v = editing[m.id];
-    if (v === undefined) return;
+  useEffect(() => {
+    setCurrentCardIndex(0);
+    setViewMode('list');
+  }, [round]);
+
+  function handleChange(matchId: string, home: number, away: number) {
+    setPartials((prev) => ({
+      ...prev,
+      [matchId]: { h: home, a: away },
+    }));
+  }
+
+  async function handleSaveAll() {
+    setMessage(null);
     try {
-      await setPartialMutation.mutateAsync({
-        matchId: m.id,
-        homeGoals: v.h,
-        awayGoals: v.a,
-      });
+      for (const m of matches) {
+        const p = partials[m.id];
+        if (!p) continue;
+        const currentH = m.partial_home ?? 0;
+        const currentA = m.partial_away ?? 0;
+        if (p.h !== currentH || p.a !== currentA) {
+          await setPartialMutation.mutateAsync({
+            matchId: m.id,
+            homeGoals: p.h,
+            awayGoals: p.a,
+          });
+        }
+      }
+      setMessage({ type: 'ok', text: 'Parciais salvos!' });
+      setViewMode('list');
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Erro ao salvar');
+      setMessage({
+        type: 'err',
+        text: err instanceof Error ? err.message : 'Erro ao salvar',
+      });
     }
   }
 
   const hasPartials = matches.some(
-    (m) => m.partial_home !== undefined || m.partial_away !== undefined
+    (m) => (m.partial_home ?? 0) > 0 || (m.partial_away ?? 0) > 0
   );
+  const currentMatch = matches[currentCardIndex];
 
   return (
     <Layout title="Parciais">
@@ -73,113 +105,135 @@ export function PartiaisPage() {
           </div>
         )}
 
+        {message && (
+          <p
+            className={`text-sm text-center py-2 ${
+              message.type === 'ok' ? 'text-green-400' : 'text-red-400'
+            }`}
+          >
+            {message.text}
+          </p>
+        )}
+
         {isLoading ? (
           <p className="text-[var(--color-text-muted)]">Carregando...</p>
+        ) : matches.length === 0 ? (
+          <p className="text-[var(--color-text-muted)] text-sm">
+            Nenhum jogo nesta rodada.
+          </p>
+        ) : viewMode === 'list' ? (
+          <>
+            <PartiaisSummaryList
+              matches={matches}
+              partials={partials}
+              onEdit={() => setViewMode('tinder')}
+            />
+            <button
+              onClick={() => setViewMode('tinder')}
+              className="w-full py-3 rounded-lg border border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 font-medium"
+            >
+              Editar parciais
+            </button>
+          </>
         ) : (
           <>
-            <section>
-              <h2 className="text-sm font-medium text-[var(--color-text-muted)] mb-2">
-                Jogos — adicione os parciais (qualquer usuário pode editar)
-              </h2>
-              <div className="space-y-2">
-                {matches.map((m) => (
-                  <div
-                    key={m.id}
-                    className="p-3 rounded-lg bg-[var(--color-card)] border border-slate-700"
-                  >
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">
-                          {m.home_team} × {m.away_team}
-                        </p>
-                        {m.real_home_goals !== undefined && m.real_away_goals !== undefined && (
-                          <p className="text-xs text-[var(--color-text-muted)]">
-                            Resultado final: {m.real_home_goals}–{m.real_away_goals}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <input
-                          type="number"
-                          min={0}
-                          value={editing[m.id]?.h ?? 0}
-                          onChange={(e) =>
-                            setEditing((prev) => ({
-                              ...prev,
-                              [m.id]: {
-                                h: Math.max(0, parseInt(e.target.value, 10) || 0),
-                                a: prev[m.id]?.a ?? 0,
-                              },
-                            }))
-                          }
-                          className="w-12 px-2 py-1 text-center rounded bg-slate-800 border border-slate-600 text-white"
-                        />
-                        <span className="text-slate-400">–</span>
-                        <input
-                          type="number"
-                          min={0}
-                          value={editing[m.id]?.a ?? 0}
-                          onChange={(e) =>
-                            setEditing((prev) => ({
-                              ...prev,
-                              [m.id]: {
-                                h: prev[m.id]?.h ?? 0,
-                                a: Math.max(0, parseInt(e.target.value, 10) || 0),
-                              },
-                            }))
-                          }
-                          className="w-12 px-2 py-1 text-center rounded bg-slate-800 border border-slate-600 text-white"
-                        />
-                        <button
-                          onClick={() => handleSave(m)}
-                          disabled={setPartialMutation.isPending}
-                          className="text-sm text-[var(--color-primary)] hover:underline px-1"
-                        >
-                          Salvar
-                        </button>
-                      </div>
+            <p className="text-sm text-[var(--color-text-muted)]">
+              Qualquer usuário pode adicionar parciais
+            </p>
+            <PartiaisTinderCard
+              match={currentMatch}
+              homeGoals={partials[currentMatch.id]?.h ?? 0}
+              awayGoals={partials[currentMatch.id]?.a ?? 0}
+              onGoalsChange={(h, a) => handleChange(currentMatch.id, h, a)}
+              onSwipeLeft={() =>
+                setCurrentCardIndex((i) => Math.min(i + 1, matches.length - 1))
+              }
+              onSwipeRight={() =>
+                setCurrentCardIndex((i) => Math.max(i - 1, 0))
+              }
+              hasNext={currentCardIndex < matches.length - 1}
+              hasPrev={currentCardIndex > 0}
+              currentIndex={currentCardIndex}
+              total={matches.length}
+            />
+
+            <details className="rounded-lg bg-[var(--color-card)] border border-slate-700">
+              <summary className="px-4 py-3 cursor-pointer text-sm text-[var(--color-text-muted)] hover:text-[var(--color-primary)]">
+                Ver resumo dos jogos
+              </summary>
+              <div className="px-4 pb-4 space-y-2">
+                {matches.map((m, i) => {
+                  const p = partials[m.id] ?? { h: 0, a: 0 };
+                  return (
+                    <div
+                      key={m.id}
+                      onClick={() => setCurrentCardIndex(i)}
+                      className={`flex items-center justify-between py-2 px-3 rounded-lg cursor-pointer transition-colors ${
+                        i === currentCardIndex
+                          ? 'bg-[var(--color-primary)]/20'
+                          : 'hover:bg-slate-700/50'
+                      }`}
+                    >
+                      <span className="text-sm truncate flex-1">
+                        {m.home_team} × {m.away_team}
+                      </span>
+                      <span className="text-sm shrink-0 ml-2">
+                        {p.h}×{p.a}
+                      </span>
                     </div>
+                  );
+                })}
+              </div>
+            </details>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setViewMode('list')}
+                className="flex-1 py-3 rounded-lg border border-slate-600 text-[var(--color-text-muted)] hover:bg-slate-700/50 font-medium"
+              >
+                Voltar
+              </button>
+              <button
+                onClick={handleSaveAll}
+                disabled={setPartialMutation.isPending}
+                className="flex-1 py-3 rounded-lg bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] text-white font-medium disabled:opacity-50"
+              >
+                {setPartialMutation.isPending ? 'Salvando...' : 'Salvar parciais'}
+              </button>
+            </div>
+          </>
+        )}
+
+        {hasPartials && classification.length > 0 && (
+          <section>
+            <h2 className="text-sm font-medium text-[var(--color-text-muted)] mb-2">
+              Classificação baseada nas parciais
+            </h2>
+            <div className="rounded-lg bg-[var(--color-card)] border border-slate-700 overflow-hidden">
+              <div className="divide-y divide-slate-700">
+                {classification.map((u, i) => (
+                  <div
+                    key={u.id}
+                    className="flex items-center justify-between px-4 py-2"
+                  >
+                    <span className="font-medium">
+                      {i + 1}. {u.display_name}
+                    </span>
+                    <span className="text-[var(--color-primary)]">
+                      {u.total_points} pts
+                    </span>
                   </div>
                 ))}
               </div>
-              {matches.length === 0 && (
-                <p className="text-[var(--color-text-muted)] text-sm">
-                  Nenhum jogo nesta rodada.
-                </p>
-              )}
-            </section>
+            </div>
+          </section>
+        )}
 
-            {hasPartials && classification.length > 0 && (
-              <section>
-                <h2 className="text-sm font-medium text-[var(--color-text-muted)] mb-2">
-                  Classificação baseada nas parciais
-                </h2>
-                <div className="rounded-lg bg-[var(--color-card)] border border-slate-700 overflow-hidden">
-                  <div className="divide-y divide-slate-700">
-                    {classification.map((u, i) => (
-                      <div
-                        key={u.id}
-                        className="flex items-center justify-between px-4 py-2"
-                      >
-                        <span className="font-medium">
-                          {i + 1}. {u.display_name}
-                        </span>
-                        <span className="text-[var(--color-primary)]">
-                          {u.total_points} pts
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </section>
-            )}
-
-            {hasPartials && classification.length === 0 && (
-              <p className="text-sm text-[var(--color-text-muted)]">
-                Adicione parciais aos jogos para ver a classificação.
-              </p>
-            )}
-          </>
+        {hasPartials && classification.length === 0 && (
+          <p className="text-sm text-[var(--color-text-muted)]">
+            Adicione parciais aos jogos para ver a classificação.
+          </p>
         )}
       </div>
     </Layout>
