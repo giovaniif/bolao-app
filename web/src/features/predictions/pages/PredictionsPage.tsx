@@ -1,14 +1,19 @@
 import { useState, useEffect } from 'react';
 import { Layout } from '../../../shared/components/Layout';
-import { formatDateTime } from '../../../shared/utils/date';
 import { useRounds, useMatchesByRound } from '../../matches/hooks/useMatches';
 import { useMyPredictions, useSavePredictions } from '../hooks/usePredictions';
+import { PredictionsTinderCard } from '../components/PredictionsTinderCard';
+import { PredictionsSummaryList } from '../components/PredictionsSummaryList';
 import type { Match } from '../../matches/api/matchesApi';
+
+type ViewMode = 'tinder' | 'list';
 
 export function PredictionsPage() {
   const [round, setRound] = useState<number>(0);
   const [predictions, setPredictions] = useState<Record<string, { h: number; a: number }>>({});
   const [message, setMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+  const [currentCardIndex, setCurrentCardIndex] = useState(0);
+  const [viewMode, setViewMode] = useState<ViewMode>('tinder');
 
   const { data: rounds = [] } = useRounds();
   const { data: matches = [], isLoading } = useMatchesByRound(round);
@@ -34,6 +39,11 @@ export function PredictionsPage() {
     setPredictions(map);
   }, [matches, myPredictions]);
 
+  useEffect(() => {
+    setCurrentCardIndex(0);
+    setViewMode('tinder');
+  }, [round]);
+
   function handleChange(matchId: string, home: number, away: number) {
     setPredictions((prev) => ({
       ...prev,
@@ -56,6 +66,7 @@ export function PredictionsPage() {
       }));
       await savePredictionsMutation.mutateAsync(payload);
       setMessage({ type: 'ok', text: 'Palpites salvos!' });
+      setViewMode('list');
     } catch (err) {
       setMessage({
         type: 'err',
@@ -63,6 +74,9 @@ export function PredictionsPage() {
       });
     }
   }
+
+  const currentMatch = matches[currentCardIndex];
+  const allClosed = matches.length > 0 && matches.every(isClosed);
 
   return (
     <Layout title="Palpites">
@@ -100,90 +114,82 @@ export function PredictionsPage() {
           <p className="text-center py-8 text-[var(--color-text-muted)]">
             Carregando...
           </p>
+        ) : matches.length === 0 ? (
+          <p className="text-center py-8 text-[var(--color-text-muted)]">
+            Nenhum jogo nesta rodada
+          </p>
+        ) : viewMode === 'list' ? (
+          <>
+            <PredictionsSummaryList
+              matches={matches}
+              predictions={predictions}
+              onEdit={() => setViewMode('tinder')}
+              isClosed={isClosed}
+            />
+            <button
+              onClick={() => setViewMode('tinder')}
+              className="w-full py-3 rounded-lg border border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 font-medium"
+            >
+              Editar palpites
+            </button>
+          </>
         ) : (
           <>
-            <div className="space-y-3">
-              {matches.map((m) => {
-                const closed = isClosed(m);
-                const pred = predictions[m.id] ?? { h: 0, a: 0 };
-                return (
-                  <div
-                    key={m.id}
-                    className="p-4 rounded-lg bg-[var(--color-card)] border border-slate-700"
-                  >
-                    <div className="flex items-center justify-between gap-2 mb-2">
-                      <span className="text-sm text-[var(--color-text-muted)]">
-                        {m.market_closes_at &&
-                          `Fecha: ${formatDateTime(m.market_closes_at)}`}
-                        {closed && (
-                          <span className="ml-2 text-amber-400">(fechado)</span>
-                        )}
+            <PredictionsTinderCard
+              match={currentMatch}
+              homeGoals={predictions[currentMatch.id]?.h ?? 0}
+              awayGoals={predictions[currentMatch.id]?.a ?? 0}
+              onGoalsChange={(h, a) => handleChange(currentMatch.id, h, a)}
+              onSwipeLeft={() =>
+                setCurrentCardIndex((i) => Math.min(i + 1, matches.length - 1))
+              }
+              onSwipeRight={() =>
+                setCurrentCardIndex((i) => Math.max(i - 1, 0))
+              }
+              hasNext={currentCardIndex < matches.length - 1}
+              hasPrev={currentCardIndex > 0}
+              currentIndex={currentCardIndex}
+              total={matches.length}
+              disabled={isClosed(currentMatch)}
+            />
+
+            {/* Resumo compacto abaixo do card */}
+            <details className="rounded-lg bg-[var(--color-card)] border border-slate-700">
+              <summary className="px-4 py-3 cursor-pointer text-sm text-[var(--color-text-muted)] hover:text-[var(--color-primary)]">
+                Ver resumo dos jogos
+              </summary>
+              <div className="px-4 pb-4 space-y-2">
+                {matches.map((m, i) => {
+                  const pred = predictions[m.id] ?? { h: 0, a: 0 };
+                  return (
+                    <div
+                      key={m.id}
+                      onClick={() => setCurrentCardIndex(i)}
+                      className={`flex items-center justify-between py-2 px-3 rounded-lg cursor-pointer transition-colors ${
+                        i === currentCardIndex
+                          ? 'bg-[var(--color-primary)]/20'
+                          : 'hover:bg-slate-700/50'
+                      }`}
+                    >
+                      <span className="text-sm truncate flex-1">
+                        {m.home_team} × {m.away_team}
+                      </span>
+                      <span className="text-sm shrink-0 ml-2">
+                        {pred.h}×{pred.a}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="flex-1 text-right truncate">
-                        {m.home_team}
-                      </span>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <input
-                          type="number"
-                          min={0}
-                          max={99}
-                          value={pred.h}
-                          onChange={(e) =>
-                            handleChange(
-                              m.id,
-                              parseInt(e.target.value) || 0,
-                              pred.a
-                            )
-                          }
-                          disabled={closed}
-                          className="w-12 py-1 text-center rounded bg-slate-800 border border-slate-600 text-white disabled:opacity-50"
-                        />
-                        <span className="text-[var(--color-text-muted)]">x</span>
-                        <input
-                          type="number"
-                          min={0}
-                          max={99}
-                          value={pred.a}
-                          onChange={(e) =>
-                            handleChange(
-                              m.id,
-                              pred.h,
-                              parseInt(e.target.value) || 0
-                            )
-                          }
-                          disabled={closed}
-                          className="w-12 py-1 text-center rounded bg-slate-800 border border-slate-600 text-white disabled:opacity-50"
-                        />
-                      </div>
-                      <span className="flex-1 truncate">{m.away_team}</span>
-                    </div>
-                    {m.home_goals != null && m.away_goals != null && (
-                      <p className="text-xs text-[var(--color-text-muted)] text-center mt-1">
-                        Resultado: {m.home_goals} x {m.away_goals}
-                      </p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            </details>
 
-            {matches.length > 0 && (
-              <button
-                onClick={handleSave}
-                disabled={savePredictionsMutation.isPending}
-                className="w-full py-3 rounded-lg bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] text-white font-medium disabled:opacity-50"
-              >
-                {savePredictionsMutation.isPending ? 'Salvando...' : 'Salvar palpites'}
-              </button>
-            )}
-
-            {matches.length === 0 && !isLoading && (
-              <p className="text-center py-8 text-[var(--color-text-muted)]">
-                Nenhum jogo nesta rodada
-              </p>
-            )}
+            <button
+              onClick={handleSave}
+              disabled={savePredictionsMutation.isPending || allClosed}
+              className="w-full py-3 rounded-lg bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] text-white font-medium disabled:opacity-50"
+            >
+              {savePredictionsMutation.isPending ? 'Salvando...' : 'Salvar palpites'}
+            </button>
           </>
         )}
       </div>
