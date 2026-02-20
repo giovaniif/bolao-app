@@ -59,6 +59,46 @@ func (h *PredictionHandler) GetMyPredictions(c *gin.Context) {
 	c.JSON(http.StatusOK, predictions)
 }
 
+// GetByUserAndRound returns another user's predictions for a round.
+// Allowed only after the round's market has closed (all matches).
+func (h *PredictionHandler) GetByUserAndRound(c *gin.Context) {
+	roundStr := c.Param("round")
+	round, err := strconv.Atoi(roundStr)
+	if err != nil || round < 1 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "rodada inválida"})
+		return
+	}
+	userIDStr := c.Param("user_id")
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id inválido"})
+		return
+	}
+
+	matches, err := h.matchRepo.ListByRound(c.Request.Context(), round)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	now := time.Now()
+	for _, m := range matches {
+		if m.MarketClosesAt == nil || now.Before(*m.MarketClosesAt) {
+			c.JSON(http.StatusForbidden, gin.H{"error": "só é possível ver palpites de outros jogadores após o fechamento do mercado da rodada"})
+			return
+		}
+	}
+
+	predictions, err := h.predictionRepo.GetByUserAndRound(c.Request.Context(), userID, round)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if predictions == nil {
+		predictions = []models.Prediction{}
+	}
+	c.JSON(http.StatusOK, predictions)
+}
+
 func (h *PredictionHandler) UpsertPredictions(c *gin.Context) {
 	userID := c.MustGet("user_id").(uuid.UUID)
 

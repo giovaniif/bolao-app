@@ -61,7 +61,9 @@ func main() {
 		api.GET("/classification", classificationHandler.Get)
 		api.GET("/matches/rounds", matchHandler.ListRounds)
 		api.GET("/matches/round/:round", matchHandler.ListByRound)
+		api.GET("/users", userHandler.List)
 		api.GET("/predictions", predictionHandler.GetMyPredictions)
+		api.GET("/predictions/round/:round/user/:user_id", predictionHandler.GetByUserAndRound)
 		api.POST("/predictions", predictionHandler.UpsertPredictions)
 		api.GET("/me", userHandler.GetMe)
 		api.PUT("/me", userHandler.UpdateMe)
@@ -74,7 +76,6 @@ func main() {
 		admin := api.Group("")
 		admin.Use(handler.AdminMiddleware())
 		{
-			admin.GET("/users", userHandler.List)
 			admin.POST("/users", userHandler.Create)
 			admin.PUT("/users/:id", userHandler.Update)
 			admin.POST("/matches", matchHandler.CreateMatches)

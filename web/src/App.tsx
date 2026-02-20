@@ -8,6 +8,7 @@ import { PredictionsPage } from './features/predictions/pages/PredictionsPage';
 import { AdminPage } from './features/admin/pages/AdminPage';
 import { ProfilePage } from './features/profile/pages/ProfilePage';
 import { PartiaisPage } from './features/parciais/pages/PartiaisPage';
+import { ViewPredictionsPage } from './features/viewPredictions/pages/ViewPredictionsPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -85,6 +86,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <PartiaisPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/ver-palpites"
+        element={
+          <ProtectedRoute>
+            <ViewPredictionsPage />
           </ProtectedRoute>
         }
       />

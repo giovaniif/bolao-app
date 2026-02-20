@@ -49,6 +49,7 @@ export function Layout({ children, title }: LayoutProps) {
         <div className="flex justify-around py-2 max-w-2xl mx-auto">
           <NavLink to="/">Classificação</NavLink>
           <NavLink to="/palpites">Palpites</NavLink>
+          <NavLink to="/ver-palpites">Ver palpites</NavLink>
           <NavLink to="/parciais">Parciais</NavLink>
           {isAdmin() && <NavLink to="/admin">Admin</NavLink>}
         </div>
