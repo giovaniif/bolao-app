@@ -15,7 +15,9 @@ export function PartiaisPage() {
   const [round, setRound] = useState<number>(0);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
-  const [partials, setPartials] = useState<Record<string, { h: number; a: number }>>({});
+  const [partials, setPartials] = useState<
+    Record<string, { h: number | null; a: number | null }>
+  >({});
   const [message, setMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
 
   const { data: rounds = [] } = useRounds();
@@ -30,11 +32,11 @@ export function PartiaisPage() {
   }, [rounds, round]);
 
   useEffect(() => {
-    const map: Record<string, { h: number; a: number }> = {};
+    const map: Record<string, { h: number | null; a: number | null }> = {};
     for (const m of matches) {
       map[m.id] = {
-        h: m.partial_home ?? 0,
-        a: m.partial_away ?? 0,
+        h: m.partial_home ?? null,
+        a: m.partial_away ?? null,
       };
     }
     setPartials(map);
@@ -45,7 +47,11 @@ export function PartiaisPage() {
     setViewMode('list');
   }, [round]);
 
-  function handleChange(matchId: string, home: number, away: number) {
+  function handleChange(
+    matchId: string,
+    home: number | null,
+    away: number | null
+  ) {
     setPartials((prev) => ({
       ...prev,
       [matchId]: { h: home, a: away },
@@ -57,9 +63,9 @@ export function PartiaisPage() {
     try {
       for (const m of matches) {
         const p = partials[m.id];
-        if (!p) continue;
-        const currentH = m.partial_home ?? 0;
-        const currentA = m.partial_away ?? 0;
+        if (!p || p.h == null || p.a == null) continue;
+        const currentH = m.partial_home ?? null;
+        const currentA = m.partial_away ?? null;
         if (p.h !== currentH || p.a !== currentA) {
           await setPartialMutation.mutateAsync({
             matchId: m.id,
@@ -79,7 +85,7 @@ export function PartiaisPage() {
   }
 
   const hasPartials = matches.some(
-    (m) => (m.partial_home ?? 0) > 0 || (m.partial_away ?? 0) > 0
+    (m) => m.partial_home != null && m.partial_away != null
   );
   const currentMatch = matches[currentCardIndex];
 
@@ -142,8 +148,8 @@ export function PartiaisPage() {
             </p>
             <PartiaisTinderCard
               match={currentMatch}
-              homeGoals={partials[currentMatch.id]?.h ?? 0}
-              awayGoals={partials[currentMatch.id]?.a ?? 0}
+              homeGoals={partials[currentMatch.id]?.h ?? null}
+              awayGoals={partials[currentMatch.id]?.a ?? null}
               onGoalsChange={(h, a) => handleChange(currentMatch.id, h, a)}
               onSwipeLeft={() =>
                 setCurrentCardIndex((i) => Math.min(i + 1, matches.length - 1))
@@ -163,7 +169,7 @@ export function PartiaisPage() {
               </summary>
               <div className="px-4 pb-4 space-y-2">
                 {matches.map((m, i) => {
-                  const p = partials[m.id] ?? { h: 0, a: 0 };
+                  const p = partials[m.id] ?? { h: null, a: null };
                   return (
                     <div
                       key={m.id}
@@ -178,7 +184,7 @@ export function PartiaisPage() {
                         {m.home_team} × {m.away_team}
                       </span>
                       <span className="text-sm shrink-0 ml-2">
-                        {p.h}×{p.a}
+                        {p.h ?? '–'}×{p.a ?? '–'}
                       </span>
                     </div>
                   );

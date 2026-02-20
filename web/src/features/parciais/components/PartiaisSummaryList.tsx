@@ -2,7 +2,7 @@ import type { MatchWithPartial } from '../api/parciaisApi';
 
 interface PartiaisSummaryListProps {
   matches: MatchWithPartial[];
-  partials: Record<string, { h: number; a: number }>;
+  partials: Record<string, { h: number | null; a: number | null }>;
   onEdit: () => void;
 }
 
@@ -26,7 +26,7 @@ export function PartiaisSummaryList({
 
       <div className="space-y-2">
         {matches.map((m) => {
-          const p = partials[m.id] ?? { h: 0, a: 0 };
+          const p = partials[m.id] ?? { h: null, a: null };
           return (
             <div
               key={m.id}
@@ -36,7 +36,7 @@ export function PartiaisSummaryList({
                 <div className="flex items-center gap-2 text-sm">
                   <span className="truncate">{m.home_team}</span>
                   <span className="text-[var(--color-text-muted)] shrink-0">
-                    {p.h} × {p.a}
+                    {p.h ?? '–'} × {p.a ?? '–'}
                   </span>
                   <span className="truncate">{m.away_team}</span>
                 </div>

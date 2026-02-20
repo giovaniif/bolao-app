@@ -43,8 +43,8 @@ type Prediction struct {
 
 type MatchPartial struct {
 	MatchID   uuid.UUID  `json:"match_id"`
-	HomeGoals int        `json:"home_goals"`
-	AwayGoals int        `json:"away_goals"`
+	HomeGoals *int       `json:"home_goals,omitempty"`
+	AwayGoals *int       `json:"away_goals,omitempty"`
 	UpdatedBy *uuid.UUID `json:"updated_by,omitempty"`
 	UpdatedAt time.Time  `json:"updated_at"`
 }

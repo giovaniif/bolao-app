@@ -3,9 +3,9 @@ import type { MatchWithPartial } from '../api/parciaisApi';
 
 interface PartiaisTinderCardProps {
   match: MatchWithPartial;
-  homeGoals: number;
-  awayGoals: number;
-  onGoalsChange: (home: number, away: number) => void;
+  homeGoals: number | null;
+  awayGoals: number | null;
+  onGoalsChange: (home: number | null, away: number | null) => void;
   onSwipeLeft: () => void;
   onSwipeRight: () => void;
   hasNext: boolean;
@@ -74,14 +74,21 @@ export function PartiaisTinderCard({
   }
 
   function adjust(team: 'home' | 'away', delta: number) {
+    const curH = homeGoals ?? 0;
+    const curA = awayGoals ?? 0;
     if (team === 'home') {
-      const v = Math.max(0, Math.min(99, homeGoals + delta));
+      const v = Math.max(0, Math.min(99, curH + delta));
       onGoalsChange(v, awayGoals);
     } else {
-      const v = Math.max(0, Math.min(99, awayGoals + delta));
+      const v = Math.max(0, Math.min(99, curA + delta));
       onGoalsChange(homeGoals, v);
     }
   }
+
+  const displayHome = homeGoals ?? '–';
+  const displayAway = awayGoals ?? '–';
+  const homeIsZero = homeGoals === 0;
+  const awayIsZero = awayGoals === 0;
 
   const opacity = Math.max(0.3, 1 - Math.abs(dragX) / 200);
 
@@ -121,14 +128,14 @@ export function PartiaisTinderCard({
                 <button
                   type="button"
                   onClick={() => adjust('home', -1)}
-                  disabled={homeGoals <= 0}
+                  disabled={homeIsZero}
                   className="w-12 h-12 rounded-full bg-slate-700 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-2xl font-bold flex items-center justify-center"
                   aria-label="Diminuir gols mandante"
                 >
                   −
                 </button>
                 <span className="w-14 text-3xl font-bold text-center">
-                  {homeGoals}
+                  {displayHome}
                 </span>
                 <button
                   type="button"
@@ -154,14 +161,14 @@ export function PartiaisTinderCard({
                 <button
                   type="button"
                   onClick={() => adjust('away', -1)}
-                  disabled={awayGoals <= 0}
+                  disabled={awayIsZero}
                   className="w-12 h-12 rounded-full bg-slate-700 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-2xl font-bold flex items-center justify-center"
                   aria-label="Diminuir gols visitante"
                 >
                   −
                 </button>
                 <span className="w-14 text-3xl font-bold text-center">
-                  {awayGoals}
+                  {displayAway}
                 </span>
                 <button
                   type="button"

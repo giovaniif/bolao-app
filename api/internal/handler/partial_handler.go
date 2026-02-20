@@ -64,9 +64,9 @@ func (h *PartialHandler) ListByRound(c *gin.Context) {
 			RealHomeGoals: m.HomeGoals,
 			RealAwayGoals: m.AwayGoals,
 		}
-		if p, ok := partials[m.ID]; ok {
-			item.PartialHome = &p.HomeGoals
-			item.PartialAway = &p.AwayGoals
+		if p, ok := partials[m.ID]; ok && p.HomeGoals != nil && p.AwayGoals != nil {
+			item.PartialHome = p.HomeGoals
+			item.PartialAway = p.AwayGoals
 		}
 		result = append(result, item)
 	}

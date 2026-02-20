@@ -19,7 +19,7 @@ func NewClassificationHandler(classificationSvc *service.ClassificationService) 
 func (h *ClassificationHandler) Get(c *gin.Context) {
 	roundStr := c.DefaultQuery("round", "0")
 	round, err := strconv.Atoi(roundStr)
-	if err != nil || round < 0 {
+	if err != nil || round <= 0 {
 		round = 999
 	}
 

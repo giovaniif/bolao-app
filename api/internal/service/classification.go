@@ -39,6 +39,19 @@ type RoundScore struct {
 }
 
 func (s *ClassificationService) GetClassification(ctx context.Context, upToRound int) ([]models.UserWithStats, error) {
+	// Quando "todas" as rodadas são pedidas (0 ou >= 999), usar a última rodada que existe no banco
+	if upToRound <= 0 || upToRound >= 999 {
+		rounds, err := s.matchRepo.ListRounds(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if len(rounds) == 0 {
+			upToRound = 0
+		} else {
+			upToRound = rounds[len(rounds)-1]
+		}
+	}
+
 	users, err := s.userRepo.List(ctx)
 	if err != nil {
 		return nil, err
@@ -64,15 +77,23 @@ func (s *ClassificationService) GetClassification(ctx context.Context, upToRound
 			return nil, err
 		}
 
-		// Check if round has results
-		hasResults := len(matches) > 0
+		// Considera só jogos com resultado; jogos sem placar são ignorados.
+		var matchesWithResults []struct {
+			m     models.Match
+			home  int
+			away  int
+		}
 		for _, m := range matches {
 			if m.HomeGoals == nil || m.AwayGoals == nil {
-				hasResults = false
-				break
+				continue
 			}
+			matchesWithResults = append(matchesWithResults, struct {
+				m     models.Match
+				home  int
+				away  int
+			}{m, *m.HomeGoals, *m.AwayGoals})
 		}
-		if !hasResults {
+		if len(matchesWithResults) == 0 {
 			continue
 		}
 
@@ -97,17 +118,11 @@ func (s *ClassificationService) GetClassification(ctx context.Context, upToRound
 			var predList []struct{ PredHome, PredAway int }
 			var matchList []struct{ HomeGoals, AwayGoals int }
 
-			for _, m := range matches {
+			for _, mwr := range matchesWithResults {
+				m := mwr.m
 				p := predByMatch[m.ID]
 				predList = append(predList, struct{ PredHome, PredAway int }{p.Home, p.Away})
-				hg, ag := 0, 0
-				if m.HomeGoals != nil {
-					hg = *m.HomeGoals
-				}
-				if m.AwayGoals != nil {
-					ag = *m.AwayGoals
-				}
-				matchList = append(matchList, struct{ HomeGoals, AwayGoals int }{hg, ag})
+				matchList = append(matchList, struct{ HomeGoals, AwayGoals int }{mwr.home, mwr.away})
 			}
 
 			points, exactScores, correctResults := CalculateRoundPoints(predList, matchList, 0)
@@ -182,12 +197,13 @@ func (s *ClassificationService) GetClassificationByPartials(ctx context.Context,
 		return nil, err
 	}
 
-	// Build match list with parciais - only include matches that have parciais
+	// Build match list with parciais - only include matches that have parciais preenchidas (não nulas).
+	// Parcial 0×0 explícita conta; ausência de parcial não conta.
 	var matchList []struct{ HomeGoals, AwayGoals int }
 	var matchIDs []uuid.UUID
 	for _, m := range matches {
-		if p, ok := partials[m.ID]; ok {
-			matchList = append(matchList, struct{ HomeGoals, AwayGoals int }{p.HomeGoals, p.AwayGoals})
+		if p, ok := partials[m.ID]; ok && p.HomeGoals != nil && p.AwayGoals != nil {
+			matchList = append(matchList, struct{ HomeGoals, AwayGoals int }{*p.HomeGoals, *p.AwayGoals})
 			matchIDs = append(matchIDs, m.ID)
 		}
 	}

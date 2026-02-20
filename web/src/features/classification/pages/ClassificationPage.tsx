@@ -12,7 +12,9 @@ export function ClassificationPage() {
   const { data: rounds = [] } = useRounds();
   const maxRound = rounds.length > 0 ? Math.max(...rounds) : 0;
   const displayRound = selectedRound === '' ? maxRound : selectedRound;
-  const roundForQuery = selectedRound === '' ? undefined : selectedRound;
+  // "Todas" = pedir até a última rodada; passar maxRound garante que o backend considere todas as rodadas
+  const roundForQuery =
+    selectedRound === '' ? (maxRound > 0 ? maxRound : undefined) : selectedRound;
 
   const { data: classification = [], isLoading, error } = useClassification(roundForQuery);
 
