@@ -1,4 +1,5 @@
-const API_BASE = '/api';
+// Em produção (ex.: GitHub Pages), use VITE_API_URL da API hospedada (Railway, Render, etc.)
+export const API_BASE = (import.meta.env.VITE_API_URL ?? '/api').replace(/\/$/, '');
 
 function getToken(): string | null {
   return localStorage.getItem('token');

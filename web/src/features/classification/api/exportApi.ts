@@ -1,4 +1,4 @@
-const API_BASE = '/api';
+import { API_BASE } from '../../../shared/api/client';
 
 function getToken(): string | null {
   return localStorage.getItem('token');

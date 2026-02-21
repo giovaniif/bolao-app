@@ -102,10 +102,13 @@ function AppRoutes() {
   );
 }
 
+// Base path para GitHub Pages (ex: /bolao-app). Em dev é ''.
+const basename = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      <BrowserRouter basename={basename}>
         <AuthProvider>
           <AppRoutes />
         </AuthProvider>
