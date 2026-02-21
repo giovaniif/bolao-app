@@ -58,7 +58,9 @@ func CalculateMatchPoints(predHome, predAway, realHome, realAway int) int {
 		}
 	}
 
-	// For games with 4+ goals: acerto do total de gols
+	// Bônus em jogos com 4+ gols (planilha: coluna P = P4:P13).
+	// Placar exato: +10 (já somado acima). Total de gols certo (com ou sem exato): +3.
+	// Na planilha exact em 4+ = 18(O)+10(P)=28; nós damos 9+3+3+10+3=28.
 	if realTotal >= 4 {
 		predTotal := predHome + predAway
 		if predTotal == realTotal {
