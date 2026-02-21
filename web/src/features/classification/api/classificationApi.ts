@@ -14,6 +14,7 @@ export interface UserWithStats {
 }
 
 export async function getClassification(round?: number): Promise<UserWithStats[]> {
-  const q = round != null ? `?round=${round}` : '?round=999';
+  // undefined/omit = cumulative (backend uses 999). Specific round = that round only.
+  const q = round != null ? `?round=${round}` : '?round=0';
   return api<UserWithStats[]>(`/classification${q}`);
 }

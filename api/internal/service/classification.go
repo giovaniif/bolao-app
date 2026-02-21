@@ -186,6 +186,88 @@ func (s *ClassificationService) GetClassification(ctx context.Context, upToRound
 	return result, nil
 }
 
+// GetClassificationForRound returns ranking for a single round only (points in that round),
+// using final match results. For cumulative classification use GetClassification.
+func (s *ClassificationService) GetClassificationForRound(ctx context.Context, round int) ([]models.UserWithStats, error) {
+	matches, err := s.matchRepo.ListByRound(ctx, round)
+	if err != nil {
+		return nil, err
+	}
+	var matchesWithResults []struct {
+		m     models.Match
+		home  int
+		away  int
+	}
+	for _, m := range matches {
+		if m.HomeGoals == nil || m.AwayGoals == nil {
+			continue
+		}
+		matchesWithResults = append(matchesWithResults, struct {
+			m     models.Match
+			home  int
+			away  int
+		}{m, *m.HomeGoals, *m.AwayGoals})
+	}
+	if len(matchesWithResults) == 0 {
+		users, _ := s.userRepo.List(ctx)
+		result := make([]models.UserWithStats, 0, len(users))
+		for _, u := range users {
+			result = append(result, models.UserWithStats{
+				User: u, TotalPoints: 0, ExactScores: 0, CorrectResults: 0, RoundsWon: 0,
+			})
+		}
+		return result, nil
+	}
+
+	users, err := s.userRepo.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]models.UserWithStats, 0, len(users))
+	for _, user := range users {
+		predictions, err := s.predictionRepo.GetByUserAndRound(ctx, user.ID, round)
+		if err != nil {
+			return nil, err
+		}
+		predByMatch := make(map[uuid.UUID]struct{ Home, Away int })
+		for _, p := range predictions {
+			predByMatch[p.MatchID] = struct{ Home, Away int }{p.HomeGoals, p.AwayGoals}
+		}
+		var predList []struct{ PredHome, PredAway int }
+		var matchList []struct{ HomeGoals, AwayGoals int }
+		for _, mwr := range matchesWithResults {
+			m := mwr.m
+			p := predByMatch[m.ID]
+			predList = append(predList, struct{ PredHome, PredAway int }{p.Home, p.Away})
+			matchList = append(matchList, struct{ HomeGoals, AwayGoals int }{mwr.home, mwr.away})
+		}
+		points, exactScores, correctResults := CalculateRoundPoints(predList, matchList, 0)
+		result = append(result, models.UserWithStats{
+			User:           user,
+			TotalPoints:    points,
+			ExactScores:    exactScores,
+			CorrectResults: correctResults,
+			RoundsWon:      0,
+		})
+	}
+
+	sort.Slice(result, func(i, j int) bool {
+		a, b := result[i], result[j]
+		if a.TotalPoints != b.TotalPoints {
+			return a.TotalPoints > b.TotalPoints
+		}
+		if a.ExactScores != b.ExactScores {
+			return a.ExactScores > b.ExactScores
+		}
+		if a.CorrectResults != b.CorrectResults {
+			return a.CorrectResults > b.CorrectResults
+		}
+		return false
+	})
+	return result, nil
+}
+
 // GetClassificationByPartials returns ranking for a single round using parciais as results.
 func (s *ClassificationService) GetClassificationByPartials(ctx context.Context, round int) ([]models.UserWithStats, error) {
 	matches, err := s.matchRepo.ListByRound(ctx, round)

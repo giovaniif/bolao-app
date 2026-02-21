@@ -23,7 +23,18 @@ func (h *ClassificationHandler) Get(c *gin.Context) {
 		round = 999
 	}
 
-	classification, err := h.classificationSvc.GetClassification(c.Request.Context(), round)
+	ctx := c.Request.Context()
+	// Specific round (1..998): classification for that round only. 0 or 999: cumulative up to last round.
+	if round >= 1 && round <= 998 {
+		classification, err := h.classificationSvc.GetClassificationForRound(ctx, round)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, classification)
+		return
+	}
+	classification, err := h.classificationSvc.GetClassification(ctx, round)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

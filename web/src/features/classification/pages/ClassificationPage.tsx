@@ -12,9 +12,9 @@ export function ClassificationPage() {
   const { data: rounds = [] } = useRounds();
   const maxRound = rounds.length > 0 ? Math.max(...rounds) : 0;
   const displayRound = selectedRound === '' ? maxRound : selectedRound;
-  // "Todas" = pedir até a última rodada; passar maxRound garante que o backend considere todas as rodadas
-  const roundForQuery =
-    selectedRound === '' ? (maxRound > 0 ? maxRound : undefined) : selectedRound;
+  // "Todas" = classificação acumulada (backend round=0/999). Rodada específica = só aquela rodada.
+  const roundForQuery = selectedRound === '' ? undefined : selectedRound;
+  const isCumulative = selectedRound === '';
 
   const { data: classification = [], isLoading, error } = useClassification(roundForQuery);
 
@@ -24,7 +24,7 @@ export function ClassificationPage() {
         {rounds.length > 0 && (
           <div>
             <label className="block text-sm text-[var(--color-text-muted)] mb-1">
-              Rodada
+              {isCumulative ? 'Classificação geral' : `Classificação da Rodada ${displayRound}`}
             </label>
             <select
               value={selectedRound}
@@ -33,7 +33,7 @@ export function ClassificationPage() {
               }
               className="w-full px-3 py-2 rounded-lg bg-[var(--color-card)] border border-slate-600 text-white"
             >
-              <option value="">Todas (até a última)</option>
+              <option value="">Geral</option>
               {rounds.map((r) => (
                 <option key={r} value={r}>
                   Rodada {r}
