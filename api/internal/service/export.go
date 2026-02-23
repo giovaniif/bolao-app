@@ -194,11 +194,16 @@ func (s *ExportService) getRoundClassification(ctx context.Context, round int, u
 		for _, p := range preds {
 			predByMatch[p.MatchID] = struct{ Home, Away int }{p.HomeGoals, p.AwayGoals}
 		}
+		const noPred = -1
 		var predList []struct{ PredHome, PredAway int }
 		var matchList []struct{ HomeGoals, AwayGoals int }
 		for _, m := range matches {
-			p := predByMatch[m.ID]
-			predList = append(predList, struct{ PredHome, PredAway int }{p.Home, p.Away})
+			p, has := predByMatch[m.ID]
+			if !has {
+				predList = append(predList, struct{ PredHome, PredAway int }{noPred, noPred})
+			} else {
+				predList = append(predList, struct{ PredHome, PredAway int }{p.Home, p.Away})
+			}
 			hg, ag := 0, 0
 			if m.HomeGoals != nil {
 				hg = *m.HomeGoals
@@ -208,7 +213,7 @@ func (s *ExportService) getRoundClassification(ctx context.Context, round int, u
 			}
 			matchList = append(matchList, struct{ HomeGoals, AwayGoals int }{hg, ag})
 		}
-		pts, exact, correct := CalculateRoundPoints(predList, matchList, 0)
+		pts, exact, correct := CalculateRoundPoints(predList, matchList, true)
 		scores = append(scores, userScore{user, pts, exact, correct})
 	}
 

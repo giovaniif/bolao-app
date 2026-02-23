@@ -49,6 +49,10 @@ export async function api<T>(
     throw new Error(errorMsg);
   }
 
+  if (res.status === 204) {
+    return undefined as T;
+  }
+
   if (data === null || data === undefined) {
     throw new Error('A API retornou resposta vazia');
   }

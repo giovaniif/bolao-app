@@ -69,6 +69,7 @@ func main() {
 		api.PUT("/me", userHandler.UpdateMe)
 		api.GET("/parciais/round/:round", partialHandler.ListByRound)
 		api.PUT("/parciais/match/:id", partialHandler.SetPartial)
+		api.DELETE("/parciais/match/:id", partialHandler.ClearPartial)
 		api.GET("/parciais/round/:round/classification", classificationHandler.GetByPartials)
 		api.GET("/export/round/:round", exportHandler.ExportRound)
 		api.GET("/export/all", exportHandler.ExportAll)

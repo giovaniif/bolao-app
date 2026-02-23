@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getPartialsByRound,
   setPartial,
+  clearPartial,
   getPartialClassification,
 } from '../api/parciaisApi';
 
@@ -26,6 +27,17 @@ export function useSetPartial(round: number) {
   return useMutation({
     mutationFn: ({ matchId, homeGoals, awayGoals }: { matchId: string; homeGoals: number; awayGoals: number }) =>
       setPartial(matchId, homeGoals, awayGoals),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['parciais', round] });
+      queryClient.invalidateQueries({ queryKey: ['parciais', 'classification', round] });
+    },
+  });
+}
+
+export function useClearPartial(round: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (matchId: string) => clearPartial(matchId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['parciais', round] });
       queryClient.invalidateQueries({ queryKey: ['parciais', 'classification', round] });

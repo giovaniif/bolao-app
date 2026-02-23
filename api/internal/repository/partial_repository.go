@@ -26,6 +26,11 @@ func (r *PartialRepository) Upsert(ctx context.Context, matchID uuid.UUID, homeG
 	return err
 }
 
+func (r *PartialRepository) Delete(ctx context.Context, matchID uuid.UUID) error {
+	_, err := r.pool.Exec(ctx, `DELETE FROM match_partials WHERE match_id = $1`, matchID)
+	return err
+}
+
 func (r *PartialRepository) GetByMatch(ctx context.Context, matchID uuid.UUID) (*models.MatchPartial, error) {
 	var p models.MatchPartial
 	query := `SELECT match_id, home_goals, away_goals, updated_by, updated_at

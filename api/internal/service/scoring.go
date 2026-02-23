@@ -81,11 +81,12 @@ func matchResult(home, away int) string {
 	return "draw"
 }
 
+// awardRoundTotalBonus: true = rodada completa (classificação final/export); false = parciais (não dar bônus, pois a soma dos palpites é da rodada inteira).
 func CalculateRoundPoints(predictions []struct {
 	PredHome, PredAway int
 }, matches []struct {
 	HomeGoals, AwayGoals int
-}, roundTotalGoals int) (int, int, int) {
+}, awardRoundTotalBonus bool) (int, int, int) {
 	totalPoints := 0
 	exactScores := 0
 	correctResults := 0
@@ -102,6 +103,10 @@ func CalculateRoundPoints(predictions []struct {
 
 	for i, m := range matches {
 		p := predMap[i]
+		// Sentinela: palpite ausente (ex.: usuário não preencheu a rodada). Não pontua.
+		if p.PredHome < 0 || p.PredAway < 0 {
+			continue
+		}
 		roundPredTotal += p.PredHome + p.PredAway
 
 		pts := CalculateMatchPoints(p.PredHome, p.PredAway, m.HomeGoals, m.AwayGoals)
@@ -117,12 +122,12 @@ func CalculateRoundPoints(predictions []struct {
 		}
 	}
 
-	// Round total goals: 10 points
+	// Round total goals: 10 points — só quando rodada completa (parciais não: os palpites são da rodada inteira).
 	actualRoundTotal := 0
 	for _, m := range matches {
 		actualRoundTotal += m.HomeGoals + m.AwayGoals
 	}
-	if roundPredTotal == actualRoundTotal {
+	if awardRoundTotalBonus && roundPredTotal == actualRoundTotal {
 		totalPoints += PointsRoundTotalGoals
 	}
 

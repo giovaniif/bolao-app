@@ -115,17 +115,21 @@ func (s *ClassificationService) GetClassification(ctx context.Context, upToRound
 				predByMatch[p.MatchID] = struct{ Home, Away int }{p.HomeGoals, p.AwayGoals}
 			}
 
+			const noPred = -1
 			var predList []struct{ PredHome, PredAway int }
 			var matchList []struct{ HomeGoals, AwayGoals int }
-
 			for _, mwr := range matchesWithResults {
 				m := mwr.m
-				p := predByMatch[m.ID]
-				predList = append(predList, struct{ PredHome, PredAway int }{p.Home, p.Away})
+				p, has := predByMatch[m.ID]
+				if !has {
+					predList = append(predList, struct{ PredHome, PredAway int }{noPred, noPred})
+				} else {
+					predList = append(predList, struct{ PredHome, PredAway int }{p.Home, p.Away})
+				}
 				matchList = append(matchList, struct{ HomeGoals, AwayGoals int }{mwr.home, mwr.away})
 			}
 
-			points, exactScores, correctResults := CalculateRoundPoints(predList, matchList, 0)
+			points, exactScores, correctResults := CalculateRoundPoints(predList, matchList, true)
 
 			userStats[user.ID].TotalPoints += points
 			userStats[user.ID].ExactScores += exactScores
@@ -234,15 +238,20 @@ func (s *ClassificationService) GetClassificationForRound(ctx context.Context, r
 		for _, p := range predictions {
 			predByMatch[p.MatchID] = struct{ Home, Away int }{p.HomeGoals, p.AwayGoals}
 		}
+		const noPred = -1
 		var predList []struct{ PredHome, PredAway int }
 		var matchList []struct{ HomeGoals, AwayGoals int }
 		for _, mwr := range matchesWithResults {
 			m := mwr.m
-			p := predByMatch[m.ID]
-			predList = append(predList, struct{ PredHome, PredAway int }{p.Home, p.Away})
+			p, has := predByMatch[m.ID]
+			if !has {
+				predList = append(predList, struct{ PredHome, PredAway int }{noPred, noPred})
+			} else {
+				predList = append(predList, struct{ PredHome, PredAway int }{p.Home, p.Away})
+			}
 			matchList = append(matchList, struct{ HomeGoals, AwayGoals int }{mwr.home, mwr.away})
 		}
-		points, exactScores, correctResults := CalculateRoundPoints(predList, matchList, 0)
+		points, exactScores, correctResults := CalculateRoundPoints(predList, matchList, true)
 		result = append(result, models.UserWithStats{
 			User:           user,
 			TotalPoints:    points,
@@ -315,13 +324,19 @@ func (s *ClassificationService) GetClassificationByPartials(ctx context.Context,
 			predByMatch[p.MatchID] = struct{ Home, Away int }{p.HomeGoals, p.AwayGoals}
 		}
 
+		// -1,-1 = palpite ausente (usuário não preencheu esse jogo); não pontua.
+		const noPred = -1
 		var predList []struct{ PredHome, PredAway int }
 		for _, id := range matchIDs {
-			p := predByMatch[id]
-			predList = append(predList, struct{ PredHome, PredAway int }{p.Home, p.Away})
+			p, has := predByMatch[id]
+			if !has {
+				predList = append(predList, struct{ PredHome, PredAway int }{noPred, noPred})
+			} else {
+				predList = append(predList, struct{ PredHome, PredAway int }{p.Home, p.Away})
+			}
 		}
 
-		points, exactScores, correctResults := CalculateRoundPoints(predList, matchList, 0)
+		points, exactScores, correctResults := CalculateRoundPoints(predList, matchList, false)
 		result = append(result, models.UserWithStats{
 			User:           user,
 			TotalPoints:    points,

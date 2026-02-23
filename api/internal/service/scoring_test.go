@@ -19,7 +19,7 @@ func TestCalculateRoundPoints(t *testing.T) {
 		{1, 2},
 		{2, 1},
 	}
-	got, _, _ := CalculateRoundPoints(preds, matches, 0)
+	got, _, _ := CalculateRoundPoints(preds, matches, true)
 	if got != 61 {
 		t.Errorf("CalculateRoundPoints = %d, want 61 (51 base + 10 bonus)", got)
 	}

@@ -102,3 +102,17 @@ func (h *PartialHandler) SetPartial(c *gin.Context) {
 	partial, _ := h.partialRepo.GetByMatch(c.Request.Context(), matchID)
 	c.JSON(http.StatusOK, partial)
 }
+
+func (h *PartialHandler) ClearPartial(c *gin.Context) {
+	matchID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id inválido"})
+		return
+	}
+
+	if err := h.partialRepo.Delete(c.Request.Context(), matchID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.Status(http.StatusNoContent)
+}

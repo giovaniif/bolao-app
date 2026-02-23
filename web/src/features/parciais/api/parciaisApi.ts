@@ -35,6 +35,10 @@ export async function setPartial(
   });
 }
 
+export async function clearPartial(matchId: string): Promise<void> {
+  await api(`/parciais/match/${matchId}`, { method: 'DELETE' });
+}
+
 export async function getPartialClassification(
   round: number
 ): Promise<UserWithStats[]> {

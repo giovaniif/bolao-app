@@ -4,6 +4,7 @@ import {
   usePartialsByRound,
   usePartialClassification,
   useSetPartial,
+  useClearPartial,
 } from '../hooks/usePartiais';
 import { useRounds } from '../../matches/hooks/useMatches';
 import { PartiaisTinderCard } from '../components/PartiaisTinderCard';
@@ -24,6 +25,7 @@ export function PartiaisPage() {
   const { data: matches = [], isLoading } = usePartialsByRound(round);
   const { data: classification = [] } = usePartialClassification(round);
   const setPartialMutation = useSetPartial(round);
+  const clearPartialMutation = useClearPartial(round);
 
   useEffect(() => {
     if (rounds.length > 0 && (round === 0 || !rounds.includes(round))) {
@@ -63,14 +65,18 @@ export function PartiaisPage() {
     try {
       for (const m of matches) {
         const p = partials[m.id];
-        if (!p || p.h == null || p.a == null) continue;
+        if (!p) continue;
+        // Ambos null = nada preenchido; senão null vira 0 (time não clicado).
+        const h = p.h ?? 0;
+        const a = p.a ?? 0;
+        if (p.h == null && p.a == null) continue;
         const currentH = m.partial_home ?? null;
         const currentA = m.partial_away ?? null;
-        if (p.h !== currentH || p.a !== currentA) {
+        if (h !== (currentH ?? 0) || a !== (currentA ?? 0)) {
           await setPartialMutation.mutateAsync({
             matchId: m.id,
-            homeGoals: p.h,
-            awayGoals: p.a,
+            homeGoals: h,
+            awayGoals: a,
           });
         }
       }
@@ -162,6 +168,29 @@ export function PartiaisPage() {
               currentIndex={currentCardIndex}
               total={matches.length}
             />
+
+            {(currentMatch.partial_home != null && currentMatch.partial_away != null) && (
+              <button
+                type="button"
+                onClick={async () => {
+                  setMessage(null);
+                  try {
+                    await clearPartialMutation.mutateAsync(currentMatch.id);
+                    handleChange(currentMatch.id, null, null);
+                    setMessage({ type: 'ok', text: 'Parcial removida.' });
+                  } catch (err) {
+                    setMessage({
+                      type: 'err',
+                      text: err instanceof Error ? err.message : 'Erro ao limpar',
+                    });
+                  }
+                }}
+                disabled={clearPartialMutation.isPending}
+                className="w-full py-2.5 rounded-lg border border-red-500/50 text-red-400 hover:bg-red-500/10 disabled:opacity-50 text-sm font-medium"
+              >
+                {clearPartialMutation.isPending ? 'Limpando...' : 'Limpar parcial'}
+              </button>
+            )}
 
             <details className="rounded-lg bg-[var(--color-card)] border border-slate-700">
               <summary className="px-4 py-3 cursor-pointer text-sm text-[var(--color-text-muted)] hover:text-[var(--color-primary)]">
