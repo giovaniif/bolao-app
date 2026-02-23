@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Layout } from '../../../shared/components/Layout';
 import { useRounds, useMatchesByRound } from '../../matches/hooks/useMatches';
+import { useRoundInUrl } from '../../../shared/hooks/useRoundInUrl';
 import { useMyPredictions, useSavePredictions } from '../hooks/usePredictions';
 import { PredictionsTinderCard } from '../components/PredictionsTinderCard';
 import { PredictionsSummaryList } from '../components/PredictionsSummaryList';
@@ -9,22 +10,17 @@ import type { Match } from '../../matches/api/matchesApi';
 type ViewMode = 'tinder' | 'list';
 
 export function PredictionsPage() {
-  const [round, setRound] = useState<number>(0);
+  const { data: rounds = [] } = useRounds();
+  const [round, setRound] = useRoundInUrl(rounds);
+
   const [predictions, setPredictions] = useState<Record<string, { h: number; a: number }>>({});
   const [message, setMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [viewMode, setViewMode] = useState<ViewMode>('tinder');
 
-  const { data: rounds = [] } = useRounds();
   const { data: matches = [], isLoading } = useMatchesByRound(round);
   const { data: myPredictions = [] } = useMyPredictions(round);
   const savePredictionsMutation = useSavePredictions(round);
-
-  useEffect(() => {
-    if (rounds.length > 0 && (round === 0 || !rounds.includes(round))) {
-      setRound(rounds[0]);
-    }
-  }, [rounds, round]);
 
   useEffect(() => {
     const map: Record<string, { h: number; a: number }> = {};

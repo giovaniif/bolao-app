@@ -7,13 +7,16 @@ import {
   useClearPartial,
 } from '../hooks/usePartiais';
 import { useRounds } from '../../matches/hooks/useMatches';
+import { useRoundInUrl } from '../../../shared/hooks/useRoundInUrl';
 import { PartiaisTinderCard } from '../components/PartiaisTinderCard';
 import { PartiaisSummaryList } from '../components/PartiaisSummaryList';
 
 type ViewMode = 'list' | 'tinder';
 
 export function PartiaisPage() {
-  const [round, setRound] = useState<number>(0);
+  const { data: rounds = [] } = useRounds();
+  const [round, setRound] = useRoundInUrl(rounds);
+
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [partials, setPartials] = useState<
@@ -21,17 +24,10 @@ export function PartiaisPage() {
   >({});
   const [message, setMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
 
-  const { data: rounds = [] } = useRounds();
   const { data: matches = [], isLoading } = usePartialsByRound(round);
   const { data: classification = [] } = usePartialClassification(round);
   const setPartialMutation = useSetPartial(round);
   const clearPartialMutation = useClearPartial(round);
-
-  useEffect(() => {
-    if (rounds.length > 0 && (round === 0 || !rounds.includes(round))) {
-      setRound(rounds[0]);
-    }
-  }, [rounds, round]);
 
   useEffect(() => {
     const map: Record<string, { h: number | null; a: number | null }> = {};

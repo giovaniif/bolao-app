@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Layout } from '../../../shared/components/Layout';
 import { useRounds, useMatchesByRound } from '../../matches/hooks/useMatches';
+import { useRoundInUrl } from '../../../shared/hooks/useRoundInUrl';
 import { useUsers, usePredictionsByUser } from '../hooks/useViewPredictions';
 import type { Match } from '../../matches/api/matchesApi';
 
 export function ViewPredictionsPage() {
-  const [round, setRound] = useState<number>(0);
+  const { data: rounds = [] } = useRounds();
+  const [round, setRound] = useRoundInUrl(rounds);
   const [userId, setUserId] = useState<string>('');
 
-  const { data: rounds = [] } = useRounds();
   const { data: matches = [], isLoading: matchesLoading } = useMatchesByRound(round);
   const { data: users = [], isLoading: usersLoading } = useUsers();
 
@@ -25,12 +26,6 @@ export function ViewPredictionsPage() {
   );
 
   useEffect(() => {
-    if (rounds.length > 0 && (round === 0 || !rounds.includes(round))) {
-      setRound(rounds[0]);
-    }
-  }, [rounds, round]);
-
-  useEffect(() => {
     if (userId && users.length > 0 && !users.some((u) => u.id === userId)) {
       setUserId('');
     }
@@ -41,7 +36,7 @@ export function ViewPredictionsPage() {
   );
 
   return (
-    <Layout title="Ver palpites">
+    <Layout title="Galera">
       <div className="space-y-4">
         <p className="text-sm text-[var(--color-text-muted)]">
           Veja os palpites de qualquer jogador após o fechamento do mercado da rodada.

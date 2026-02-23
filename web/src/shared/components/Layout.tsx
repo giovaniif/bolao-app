@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from './Button';
 
@@ -47,10 +47,10 @@ export function Layout({ children, title }: LayoutProps) {
 
       <nav className="fixed bottom-0 left-0 right-0 bg-[var(--color-card)] border-t border-slate-700 safe-area-pb">
         <div className="flex justify-around py-2 max-w-2xl mx-auto">
-          <NavLink to="/">Classificação</NavLink>
-          <NavLink to="/palpites">Palpites</NavLink>
-          <NavLink to="/ver-palpites">Ver palpites</NavLink>
-          <NavLink to="/parciais">Parciais</NavLink>
+          <NavLinkWithRodada to="/">Classificação</NavLinkWithRodada>
+          <NavLinkWithRodada to="/palpites">Palpites</NavLinkWithRodada>
+          <NavLinkWithRodada to="/ver-palpites">Galera</NavLinkWithRodada>
+          <NavLinkWithRodada to="/parciais">Parciais</NavLinkWithRodada>
           {isAdmin() && <NavLink to="/admin">Admin</NavLink>}
         </div>
       </nav>
@@ -64,6 +64,25 @@ function NavLink({ to, children }: { to: string; children: ReactNode }) {
   return (
     <Link
       to={to}
+      className={`flex-1 py-2 text-center text-sm font-medium ${
+        active ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-muted)] hover:text-[var(--color-primary)]'
+      }`}
+    >
+      {children}
+    </Link>
+  );
+}
+
+/** Mantém ?rodada=N ao trocar de aba (Palpites, Galera, Parciais). */
+function NavLinkWithRodada({ to, children }: { to: string; children: ReactNode }) {
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const rodada = searchParams.get('rodada');
+  const href = rodada ? `${to}?rodada=${rodada}` : to;
+  const active = location.pathname === to;
+  return (
+    <Link
+      to={href}
       className={`flex-1 py-2 text-center text-sm font-medium ${
         active ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-muted)] hover:text-[var(--color-primary)]'
       }`}
