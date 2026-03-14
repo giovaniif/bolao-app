@@ -6,64 +6,91 @@ Aplicativo de controle de bolão do Campeonato Brasileiro.
 
 - **Frontend**: React + TypeScript + Tailwind + Vite
 - **Backend**: Go + Gin + PostgreSQL
-- **Infra**: Docker Compose, ngrok (deploy)
+- **Infra**: Docker Compose (dev), Render (API), Vercel (frontend), Supabase (banco)
 
 ---
 
-## Modos de execução
+## Desenvolvimento local
 
-| Modo      | API    | Frontend | Uso                         |
-|-----------|--------|----------|-----------------------------|
-| **Dev**   | 3333   | 5173     | Desenvolvimento com hot reload |
-| **Deploy**| 3335   | 5175     | Docker + ngrok (compartilhar)  |
+Rode cada serviço individualmente:
 
-Portas diferentes evitam conflito: você pode rodar `make stop-deploy` e em seguida `make dev` sem conflito de portas.
-
-### Modo desenvolvimento (alterações com hot reload)
-
-Para trabalhar no código:
+### 1. Banco de dados
 
 ```bash
-# 1. Suba só o banco (uma vez)
 docker compose up db -d
-
-# 2. Rode em modo dev
-make dev
-# ou: ./scripts/dev.sh
 ```
 
-- **Frontend**: http://localhost:5173 (hot reload)
-- **API**: http://localhost:3333
+Sobe o PostgreSQL em `localhost:5432` (usuário `postgres`, senha `postgres`, banco `bolao`).
 
----
-
-### Modo deploy (ngrok – compartilhar com usuários)
-
-Para expor a aplicação na internet:
+### 2. API
 
 ```bash
-# 1. Sobe os containers
-make deploy
-
-# 2. Em outro terminal, inicia o ngrok
-make ngrok
-# ou: ngrok http 5175
+cd api
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/bolao?sslmode=disable \
+JWT_SECRET=qualquer-segredo \
+go run ./cmd/server
 ```
 
-Ngrok em terminal separado permite Ctrl+C sem derrubar os containers — você pode reiniciar o túnel quando quiser.
+API disponível em http://localhost:3333. As migrations rodam automaticamente na inicialização.
 
-**Para parar:**
-- Ctrl+C no ngrok → só fecha o túnel; containers continuam
-- `make stop-deploy` → para os containers
+### 3. Frontend
+
+```bash
+cd web
+VITE_API_URL=http://localhost:3333 npm run dev
+```
+
+Frontend disponível em http://localhost:5173.
 
 ---
 
-### Comandos manuais (Docker)
+## Docker Compose completo (opcional)
+
+Para rodar tudo via Docker (sem hot reload):
 
 ```bash
 docker compose up --build
 # Frontend: http://localhost:5175 | API: http://localhost:3335
 ```
+
+---
+
+## Deploy em produção
+
+### Banco de dados – Supabase
+
+O banco de dados roda no Supabase (PostgreSQL gerenciado). As migrations rodam automaticamente na inicialização da API.
+
+Use a URL de **session pooler** (IPv4) para evitar problemas de conectividade
+
+### API – Render
+
+A API é deployada no Render via Docker (`render.yaml` na raiz do projeto).
+
+Variáveis de ambiente necessárias no Render:
+
+| Variável | Valor |
+|---|---|
+| `DATABASE_URL` | URL do session pooler do Supabase |
+| `JWT_SECRET` | String aleatória segura (ex: `openssl rand -hex 32`) |
+| `PORT` | `8080` (já definido no `render.yaml`) |
+
+### Frontend – Vercel
+
+O frontend é deployado no Vercel apontando para o diretório `web/`.
+
+| Configuração | Valor |
+|---|---|
+| Root Directory | `web` |
+| Install Command | `npm install` |
+| Build Command | `npm run build` |
+| Output Directory | `dist` |
+
+Variável de ambiente necessária:
+
+| Variável | Valor |
+|---|---|
+| `VITE_API_URL` | URL da API no Render |
 
 ---
 

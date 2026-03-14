@@ -6,12 +6,13 @@ services:
     ports:
       - "3335:8080"
     environment:
-      PORT: 8080
-      DATABASE_URL: postgres://postgres:postgres@db:5432/bolao?sslmode=disable
-      JWT_SECRET: bolao-secret-change-in-production
+      - PORT=8080
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/bolao?sslmode=disable
+      - JWT_SECRET=${JWT_SECRET:-bolao-secret-change-in-production}
     depends_on:
       db:
         condition: service_healthy
+    restart: unless-stopped
 
   web:
     build:
@@ -21,22 +22,24 @@ services:
       - "5175:80"
     depends_on:
       - api
+    restart: unless-stopped
 
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: bolao
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=bolao
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 2s
+      interval: 5s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
 volumes:
   postgres_data:
