@@ -44,8 +44,7 @@ jobs:
       - name: Deploy (preview = dev)
         id: deploy
         run: |
-          json=$(vercel deploy --prebuilt --format=json --token="$VERCEL_TOKEN")
-          url=$(echo "$json" | python3 -c "import sys,json;print(json.load(sys.stdin)['deployment']['url'])")
+          url=$(vercel deploy --prebuilt --token="$VERCEL_TOKEN")
           echo "url=$url" >> "$GITHUB_OUTPUT"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
