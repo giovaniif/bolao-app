@@ -1,37 +1,37 @@
 # Bolão Brasileirão
 
-Aplicativo de controle de bolão do Campeonato Brasileiro.
+Prediction pool management app for the Brazilian football championship.
 
 ## Stack
 
 - **Frontend**: React + TypeScript + Tailwind + Vite
 - **Backend**: Go + Gin + PostgreSQL
-- **Infra**: Docker Compose (dev), Render (API), Vercel (frontend), Supabase (banco)
+- **Infra**: Docker Compose (dev), Render (API), Vercel (frontend), Supabase (database), GitHub Actions (CI/CD)
 
 ---
 
-## Desenvolvimento local
+## Local development
 
-Rode cada serviço individualmente:
+Run each service individually:
 
-### 1. Banco de dados
+### 1. Database
 
 ```bash
 docker compose up db -d
 ```
 
-Sobe o PostgreSQL em `localhost:5432` (usuário `postgres`, senha `postgres`, banco `bolao`).
+Starts PostgreSQL on `localhost:5432` (user `postgres`, password `postgres`, database `bolao`).
 
 ### 2. API
 
 ```bash
 cd api
 DATABASE_URL=postgres://postgres:postgres@localhost:5432/bolao?sslmode=disable \
-JWT_SECRET=qualquer-segredo \
+JWT_SECRET=any-secret \
 go run ./cmd/server
 ```
 
-API disponível em http://localhost:3333. As migrations rodam automaticamente na inicialização.
+API available at http://localhost:3333. Migrations run automatically on startup.
 
 ### 3. Frontend
 
@@ -40,13 +40,13 @@ cd web
 VITE_API_URL=http://localhost:3333 npm run dev
 ```
 
-Frontend disponível em http://localhost:5173.
+Frontend available at http://localhost:5173.
 
 ---
 
-## Docker Compose completo (opcional)
+## Full Docker Compose (optional)
 
-Para rodar tudo via Docker (sem hot reload):
+To run everything via Docker (no hot reload):
 
 ```bash
 docker compose up --build
@@ -55,55 +55,78 @@ docker compose up --build
 
 ---
 
-## Deploy em produção
+## CI
 
-### Banco de dados – Supabase
+Build and test run as separate actions per area, each only triggering when files in that area
+change (`api/**` or `web/**`):
 
-O banco de dados roda no Supabase (PostgreSQL gerenciado). As migrations rodam automaticamente na inicialização da API.
+- **`.github/workflows/backend-ci.yml`**: `build` job (`go build`) and `test` job (`go vet` + `go test -short`,
+  no migrations — the DB-backed integration test already skips itself in `-short` mode).
+- **`.github/workflows/frontend-ci.yml`**: `build` job (`npm run build`) and `test` job (`npm test`).
 
-Use a URL de **session pooler** (IPv4) para evitar problemas de conectividade
+## CD — dev (staging) and production environments
+
+Same Dockerfile/build used in production; what changes between environments is environment
+variables and the deploy trigger — there's no separate Dockerfile or docker-compose for "dev".
+
+- **Push to `main`** → deploy to the **dev** (staging) environment: `bolao-api-dev` on Render + a
+  "dev" deployment on Vercel, pointing at a Supabase dev database separate from production.
+- **Release tag** (`v*`) → deploy to **production**: `bolao-api` on Render + production
+  deployment on Vercel, pointing at production Supabase.
+
+See `.github/workflows/deploy.yml`.
+
+---
+
+## Production deploy
+
+### Database – Supabase
+
+The database runs on Supabase (managed PostgreSQL). Migrations run automatically on API startup.
+
+Use the **session pooler** URL (IPv4) to avoid connectivity issues.
 
 ### API – Render
 
-A API é deployada no Render via Docker (`render.yaml` na raiz do projeto).
+The API is deployed on Render via Docker (`render.yaml` at the project root).
 
-Variáveis de ambiente necessárias no Render:
+Required environment variables on Render:
 
-| Variável | Valor |
+| Variable | Value |
 |---|---|
-| `DATABASE_URL` | URL do session pooler do Supabase |
-| `JWT_SECRET` | String aleatória segura (ex: `openssl rand -hex 32`) |
-| `PORT` | `8080` (já definido no `render.yaml`) |
+| `DATABASE_URL` | Supabase session pooler URL |
+| `JWT_SECRET` | Secure random string (e.g. `openssl rand -hex 32`) |
+| `PORT` | `8080` (already set in `render.yaml`) |
 
 ### Frontend – Vercel
 
-O frontend é deployado no Vercel apontando para o diretório `web/`.
+The frontend is deployed on Vercel pointing at the `web/` directory.
 
-| Configuração | Valor |
+| Setting | Value |
 |---|---|
 | Root Directory | `web` |
 | Install Command | `npm install` |
 | Build Command | `npm run build` |
 | Output Directory | `dist` |
 
-Variável de ambiente necessária:
+Required environment variable:
 
-| Variável | Valor |
+| Variable | Value |
 |---|---|
-| `VITE_API_URL` | URL da API no Render |
+| `VITE_API_URL` | API URL on Render |
 
 ---
 
-## Primeiro acesso
+## First access
 
-1. Crie o primeiro usuário admin via SQL (senha padrão inicial: `123`):
+1. Create the first admin user via SQL (default initial password: `123`):
 
 ```sql
 INSERT INTO users (id, username, display_name, is_admin, amount_paid, password_hash, must_change_password)
 VALUES (
   gen_random_uuid(),
   'admin',
-  'Administrador',
+  'Administrator',
   true,
   0,
   '$2a$10$uTr26SWYWuGs.D/j0JJtf.ClwuNgzbE38JRdB76Xoyk41JKdNKkv2',
@@ -111,46 +134,46 @@ VALUES (
 );
 ```
 
-2. Acesse o app e faça login com usuário `admin` e senha `123`.
+2. Access the app and log in with username `admin` and password `123`.
 
-3. No primeiro acesso, altere a senha obrigatoriamente.
+3. On first login, you'll be required to change the password.
 
-4. Como admin, cadastre os demais usuários (todos começam com senha `123`) e adicione os jogos das rodadas.
+4. As admin, register the other users (all start with password `123`) and add the round matches.
 
-## Funcionalidades
+## Features
 
-- **Admin**: cadastrar usuários, adicionar jogos, definir data de fechamento, preencher resultados, acompanhar pagamentos (R$ 70 total)
-- **Jogadores**: preencher palpites até a data de fechamento
-- **Classificação**: baseada nos critérios definidos em `criterios.md`
-- **Rodadas parciais**: filtro por rodada para ver classificação acumulada
+- **Admin**: register users, add matches, set the closing date, fill in results, track payments (R$ 70 total)
+- **Players**: fill in predictions until the closing date
+- **Standings**: based on the criteria defined in `criterios.md`
+- **Partial rounds**: filter by round to view cumulative standings
 
-## Seed de palpites
+## Predictions seed
 
-Para importar palpites de um arquivo (ex: primeira rodada):
+To import predictions from a file (e.g. for the first round):
 
 ```bash
 make seed-palpites
-# ou: cd api && go run ./cmd/seed-palpites ../palpites.md
+# or: cd api && go run ./cmd/seed-palpites ../palpites.md
 ```
 
-O arquivo `palpites.md` deve ter:
-1. Ordem dos jogos (Mandante x Visitante)
-2. Para cada usuário: nome (username) seguido dos placares na mesma ordem
+The `palpites.md` file must have:
+1. Match order (Home x Away)
+2. For each user: name (username) followed by scores in the same order
 
-Exemplo:
+Example:
 ```
-Ordem dos jogos:
+Match order:
 Vitória x Remo
 Atlético-MG x Palmeiras
 ...
 
-usuario1
+user1
 1x2
 0x1
 ...
 ```
 
-## Testes
+## Tests
 
 ```bash
 # Backend
