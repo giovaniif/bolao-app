@@ -25,7 +25,9 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # Vercel CLI's `vercel build` fails with "spawn sh ENOENT" on Node 20
+          # under ubuntu-24.04 runners; Node 22 doesn't have this issue.
+          node-version: 22
 
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
@@ -64,7 +66,9 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # Vercel CLI's `vercel build` fails with "spawn sh ENOENT" on Node 20
+          # under ubuntu-24.04 runners; Node 22 doesn't have this issue.
+          node-version: 22
 
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
