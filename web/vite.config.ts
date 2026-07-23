@@ -10,6 +10,9 @@ export default defineConfig({
     alias: { '@': path.resolve(__dirname, './src') },
   },
   server: {
+    // Allows access via Tailscale MagicDNS hostnames (e.g. host.tail914724.ts.net)
+    // for testing the dev server from other devices on the tailnet.
+    allowedHosts: ['.ts.net'],
     proxy: {
       '/api': {
         target: process.env.VITE_API_URL || 'http://localhost:3333',
