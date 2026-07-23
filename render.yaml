@@ -1,5 +1,5 @@
 services:
-  # Produção — deploy disparado apenas por tag de release (ver .github/workflows/deploy.yml).
+  # Production — deploy triggered only by release tags (see .github/workflows/deploy.yml).
   - type: web
     name: bolao-api
     runtime: docker
@@ -15,9 +15,9 @@ services:
       - key: JWT_SECRET
         sync: false
 
-  # Dev/staging — deploy disparado por push em main (ver .github/workflows/deploy.yml).
-  # Mesmo Dockerfile/build da produção; só variam as envs (DATABASE_URL aponta para o
-  # projeto Supabase de desenvolvimento).
+  # Dev/staging — deploy triggered by push to main (see .github/workflows/deploy.yml).
+  # Same Dockerfile/build as production; only the envs differ (DATABASE_URL points at the
+  # development Supabase project).
   - type: web
     name: bolao-api-dev
     runtime: docker
