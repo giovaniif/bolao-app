@@ -41,7 +41,12 @@ func (s *ExportService) ExportRoundCSV(ctx context.Context, bolaoID uuid.UUID, r
 	}
 	users := participantUsers(participants)
 
-	return s.buildCSV(ctx, bolaoID, []int{round}, matches, users)
+	predictions, err := s.predictionRepo.GetAllForBolao(ctx, bolaoID)
+	if err != nil {
+		return nil, err
+	}
+
+	return buildCSV([]int{round}, matches, users, predictions)
 }
 
 func (s *ExportService) ExportAllCSV(ctx context.Context, bolaoID uuid.UUID) ([]byte, error) {
@@ -50,13 +55,9 @@ func (s *ExportService) ExportAllCSV(ctx context.Context, bolaoID uuid.UUID) ([]
 		return nil, err
 	}
 
-	var allMatches []models.Match
-	for _, r := range rounds {
-		matches, err := s.matchRepo.ListByRound(ctx, bolaoID, r)
-		if err != nil {
-			return nil, err
-		}
-		allMatches = append(allMatches, matches...)
+	allMatches, err := s.matchRepo.ListAllByBolao(ctx, bolaoID)
+	if err != nil {
+		return nil, err
 	}
 
 	participants, err := s.bolaoRepo.ListParticipants(ctx, bolaoID)
@@ -65,7 +66,12 @@ func (s *ExportService) ExportAllCSV(ctx context.Context, bolaoID uuid.UUID) ([]
 	}
 	users := participantUsers(participants)
 
-	return s.buildCSV(ctx, bolaoID, rounds, allMatches, users)
+	predictions, err := s.predictionRepo.GetAllForBolao(ctx, bolaoID)
+	if err != nil {
+		return nil, err
+	}
+
+	return buildCSV(rounds, allMatches, users, predictions)
 }
 
 func participantUsers(participants []models.ParticipantView) []models.User {
@@ -76,7 +82,22 @@ func participantUsers(participants []models.ParticipantView) []models.User {
 	return users
 }
 
-func (s *ExportService) buildCSV(ctx context.Context, bolaoID uuid.UUID, rounds []int, matches []models.Match, users []models.User) ([]byte, error) {
+// indexPredictions groups predictions by user then match for O(1) lookup, avoiding a
+// query per match/round per user (see buildCSV and getRoundClassification below).
+func indexPredictions(predictions []models.Prediction) map[uuid.UUID]map[uuid.UUID]struct{ Home, Away int } {
+	index := make(map[uuid.UUID]map[uuid.UUID]struct{ Home, Away int })
+	for _, p := range predictions {
+		if index[p.UserID] == nil {
+			index[p.UserID] = make(map[uuid.UUID]struct{ Home, Away int })
+		}
+		index[p.UserID][p.MatchID] = struct{ Home, Away int }{p.HomeGoals, p.AwayGoals}
+	}
+	return index
+}
+
+func buildCSV(rounds []int, matches []models.Match, users []models.User, predictions []models.Prediction) ([]byte, error) {
+	predIndex := indexPredictions(predictions)
+
 	var buf bytes.Buffer
 	w := csv.NewWriter(&buf)
 	w.Comma = ';'
@@ -103,11 +124,6 @@ func (s *ExportService) buildCSV(ctx context.Context, bolaoID uuid.UUID, rounds 
 
 	// PALPITES (apenas jogos com resultado)
 	_ = w.Write([]string{"Rodada", "Jogo", "Usuario", "Palpite_Mandante", "Palpite_Visitante", "Pontos"})
-	matchByID := make(map[uuid.UUID]models.Match)
-	for _, m := range matches {
-		matchByID[m.ID] = m
-	}
-
 	for _, m := range matches {
 		if m.HomeGoals == nil || m.AwayGoals == nil {
 			continue
@@ -116,12 +132,7 @@ func (s *ExportService) buildCSV(ctx context.Context, bolaoID uuid.UUID, rounds 
 		jogo := m.HomeTeam + " x " + m.AwayTeam
 
 		for _, u := range users {
-			preds, _ := s.predictionRepo.GetByUserAndRound(ctx, u.ID, bolaoID, m.Round)
-			predByMatch := make(map[uuid.UUID]struct{ Home, Away int })
-			for _, p := range preds {
-				predByMatch[p.MatchID] = struct{ Home, Away int }{p.HomeGoals, p.AwayGoals}
-			}
-			p := predByMatch[m.ID]
+			p := predIndex[u.ID][m.ID]
 			pts := CalculateMatchPoints(p.Home, p.Away, hg, ag)
 			_ = w.Write([]string{
 				strconv.Itoa(m.Round),
@@ -137,9 +148,13 @@ func (s *ExportService) buildCSV(ctx context.Context, bolaoID uuid.UUID, rounds 
 
 	// CLASSIFICAÇÃO por rodada
 	_ = w.Write([]string{"Rodada", "Posicao", "Usuario", "Pontos", "Placares_Exatos", "Resultados_Corretos"})
+	matchesByRound := make(map[int][]models.Match)
+	for _, m := range matches {
+		matchesByRound[m.Round] = append(matchesByRound[m.Round], m)
+	}
 	for _, round := range rounds {
-		classification, err := s.getRoundClassification(ctx, bolaoID, round, users)
-		if err != nil || len(classification) == 0 {
+		classification := getRoundClassification(matchesByRound[round], users, predIndex)
+		if len(classification) == 0 {
 			continue
 		}
 		for i, row := range classification {
@@ -171,11 +186,11 @@ type classRow struct {
 	correctResults int
 }
 
-func (s *ExportService) getRoundClassification(ctx context.Context, bolaoID uuid.UUID, round int, users []models.User) ([]classRow, error) {
-	matches, err := s.matchRepo.ListByRound(ctx, bolaoID, round)
-	if err != nil {
-		return nil, err
-	}
+func getRoundClassification(
+	matches []models.Match,
+	users []models.User,
+	predIndex map[uuid.UUID]map[uuid.UUID]struct{ Home, Away int },
+) []classRow {
 	hasResults := len(matches) > 0
 	for _, m := range matches {
 		if m.HomeGoals == nil || m.AwayGoals == nil {
@@ -184,7 +199,7 @@ func (s *ExportService) getRoundClassification(ctx context.Context, bolaoID uuid
 		}
 	}
 	if !hasResults {
-		return nil, nil
+		return nil
 	}
 
 	type userScore struct {
@@ -196,14 +211,7 @@ func (s *ExportService) getRoundClassification(ctx context.Context, bolaoID uuid
 	scores := make([]userScore, 0, len(users))
 
 	for _, user := range users {
-		preds, err := s.predictionRepo.GetByUserAndRound(ctx, user.ID, bolaoID, round)
-		if err != nil {
-			return nil, err
-		}
-		predByMatch := make(map[uuid.UUID]struct{ Home, Away int })
-		for _, p := range preds {
-			predByMatch[p.MatchID] = struct{ Home, Away int }{p.HomeGoals, p.AwayGoals}
-		}
+		predByMatch := predIndex[user.ID]
 		const noPred = -1
 		var predList []struct{ PredHome, PredAway int }
 		var matchList []struct{ HomeGoals, AwayGoals int }
@@ -257,5 +265,5 @@ func (s *ExportService) getRoundClassification(ctx context.Context, bolaoID uuid
 			correctResults: sc.correctResults,
 		})
 	}
-	return result, nil
+	return result
 }
