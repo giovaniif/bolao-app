@@ -58,6 +58,28 @@ func (r *MatchRepository) ListByRound(ctx context.Context, bolaoID uuid.UUID, ro
 	return matches, rows.Err()
 }
 
+// ListAllByBolao returns every match for a bolão in one query, for callers that need
+// to group by round in memory instead of issuing one query per round (see ClassificationService).
+func (r *MatchRepository) ListAllByBolao(ctx context.Context, bolaoID uuid.UUID) ([]models.Match, error) {
+	query := `SELECT id, bolao_id, round, home_team, away_team, market_closes_at, home_goals, away_goals, created_at, updated_at
+		FROM matches WHERE bolao_id = $1 ORDER BY round, created_at`
+	rows, err := r.pool.Query(ctx, query, bolaoID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var matches []models.Match
+	for rows.Next() {
+		var m models.Match
+		if err := rows.Scan(&m.ID, &m.BolaoID, &m.Round, &m.HomeTeam, &m.AwayTeam, &m.MarketClosesAt, &m.HomeGoals, &m.AwayGoals, &m.CreatedAt, &m.UpdatedAt); err != nil {
+			return nil, err
+		}
+		matches = append(matches, m)
+	}
+	return matches, rows.Err()
+}
+
 func (r *MatchRepository) ListRounds(ctx context.Context, bolaoID uuid.UUID) ([]int, error) {
 	query := `SELECT DISTINCT round FROM matches WHERE bolao_id = $1 ORDER BY round`
 	rows, err := r.pool.Query(ctx, query, bolaoID)
