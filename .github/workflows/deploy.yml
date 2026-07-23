@@ -14,9 +14,6 @@ jobs:
     env:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-    defaults:
-      run:
-        working-directory: web
     steps:
       - uses: actions/checkout@v4
 
@@ -25,13 +22,15 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          # Vercel CLI's `vercel build` fails with "spawn sh ENOENT" on Node 20
-          # under ubuntu-24.04 runners; Node 22 doesn't have this issue.
           node-version: 22
 
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
 
+      # Run from the repo root, not web/: the Vercel project has Root Directory
+      # set to "web" already, so cd-ing into web/ ourselves first causes the CLI
+      # to descend into web/web (doesn't exist) and fail with "spawn sh ENOENT"
+      # when it tries to run the install command there.
       - name: Pull Vercel environment (preview)
         run: vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
         env:
@@ -55,9 +54,6 @@ jobs:
     env:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-    defaults:
-      run:
-        working-directory: web
     steps:
       - uses: actions/checkout@v4
 
@@ -66,13 +62,13 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          # Vercel CLI's `vercel build` fails with "spawn sh ENOENT" on Node 20
-          # under ubuntu-24.04 runners; Node 22 doesn't have this issue.
           node-version: 22
 
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
 
+      # See comment in deploy-dev: run from repo root so the CLI's own
+      # Root Directory (web) handles the descent, not our working-directory.
       - name: Pull Vercel environment (production)
         run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
         env:
