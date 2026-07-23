@@ -42,7 +42,19 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
 
       - name: Deploy (preview = dev)
-        run: vercel deploy --prebuilt --token="$VERCEL_TOKEN"
+        id: deploy
+        run: |
+          json=$(vercel deploy --prebuilt --format=json --token="$VERCEL_TOKEN")
+          url=$(echo "$json" | python3 -c "import sys,json;print(json.load(sys.stdin)['deployment']['url'])")
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+      # vercel deploy creates a fresh, unique preview URL every run; without this,
+      # the stable bolao-app-dev.vercel.app alias goes stale after the very first
+      # deploy and silently keeps serving an old build on every push after that.
+      - name: Point stable dev alias at this deployment
+        run: vercel alias set "${{ steps.deploy.outputs.url }}" bolao-app-dev.vercel.app --token="$VERCEL_TOKEN"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
 
