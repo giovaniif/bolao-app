@@ -1,10 +1,30 @@
 services:
+  # Produção — deploy disparado apenas por tag de release (ver .github/workflows/deploy.yml).
   - type: web
     name: bolao-api
     runtime: docker
     dockerfilePath: ./api/Dockerfile
     dockerContext: ./api
     plan: free
+    autoDeploy: false
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+
+  # Dev/staging — deploy disparado por push em main (ver .github/workflows/deploy.yml).
+  # Mesmo Dockerfile/build da produção; só variam as envs (DATABASE_URL aponta para o
+  # projeto Supabase de desenvolvimento).
+  - type: web
+    name: bolao-api-dev
+    runtime: docker
+    dockerfilePath: ./api/Dockerfile
+    dockerContext: ./api
+    plan: free
+    autoDeploy: false
     envVars:
       - key: PORT
         value: 8080

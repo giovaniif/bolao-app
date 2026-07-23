@@ -6,7 +6,7 @@ Aplicativo de controle de bolão do Campeonato Brasileiro.
 
 - **Frontend**: React + TypeScript + Tailwind + Vite
 - **Backend**: Go + Gin + PostgreSQL
-- **Infra**: Docker Compose (dev), Render (API), Vercel (frontend), Supabase (banco)
+- **Infra**: Docker Compose (dev), Render (API), Vercel (frontend), Supabase (banco), GitHub Actions (CI/CD)
 
 ---
 
@@ -52,6 +52,26 @@ Para rodar tudo via Docker (sem hot reload):
 docker compose up --build
 # Frontend: http://localhost:5175 | API: http://localhost:3335
 ```
+
+---
+
+## CI
+
+Todo push e pull request roda `.github/workflows/ci.yml`:
+- **Backend**: `go build`, `go vet` e `go test` (com um Postgres de serviço para os testes de integração).
+- **Frontend**: `npm test` e `npm run build`.
+
+## CD — ambientes dev (staging) e produção
+
+Mesmo Dockerfile/build usado em produção; o que muda entre ambientes são variáveis de ambiente e
+o gatilho de deploy — não há Dockerfile nem docker-compose separados para "dev".
+
+- **Push em `main`** → deploy no ambiente **dev** (staging): `bolao-api-dev` no Render + deployment
+  "dev" no Vercel, apontando para um banco Supabase de desenvolvimento separado do de produção.
+- **Tag de release** (`v*`) → deploy em **produção**: `bolao-api` no Render + deployment de
+  produção no Vercel, apontando para o Supabase de produção.
+
+Ver `.github/workflows/deploy.yml`.
 
 ---
 
