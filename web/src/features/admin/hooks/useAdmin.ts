@@ -35,8 +35,8 @@ export function useTeams() {
 
 export function useRounds() {
   return useQuery({
-    queryKey: queryKeys.rounds,
-    queryFn: getRounds,
+    queryKey: queryKeys.rounds(),
+    queryFn: () => getRounds(),
   });
 }
 
@@ -53,7 +53,7 @@ export function useCreateMatches() {
   return useMutation({
     mutationFn: createMatches,
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.rounds });
+      queryClient.invalidateQueries({ queryKey: queryKeys.rounds() });
       queryClient.invalidateQueries({ queryKey: queryKeys.matches(variables.round) });
     },
   });
@@ -111,7 +111,7 @@ export function useDeleteMatch(round: number) {
   return useMutation({
     mutationFn: deleteMatch,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.rounds });
+      queryClient.invalidateQueries({ queryKey: queryKeys.rounds() });
       queryClient.invalidateQueries({ queryKey: queryKeys.matches(round) });
     },
   });
@@ -122,7 +122,7 @@ export function useDeleteRound() {
   return useMutation({
     mutationFn: deleteRound,
     onSuccess: (_, roundNum) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.rounds });
+      queryClient.invalidateQueries({ queryKey: queryKeys.rounds() });
       queryClient.invalidateQueries({ queryKey: queryKeys.matches(roundNum) });
       queryClient.invalidateQueries({ queryKey: queryKeys.predictions(roundNum) });
       queryClient.invalidateQueries({ queryKey: ['classification'] });
@@ -136,6 +136,7 @@ export function useCreateUser() {
     mutationFn: createUser,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.users });
+      queryClient.invalidateQueries({ queryKey: queryKeys.boloes });
     },
   });
 }
@@ -148,7 +149,7 @@ export function useUpdateUser() {
       data,
     }: {
       id: string;
-      data: { display_name?: string; favorite_team?: string; amount_paid?: number };
+      data: { display_name?: string; favorite_team?: string };
     }) => updateUser(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.users });

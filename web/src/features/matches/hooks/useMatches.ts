@@ -2,10 +2,10 @@ import { useQuery } from '@tanstack/react-query';
 import { getRounds, getMatchesByRound } from '../api/matchesApi';
 import { queryKeys } from '../../../shared/query/queryKeys';
 
-export function useRounds() {
+export function useRounds(bolaoId?: string) {
   return useQuery({
-    queryKey: queryKeys.rounds,
-    queryFn: getRounds,
+    queryKey: queryKeys.rounds(bolaoId),
+    queryFn: () => getRounds(bolaoId),
   });
 }
 

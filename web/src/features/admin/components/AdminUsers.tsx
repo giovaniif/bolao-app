@@ -1,11 +1,7 @@
 import { useState } from 'react';
-import {
-  useUsers,
-  useTeams,
-  useCreateUser,
-  useUpdateUser,
-} from '../hooks/useAdmin';
-import type { User } from '../api/adminApi';
+import { useTeams, useCreateUser } from '../hooks/useAdmin';
+import { useActiveBolao, useBolaoParticipants, useUpdateParticipantAmountPaid } from '../../boloes/hooks/useBoloes';
+import type { Participant } from '../../boloes/api/boloesApi';
 import { Button } from '../../../shared/components/Button';
 import { Input } from '../../../shared/components/Input';
 
@@ -22,10 +18,11 @@ export function AdminUsers() {
   const [editingPayment, setEditingPayment] = useState<string | null>(null);
   const [paymentAmount, setPaymentAmount] = useState('');
 
-  const { data: users = [], isLoading } = useUsers();
+  const { data: activeBolao } = useActiveBolao();
+  const { data: users = [], isLoading } = useBolaoParticipants(activeBolao?.id);
   const { data: teams = [] } = useTeams();
   const createUserMutation = useCreateUser();
-  const updateUserMutation = useUpdateUser();
+  const updatePaymentMutation = useUpdateParticipantAmountPaid();
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -43,9 +40,9 @@ export function AdminUsers() {
 
   async function handleUpdatePayment(userId: string) {
     const amount = parseFloat(paymentAmount);
-    if (isNaN(amount) || amount < 0) return;
+    if (isNaN(amount) || amount < 0 || !activeBolao) return;
     try {
-      await updateUserMutation.mutateAsync({ id: userId, data: { amount_paid: amount } });
+      await updatePaymentMutation.mutateAsync({ bolaoId: activeBolao.id, userId, amountPaid: amount });
       setEditingPayment(null);
       setPaymentAmount('');
     } catch (err) {
@@ -111,7 +108,7 @@ export function AdminUsers() {
       )}
 
       <div className="space-y-2">
-        {users.map((u: User) => (
+        {users.map((u: Participant) => (
           <div
             key={u.id}
             className="p-3 rounded-lg bg-[var(--color-card)] border border-slate-700"

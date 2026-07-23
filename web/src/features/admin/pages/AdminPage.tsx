@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { Layout } from '../../../shared/components/Layout';
 import { AdminUsers } from '../components/AdminUsers';
 import { AdminMatches } from '../components/AdminMatches';
+import { AdminBoloes } from '../../boloes/components/AdminBoloes';
 
-type Tab = 'users' | 'matches';
+type Tab = 'users' | 'matches' | 'boloes';
 
 export function AdminPage() {
   const [tab, setTab] = useState<Tab>('users');
@@ -31,9 +32,20 @@ export function AdminPage() {
         >
           Jogos
         </button>
+        <button
+          onClick={() => setTab('boloes')}
+          className={`px-4 py-2 text-sm font-medium ${
+            tab === 'boloes'
+              ? 'text-[var(--color-primary)] border-b-2 border-[var(--color-primary)]'
+              : 'text-[var(--color-text-muted)]'
+          }`}
+        >
+          Bolões
+        </button>
       </div>
       {tab === 'users' && <AdminUsers />}
       {tab === 'matches' && <AdminMatches />}
+      {tab === 'boloes' && <AdminBoloes />}
     </Layout>
   );
 }
