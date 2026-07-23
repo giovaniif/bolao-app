@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 	"time"
@@ -14,10 +15,11 @@ import (
 
 type MatchHandler struct {
 	matchRepo *repository.MatchRepository
+	bolaoRepo *repository.BolaoRepository
 }
 
-func NewMatchHandler(matchRepo *repository.MatchRepository) *MatchHandler {
-	return &MatchHandler{matchRepo: matchRepo}
+func NewMatchHandler(matchRepo *repository.MatchRepository, bolaoRepo *repository.BolaoRepository) *MatchHandler {
+	return &MatchHandler{matchRepo: matchRepo, bolaoRepo: bolaoRepo}
 }
 
 type CreateMatchRequest struct {
@@ -51,7 +53,13 @@ type UpdateMatchRequest struct {
 }
 
 func (h *MatchHandler) ListRounds(c *gin.Context) {
-	rounds, err := h.matchRepo.ListRounds(c.Request.Context())
+	bolaoID, err := resolveBolaoID(c, h.bolaoRepo)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "bolão inválido"})
+		return
+	}
+
+	rounds, err := h.matchRepo.ListRounds(c.Request.Context(), bolaoID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -69,7 +77,13 @@ func (h *MatchHandler) ListByRound(c *gin.Context) {
 		return
 	}
 
-	matches, err := h.matchRepo.ListByRound(c.Request.Context(), round)
+	bolaoID, err := resolveBolaoID(c, h.bolaoRepo)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "bolão inválido"})
+		return
+	}
+
+	matches, err := h.matchRepo.ListByRound(c.Request.Context(), bolaoID, round)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -94,6 +108,12 @@ func (h *MatchHandler) CreateMatches(c *gin.Context) {
 		}
 	}
 
+	active, err := h.bolaoRepo.GetActive(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "nenhum bolão ativo encontrado"})
+		return
+	}
+
 	var created []models.Match
 	var closesAt *time.Time
 	if req.MarketClosesAt != nil && req.MarketClosesAt.Time != nil {
@@ -102,6 +122,7 @@ func (h *MatchHandler) CreateMatches(c *gin.Context) {
 	for _, m := range req.Matches {
 		match := &models.Match{
 			ID:             uuid.New(),
+			BolaoID:        active.ID,
 			Round:          req.Round,
 			HomeTeam:       m.HomeTeam,
 			AwayTeam:       m.AwayTeam,
@@ -130,6 +151,10 @@ func (h *MatchHandler) UpdateResults(c *gin.Context) {
 		return
 	}
 
+	if err := h.assertMatchInActiveBolao(c, id); err != nil {
+		return
+	}
+
 	if err := h.matchRepo.UpdateResults(c.Request.Context(), id, req.HomeGoals, req.AwayGoals); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -152,16 +177,22 @@ func (h *MatchHandler) UpdateRoundCloses(c *gin.Context) {
 		return
 	}
 
+	active, err := h.bolaoRepo.GetActive(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "nenhum bolão ativo encontrado"})
+		return
+	}
+
 	var closesAt *time.Time
 	if req.MarketClosesAt != nil && req.MarketClosesAt.Time != nil {
 		closesAt = req.MarketClosesAt.Time
 	}
-	if err := h.matchRepo.UpdateMarketClosesAt(c.Request.Context(), round, closesAt); err != nil {
+	if err := h.matchRepo.UpdateMarketClosesAt(c.Request.Context(), active.ID, round, closesAt); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	matches, _ := h.matchRepo.ListByRound(c.Request.Context(), round)
+	matches, _ := h.matchRepo.ListByRound(c.Request.Context(), active.ID, round)
 	c.JSON(http.StatusOK, matches)
 }
 
@@ -183,6 +214,10 @@ func (h *MatchHandler) UpdateMatch(c *gin.Context) {
 		return
 	}
 
+	if err := h.assertMatchInActiveBolao(c, id); err != nil {
+		return
+	}
+
 	if err := h.matchRepo.Update(c.Request.Context(), id, req.HomeTeam, req.AwayTeam); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -196,6 +231,10 @@ func (h *MatchHandler) DeleteMatch(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "id inválido"})
+		return
+	}
+
+	if err := h.assertMatchInActiveBolao(c, id); err != nil {
 		return
 	}
 
@@ -214,10 +253,39 @@ func (h *MatchHandler) DeleteRound(c *gin.Context) {
 		return
 	}
 
-	if err := h.matchRepo.DeleteRound(c.Request.Context(), round); err != nil {
+	active, err := h.bolaoRepo.GetActive(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "nenhum bolão ativo encontrado"})
+		return
+	}
+
+	if err := h.matchRepo.DeleteRound(c.Request.Context(), active.ID, round); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "rodada excluída"})
 }
+
+// assertMatchInActiveBolao writes a 403 response and returns a non-nil error if the
+// match doesn't belong to the currently active bolão (defense-in-depth against a
+// stale client trying to edit a finished bolão's match by id).
+func (h *MatchHandler) assertMatchInActiveBolao(c *gin.Context, matchID uuid.UUID) error {
+	match, err := h.matchRepo.GetByID(c.Request.Context(), matchID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "jogo não encontrado"})
+		return err
+	}
+	active, err := h.bolaoRepo.GetActive(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "nenhum bolão ativo encontrado"})
+		return err
+	}
+	if match.BolaoID != active.ID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "não é possível editar jogos de um bolão encerrado"})
+		return errMatchNotInActiveBolao
+	}
+	return nil
+}
+
+var errMatchNotInActiveBolao = errors.New("match not in active bolão")

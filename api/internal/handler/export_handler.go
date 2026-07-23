@@ -4,16 +4,18 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/bolao-app/api/internal/repository"
 	"github.com/bolao-app/api/internal/service"
 	"github.com/gin-gonic/gin"
 )
 
 type ExportHandler struct {
 	exportSvc *service.ExportService
+	bolaoRepo *repository.BolaoRepository
 }
 
-func NewExportHandler(exportSvc *service.ExportService) *ExportHandler {
-	return &ExportHandler{exportSvc: exportSvc}
+func NewExportHandler(exportSvc *service.ExportService, bolaoRepo *repository.BolaoRepository) *ExportHandler {
+	return &ExportHandler{exportSvc: exportSvc, bolaoRepo: bolaoRepo}
 }
 
 func (h *ExportHandler) ExportRound(c *gin.Context) {
@@ -24,7 +26,13 @@ func (h *ExportHandler) ExportRound(c *gin.Context) {
 		return
 	}
 
-	csvData, err := h.exportSvc.ExportRoundCSV(c.Request.Context(), round)
+	bolaoID, err := resolveBolaoID(c, h.bolaoRepo)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "bolão inválido"})
+		return
+	}
+
+	csvData, err := h.exportSvc.ExportRoundCSV(c.Request.Context(), bolaoID, round)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -37,7 +45,13 @@ func (h *ExportHandler) ExportRound(c *gin.Context) {
 }
 
 func (h *ExportHandler) ExportAll(c *gin.Context) {
-	csvData, err := h.exportSvc.ExportAllCSV(c.Request.Context())
+	bolaoID, err := resolveBolaoID(c, h.bolaoRepo)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "bolão inválido"})
+		return
+	}
+
+	csvData, err := h.exportSvc.ExportAllCSV(c.Request.Context(), bolaoID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

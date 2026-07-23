@@ -10,20 +10,20 @@ import (
 )
 
 type ClassificationService struct {
-	userRepo       *repository.UserRepository
+	bolaoRepo      *repository.BolaoRepository
 	matchRepo      *repository.MatchRepository
 	predictionRepo *repository.PredictionRepository
 	partialRepo    *repository.PartialRepository
 }
 
 func NewClassificationService(
-	userRepo *repository.UserRepository,
+	bolaoRepo *repository.BolaoRepository,
 	matchRepo *repository.MatchRepository,
 	predictionRepo *repository.PredictionRepository,
 	partialRepo *repository.PartialRepository,
 ) *ClassificationService {
 	return &ClassificationService{
-		userRepo:       userRepo,
+		bolaoRepo:      bolaoRepo,
 		matchRepo:      matchRepo,
 		predictionRepo: predictionRepo,
 		partialRepo:    partialRepo,
@@ -38,29 +38,49 @@ type RoundScore struct {
 	CorrectResults int       `json:"correct_results"`
 }
 
-func (s *ClassificationService) GetClassification(ctx context.Context, upToRound int) ([]models.UserWithStats, error) {
-	// Quando "todas" as rodadas são pedidas (0 ou >= 999), usar a última rodada que existe no banco
-	if upToRound <= 0 || upToRound >= 999 {
-		rounds, err := s.matchRepo.ListRounds(ctx)
-		if err != nil {
-			return nil, err
-		}
-		if len(rounds) == 0 {
-			upToRound = 0
-		} else {
-			upToRound = rounds[len(rounds)-1]
+func (s *ClassificationService) GetClassification(ctx context.Context, bolaoID uuid.UUID, upToRound int) ([]models.UserWithStats, error) {
+	// Fetch everything for the bolão in bulk (3 queries total, regardless of round count)
+	// instead of one query per round per participant.
+	allMatches, err := s.matchRepo.ListAllByBolao(ctx, bolaoID)
+	if err != nil {
+		return nil, err
+	}
+	matchesByRound := make(map[int][]models.Match)
+	maxRound := 0
+	for _, m := range allMatches {
+		matchesByRound[m.Round] = append(matchesByRound[m.Round], m)
+		if m.Round > maxRound {
+			maxRound = m.Round
 		}
 	}
 
-	users, err := s.userRepo.List(ctx)
+	// Quando "todas" as rodadas são pedidas (0 ou >= 999), usar a última rodada que existe no banco
+	if upToRound <= 0 || upToRound >= 999 {
+		upToRound = maxRound
+	}
+
+	participants, err := s.bolaoRepo.ListParticipants(ctx, bolaoID)
 	if err != nil {
 		return nil, err
 	}
 
+	allPredictions, err := s.predictionRepo.GetAllForBolao(ctx, bolaoID)
+	if err != nil {
+		return nil, err
+	}
+	predByMatchUser := make(map[uuid.UUID]map[uuid.UUID]struct{ Home, Away int })
+	for _, p := range allPredictions {
+		if predByMatchUser[p.MatchID] == nil {
+			predByMatchUser[p.MatchID] = make(map[uuid.UUID]struct{ Home, Away int })
+		}
+		predByMatchUser[p.MatchID][p.UserID] = struct{ Home, Away int }{p.HomeGoals, p.AwayGoals}
+	}
+
 	userStats := make(map[uuid.UUID]*models.UserWithStats)
-	for _, u := range users {
-		userStats[u.ID] = &models.UserWithStats{
-			User:           u,
+	for _, p := range participants {
+		userStats[p.ID] = &models.UserWithStats{
+			User:           p.User,
+			AmountPaid:     p.AmountPaid,
 			TotalPoints:    0,
 			ExactScores:    0,
 			CorrectResults: 0,
@@ -72,18 +92,13 @@ func (s *ClassificationService) GetClassification(ctx context.Context, upToRound
 	roundWinners := make(map[int]uuid.UUID)
 
 	for round := 1; round <= upToRound; round++ {
-		matches, err := s.matchRepo.ListByRound(ctx, round)
-		if err != nil {
-			return nil, err
-		}
-
 		// Considera só jogos com resultado; jogos sem placar são ignorados.
 		var matchesWithResults []struct {
 			m     models.Match
 			home  int
 			away  int
 		}
-		for _, m := range matches {
+		for _, m := range matchesByRound[round] {
 			if m.HomeGoals == nil || m.AwayGoals == nil {
 				continue
 			}
@@ -103,39 +118,29 @@ func (s *ClassificationService) GetClassification(ctx context.Context, upToRound
 			correctResults int
 		})
 
-		for _, user := range users {
-			predictions, err := s.predictionRepo.GetByUserAndRound(ctx, user.ID, round)
-			if err != nil {
-				return nil, err
-			}
-
-			// Build prediction map by match ID
-			predByMatch := make(map[uuid.UUID]struct{ Home, Away int })
-			for _, p := range predictions {
-				predByMatch[p.MatchID] = struct{ Home, Away int }{p.HomeGoals, p.AwayGoals}
-			}
-
+		for _, participant := range participants {
 			const noPred = -1
 			var predList []struct{ PredHome, PredAway int }
 			var matchList []struct{ HomeGoals, AwayGoals int }
 			for _, mwr := range matchesWithResults {
 				m := mwr.m
-				p, has := predByMatch[m.ID]
-				if !has {
-					predList = append(predList, struct{ PredHome, PredAway int }{noPred, noPred})
-				} else {
-					predList = append(predList, struct{ PredHome, PredAway int }{p.Home, p.Away})
+				predHome, predAway := noPred, noPred
+				if byUser, ok := predByMatchUser[m.ID]; ok {
+					if p, ok2 := byUser[participant.ID]; ok2 {
+						predHome, predAway = p.Home, p.Away
+					}
 				}
+				predList = append(predList, struct{ PredHome, PredAway int }{predHome, predAway})
 				matchList = append(matchList, struct{ HomeGoals, AwayGoals int }{mwr.home, mwr.away})
 			}
 
 			points, exactScores, correctResults := CalculateRoundPoints(predList, matchList, true)
 
-			userStats[user.ID].TotalPoints += points
-			userStats[user.ID].ExactScores += exactScores
-			userStats[user.ID].CorrectResults += correctResults
+			userStats[participant.ID].TotalPoints += points
+			userStats[participant.ID].ExactScores += exactScores
+			userStats[participant.ID].CorrectResults += correctResults
 
-			roundScores[user.ID] = struct {
+			roundScores[participant.ID] = struct {
 				points         int
 				exactScores    int
 				correctResults int
@@ -192,8 +197,8 @@ func (s *ClassificationService) GetClassification(ctx context.Context, upToRound
 
 // GetClassificationForRound returns ranking for a single round only (points in that round),
 // using final match results. For cumulative classification use GetClassification.
-func (s *ClassificationService) GetClassificationForRound(ctx context.Context, round int) ([]models.UserWithStats, error) {
-	matches, err := s.matchRepo.ListByRound(ctx, round)
+func (s *ClassificationService) GetClassificationForRound(ctx context.Context, bolaoID uuid.UUID, round int) ([]models.UserWithStats, error) {
+	matches, err := s.matchRepo.ListByRound(ctx, bolaoID, round)
 	if err != nil {
 		return nil, err
 	}
@@ -213,31 +218,36 @@ func (s *ClassificationService) GetClassificationForRound(ctx context.Context, r
 		}{m, *m.HomeGoals, *m.AwayGoals})
 	}
 	if len(matchesWithResults) == 0 {
-		users, _ := s.userRepo.List(ctx)
-		result := make([]models.UserWithStats, 0, len(users))
-		for _, u := range users {
+		participants, _ := s.bolaoRepo.ListParticipants(ctx, bolaoID)
+		result := make([]models.UserWithStats, 0, len(participants))
+		for _, p := range participants {
 			result = append(result, models.UserWithStats{
-				User: u, TotalPoints: 0, ExactScores: 0, CorrectResults: 0, RoundsWon: 0,
+				User: p.User, AmountPaid: p.AmountPaid, TotalPoints: 0, ExactScores: 0, CorrectResults: 0, RoundsWon: 0,
 			})
 		}
 		return result, nil
 	}
 
-	users, err := s.userRepo.List(ctx)
+	participants, err := s.bolaoRepo.ListParticipants(ctx, bolaoID)
 	if err != nil {
 		return nil, err
 	}
 
-	result := make([]models.UserWithStats, 0, len(users))
-	for _, user := range users {
-		predictions, err := s.predictionRepo.GetByUserAndRound(ctx, user.ID, round)
-		if err != nil {
-			return nil, err
+	allPredictions, err := s.predictionRepo.GetAllPredictionsForRound(ctx, bolaoID, round)
+	if err != nil {
+		return nil, err
+	}
+	predByUserMatch := make(map[uuid.UUID]map[uuid.UUID]struct{ Home, Away int })
+	for _, p := range allPredictions {
+		if predByUserMatch[p.UserID] == nil {
+			predByUserMatch[p.UserID] = make(map[uuid.UUID]struct{ Home, Away int })
 		}
-		predByMatch := make(map[uuid.UUID]struct{ Home, Away int })
-		for _, p := range predictions {
-			predByMatch[p.MatchID] = struct{ Home, Away int }{p.HomeGoals, p.AwayGoals}
-		}
+		predByUserMatch[p.UserID][p.MatchID] = struct{ Home, Away int }{p.HomeGoals, p.AwayGoals}
+	}
+
+	result := make([]models.UserWithStats, 0, len(participants))
+	for _, participant := range participants {
+		predByMatch := predByUserMatch[participant.ID]
 		const noPred = -1
 		var predList []struct{ PredHome, PredAway int }
 		var matchList []struct{ HomeGoals, AwayGoals int }
@@ -253,7 +263,8 @@ func (s *ClassificationService) GetClassificationForRound(ctx context.Context, r
 		}
 		points, exactScores, correctResults := CalculateRoundPoints(predList, matchList, true)
 		result = append(result, models.UserWithStats{
-			User:           user,
+			User:           participant.User,
+			AmountPaid:     participant.AmountPaid,
 			TotalPoints:    points,
 			ExactScores:    exactScores,
 			CorrectResults: correctResults,
@@ -278,12 +289,12 @@ func (s *ClassificationService) GetClassificationForRound(ctx context.Context, r
 }
 
 // GetClassificationByPartials returns ranking for a single round using parciais as results.
-func (s *ClassificationService) GetClassificationByPartials(ctx context.Context, round int) ([]models.UserWithStats, error) {
-	matches, err := s.matchRepo.ListByRound(ctx, round)
+func (s *ClassificationService) GetClassificationByPartials(ctx context.Context, bolaoID uuid.UUID, round int) ([]models.UserWithStats, error) {
+	matches, err := s.matchRepo.ListByRound(ctx, bolaoID, round)
 	if err != nil {
 		return nil, err
 	}
-	partials, err := s.partialRepo.ListByRound(ctx, round)
+	partials, err := s.partialRepo.ListByRound(ctx, bolaoID, round)
 	if err != nil {
 		return nil, err
 	}
@@ -302,7 +313,7 @@ func (s *ClassificationService) GetClassificationByPartials(ctx context.Context,
 		return []models.UserWithStats{}, nil
 	}
 
-	users, err := s.userRepo.List(ctx)
+	participants, err := s.bolaoRepo.ListParticipants(ctx, bolaoID)
 	if err != nil {
 		return nil, err
 	}
@@ -313,16 +324,21 @@ func (s *ClassificationService) GetClassificationByPartials(ctx context.Context,
 		matchIdx[id] = i
 	}
 
-	result := make([]models.UserWithStats, 0, len(users))
-	for _, user := range users {
-		predictions, err := s.predictionRepo.GetByUserAndRound(ctx, user.ID, round)
-		if err != nil {
-			return nil, err
+	allPredictions, err := s.predictionRepo.GetAllPredictionsForRound(ctx, bolaoID, round)
+	if err != nil {
+		return nil, err
+	}
+	predByUserMatch := make(map[uuid.UUID]map[uuid.UUID]struct{ Home, Away int })
+	for _, p := range allPredictions {
+		if predByUserMatch[p.UserID] == nil {
+			predByUserMatch[p.UserID] = make(map[uuid.UUID]struct{ Home, Away int })
 		}
-		predByMatch := make(map[uuid.UUID]struct{ Home, Away int })
-		for _, p := range predictions {
-			predByMatch[p.MatchID] = struct{ Home, Away int }{p.HomeGoals, p.AwayGoals}
-		}
+		predByUserMatch[p.UserID][p.MatchID] = struct{ Home, Away int }{p.HomeGoals, p.AwayGoals}
+	}
+
+	result := make([]models.UserWithStats, 0, len(participants))
+	for _, participant := range participants {
+		predByMatch := predByUserMatch[participant.ID]
 
 		// -1,-1 = palpite ausente (usuário não preencheu esse jogo); não pontua.
 		const noPred = -1
@@ -338,7 +354,8 @@ func (s *ClassificationService) GetClassificationByPartials(ctx context.Context,
 
 		points, exactScores, correctResults := CalculateRoundPoints(predList, matchList, false)
 		result = append(result, models.UserWithStats{
-			User:           user,
+			User:           participant.User,
+			AmountPaid:     participant.AmountPaid,
 			TotalPoints:    points,
 			ExactScores:    exactScores,
 			CorrectResults: correctResults,

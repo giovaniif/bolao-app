@@ -19,18 +19,18 @@ func NewMatchRepository(pool *pgxpool.Pool) *MatchRepository {
 
 func (r *MatchRepository) Create(ctx context.Context, m *models.Match) error {
 	query := `
-		INSERT INTO matches (id, round, home_team, away_team, market_closes_at)
-		VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO matches (id, bolao_id, round, home_team, away_team, market_closes_at)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING created_at, updated_at`
-	return r.pool.QueryRow(ctx, query, m.ID, m.Round, m.HomeTeam, m.AwayTeam, m.MarketClosesAt).Scan(&m.CreatedAt, &m.UpdatedAt)
+	return r.pool.QueryRow(ctx, query, m.ID, m.BolaoID, m.Round, m.HomeTeam, m.AwayTeam, m.MarketClosesAt).Scan(&m.CreatedAt, &m.UpdatedAt)
 }
 
 func (r *MatchRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Match, error) {
 	var m models.Match
-	query := `SELECT id, round, home_team, away_team, market_closes_at, home_goals, away_goals, created_at, updated_at
+	query := `SELECT id, bolao_id, round, home_team, away_team, market_closes_at, home_goals, away_goals, created_at, updated_at
 		FROM matches WHERE id = $1`
 	err := r.pool.QueryRow(ctx, query, id).Scan(
-		&m.ID, &m.Round, &m.HomeTeam, &m.AwayTeam, &m.MarketClosesAt, &m.HomeGoals, &m.AwayGoals, &m.CreatedAt, &m.UpdatedAt,
+		&m.ID, &m.BolaoID, &m.Round, &m.HomeTeam, &m.AwayTeam, &m.MarketClosesAt, &m.HomeGoals, &m.AwayGoals, &m.CreatedAt, &m.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err
@@ -38,10 +38,10 @@ func (r *MatchRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Ma
 	return &m, nil
 }
 
-func (r *MatchRepository) ListByRound(ctx context.Context, round int) ([]models.Match, error) {
-	query := `SELECT id, round, home_team, away_team, market_closes_at, home_goals, away_goals, created_at, updated_at
-		FROM matches WHERE round = $1 ORDER BY created_at`
-	rows, err := r.pool.Query(ctx, query, round)
+func (r *MatchRepository) ListByRound(ctx context.Context, bolaoID uuid.UUID, round int) ([]models.Match, error) {
+	query := `SELECT id, bolao_id, round, home_team, away_team, market_closes_at, home_goals, away_goals, created_at, updated_at
+		FROM matches WHERE bolao_id = $1 AND round = $2 ORDER BY created_at`
+	rows, err := r.pool.Query(ctx, query, bolaoID, round)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +50,7 @@ func (r *MatchRepository) ListByRound(ctx context.Context, round int) ([]models.
 	var matches []models.Match
 	for rows.Next() {
 		var m models.Match
-		if err := rows.Scan(&m.ID, &m.Round, &m.HomeTeam, &m.AwayTeam, &m.MarketClosesAt, &m.HomeGoals, &m.AwayGoals, &m.CreatedAt, &m.UpdatedAt); err != nil {
+		if err := rows.Scan(&m.ID, &m.BolaoID, &m.Round, &m.HomeTeam, &m.AwayTeam, &m.MarketClosesAt, &m.HomeGoals, &m.AwayGoals, &m.CreatedAt, &m.UpdatedAt); err != nil {
 			return nil, err
 		}
 		matches = append(matches, m)
@@ -58,9 +58,31 @@ func (r *MatchRepository) ListByRound(ctx context.Context, round int) ([]models.
 	return matches, rows.Err()
 }
 
-func (r *MatchRepository) ListRounds(ctx context.Context) ([]int, error) {
-	query := `SELECT DISTINCT round FROM matches ORDER BY round`
-	rows, err := r.pool.Query(ctx, query)
+// ListAllByBolao returns every match for a bolão in one query, for callers that need
+// to group by round in memory instead of issuing one query per round (see ClassificationService).
+func (r *MatchRepository) ListAllByBolao(ctx context.Context, bolaoID uuid.UUID) ([]models.Match, error) {
+	query := `SELECT id, bolao_id, round, home_team, away_team, market_closes_at, home_goals, away_goals, created_at, updated_at
+		FROM matches WHERE bolao_id = $1 ORDER BY round, created_at`
+	rows, err := r.pool.Query(ctx, query, bolaoID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var matches []models.Match
+	for rows.Next() {
+		var m models.Match
+		if err := rows.Scan(&m.ID, &m.BolaoID, &m.Round, &m.HomeTeam, &m.AwayTeam, &m.MarketClosesAt, &m.HomeGoals, &m.AwayGoals, &m.CreatedAt, &m.UpdatedAt); err != nil {
+			return nil, err
+		}
+		matches = append(matches, m)
+	}
+	return matches, rows.Err()
+}
+
+func (r *MatchRepository) ListRounds(ctx context.Context, bolaoID uuid.UUID) ([]int, error) {
+	query := `SELECT DISTINCT round FROM matches WHERE bolao_id = $1 ORDER BY round`
+	rows, err := r.pool.Query(ctx, query, bolaoID)
 	if err != nil {
 		return nil, err
 	}
@@ -83,9 +105,9 @@ func (r *MatchRepository) UpdateResults(ctx context.Context, id uuid.UUID, homeG
 	return err
 }
 
-func (r *MatchRepository) UpdateMarketClosesAt(ctx context.Context, round int, closesAt *time.Time) error {
-	query := `UPDATE matches SET market_closes_at = $2, updated_at = CURRENT_TIMESTAMP WHERE round = $1`
-	_, err := r.pool.Exec(ctx, query, round, closesAt)
+func (r *MatchRepository) UpdateMarketClosesAt(ctx context.Context, bolaoID uuid.UUID, round int, closesAt *time.Time) error {
+	query := `UPDATE matches SET market_closes_at = $3, updated_at = CURRENT_TIMESTAMP WHERE bolao_id = $1 AND round = $2`
+	_, err := r.pool.Exec(ctx, query, bolaoID, round, closesAt)
 	return err
 }
 
@@ -101,8 +123,8 @@ func (r *MatchRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
-func (r *MatchRepository) DeleteRound(ctx context.Context, round int) error {
-	query := `DELETE FROM matches WHERE round = $1`
-	_, err := r.pool.Exec(ctx, query, round)
+func (r *MatchRepository) DeleteRound(ctx context.Context, bolaoID uuid.UUID, round int) error {
+	query := `DELETE FROM matches WHERE bolao_id = $1 AND round = $2`
+	_, err := r.pool.Exec(ctx, query, bolaoID, round)
 	return err
 }

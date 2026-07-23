@@ -36,12 +36,12 @@ func (r *PredictionRepository) GetByUserAndMatch(ctx context.Context, userID, ma
 	return &p, nil
 }
 
-func (r *PredictionRepository) GetByUserAndRound(ctx context.Context, userID uuid.UUID, round int) ([]models.Prediction, error) {
+func (r *PredictionRepository) GetByUserAndRound(ctx context.Context, userID, bolaoID uuid.UUID, round int) ([]models.Prediction, error) {
 	query := `SELECT p.id, p.user_id, p.match_id, p.home_goals, p.away_goals, p.created_at, p.updated_at
 		FROM predictions p
 		JOIN matches m ON p.match_id = m.id
-		WHERE p.user_id = $1 AND m.round = $2`
-	rows, err := r.pool.Query(ctx, query, userID, round)
+		WHERE p.user_id = $1 AND m.bolao_id = $2 AND m.round = $3`
+	rows, err := r.pool.Query(ctx, query, userID, bolaoID, round)
 	if err != nil {
 		return nil, err
 	}
@@ -78,12 +78,36 @@ func (r *PredictionRepository) GetByMatch(ctx context.Context, matchID uuid.UUID
 	return predictions, rows.Err()
 }
 
-func (r *PredictionRepository) GetAllPredictionsForRound(ctx context.Context, round int) ([]models.Prediction, error) {
+// GetAllForBolao returns every prediction across every round of a bolão in one query,
+// for callers that need to group by round/user in memory (see ClassificationService).
+func (r *PredictionRepository) GetAllForBolao(ctx context.Context, bolaoID uuid.UUID) ([]models.Prediction, error) {
 	query := `SELECT p.id, p.user_id, p.match_id, p.home_goals, p.away_goals, p.created_at, p.updated_at
 		FROM predictions p
 		JOIN matches m ON p.match_id = m.id
-		WHERE m.round = $1`
-	rows, err := r.pool.Query(ctx, query, round)
+		WHERE m.bolao_id = $1`
+	rows, err := r.pool.Query(ctx, query, bolaoID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var predictions []models.Prediction
+	for rows.Next() {
+		var p models.Prediction
+		if err := rows.Scan(&p.ID, &p.UserID, &p.MatchID, &p.HomeGoals, &p.AwayGoals, &p.CreatedAt, &p.UpdatedAt); err != nil {
+			return nil, err
+		}
+		predictions = append(predictions, p)
+	}
+	return predictions, rows.Err()
+}
+
+func (r *PredictionRepository) GetAllPredictionsForRound(ctx context.Context, bolaoID uuid.UUID, round int) ([]models.Prediction, error) {
+	query := `SELECT p.id, p.user_id, p.match_id, p.home_goals, p.away_goals, p.created_at, p.updated_at
+		FROM predictions p
+		JOIN matches m ON p.match_id = m.id
+		WHERE m.bolao_id = $1 AND m.round = $2`
+	rows, err := r.pool.Query(ctx, query, bolaoID, round)
 	if err != nil {
 		return nil, err
 	}

@@ -44,12 +44,12 @@ func (r *PartialRepository) GetByMatch(ctx context.Context, matchID uuid.UUID) (
 	return &p, nil
 }
 
-func (r *PartialRepository) ListByRound(ctx context.Context, round int) (map[uuid.UUID]models.MatchPartial, error) {
+func (r *PartialRepository) ListByRound(ctx context.Context, bolaoID uuid.UUID, round int) (map[uuid.UUID]models.MatchPartial, error) {
 	query := `SELECT p.match_id, p.home_goals, p.away_goals, p.updated_by, p.updated_at
 		FROM match_partials p
 		JOIN matches m ON p.match_id = m.id
-		WHERE m.round = $1`
-	rows, err := r.pool.Query(ctx, query, round)
+		WHERE m.bolao_id = $1 AND m.round = $2`
+	rows, err := r.pool.Query(ctx, query, bolaoID, round)
 	if err != nil {
 		return nil, err
 	}
