@@ -13,11 +13,12 @@ import (
 )
 
 type UserHandler struct {
-	userRepo *repository.UserRepository
+	userRepo  *repository.UserRepository
+	bolaoRepo *repository.BolaoRepository
 }
 
-func NewUserHandler(userRepo *repository.UserRepository) *UserHandler {
-	return &UserHandler{userRepo: userRepo}
+func NewUserHandler(userRepo *repository.UserRepository, bolaoRepo *repository.BolaoRepository) *UserHandler {
+	return &UserHandler{userRepo: userRepo, bolaoRepo: bolaoRepo}
 }
 
 type CreateUserRequest struct {
@@ -28,10 +29,9 @@ type CreateUserRequest struct {
 }
 
 type UpdateUserRequest struct {
-	Username     *string  `json:"username"`
-	DisplayName  string   `json:"display_name"`
-	FavoriteTeam *string  `json:"favorite_team"`
-	AmountPaid   *float64 `json:"amount_paid"`
+	Username     *string `json:"username"`
+	DisplayName  string  `json:"display_name"`
+	FavoriteTeam *string `json:"favorite_team"`
 }
 
 type UpdateMeRequest struct {
@@ -70,7 +70,6 @@ func (h *UserHandler) Create(c *gin.Context) {
 		DisplayName:        req.DisplayName,
 		FavoriteTeam:       req.FavoriteTeam,
 		IsAdmin:            req.IsAdmin,
-		AmountPaid:         0,
 		PasswordHash:       auth.DefaultPasswordHash,
 		MustChangePassword: true,
 	}
@@ -78,6 +77,10 @@ func (h *UserHandler) Create(c *gin.Context) {
 	if err := h.userRepo.Create(c.Request.Context(), user); err != nil {
 		c.JSON(http.StatusConflict, gin.H{"error": "username já existe"})
 		return
+	}
+
+	if active, err := h.bolaoRepo.GetActive(c.Request.Context()); err == nil {
+		_ = h.bolaoRepo.AddParticipant(c.Request.Context(), active.ID, user.ID)
 	}
 
 	c.JSON(http.StatusCreated, user)
@@ -124,9 +127,6 @@ func (h *UserHandler) Update(c *gin.Context) {
 			return
 		}
 		user.FavoriteTeam = req.FavoriteTeam
-	}
-	if req.AmountPaid != nil {
-		user.AmountPaid = *req.AmountPaid
 	}
 
 	if err := h.userRepo.Update(c.Request.Context(), user); err != nil {

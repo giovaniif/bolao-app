@@ -14,10 +14,11 @@ import (
 type PredictionHandler struct {
 	predictionRepo *repository.PredictionRepository
 	matchRepo      *repository.MatchRepository
+	bolaoRepo      *repository.BolaoRepository
 }
 
-func NewPredictionHandler(predictionRepo *repository.PredictionRepository, matchRepo *repository.MatchRepository) *PredictionHandler {
-	return &PredictionHandler{predictionRepo: predictionRepo, matchRepo: matchRepo}
+func NewPredictionHandler(predictionRepo *repository.PredictionRepository, matchRepo *repository.MatchRepository, bolaoRepo *repository.BolaoRepository) *PredictionHandler {
+	return &PredictionHandler{predictionRepo: predictionRepo, matchRepo: matchRepo, bolaoRepo: bolaoRepo}
 }
 
 type UpsertPredictionRequest struct {
@@ -48,7 +49,13 @@ func (h *PredictionHandler) GetMyPredictions(c *gin.Context) {
 		return
 	}
 
-	predictions, err := h.predictionRepo.GetByUserAndRound(c.Request.Context(), userID, roundInt)
+	bolaoID, err := resolveBolaoID(c, h.bolaoRepo)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "bolão inválido"})
+		return
+	}
+
+	predictions, err := h.predictionRepo.GetByUserAndRound(c.Request.Context(), userID, bolaoID, roundInt)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -75,7 +82,13 @@ func (h *PredictionHandler) GetByUserAndRound(c *gin.Context) {
 		return
 	}
 
-	matches, err := h.matchRepo.ListByRound(c.Request.Context(), round)
+	bolaoID, err := resolveBolaoID(c, h.bolaoRepo)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "bolão inválido"})
+		return
+	}
+
+	matches, err := h.matchRepo.ListByRound(c.Request.Context(), bolaoID, round)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -88,7 +101,7 @@ func (h *PredictionHandler) GetByUserAndRound(c *gin.Context) {
 		}
 	}
 
-	predictions, err := h.predictionRepo.GetByUserAndRound(c.Request.Context(), userID, round)
+	predictions, err := h.predictionRepo.GetByUserAndRound(c.Request.Context(), userID, bolaoID, round)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -108,6 +121,12 @@ func (h *PredictionHandler) UpsertPredictions(c *gin.Context) {
 		return
 	}
 
+	active, err := h.bolaoRepo.GetActive(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "nenhum bolão ativo encontrado"})
+		return
+	}
+
 	for _, p := range req.Predictions {
 		matchID, err := uuid.Parse(p.MatchID)
 		if err != nil {
@@ -118,6 +137,11 @@ func (h *PredictionHandler) UpsertPredictions(c *gin.Context) {
 		match, err := h.matchRepo.GetByID(c.Request.Context(), matchID)
 		if err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "jogo não encontrado"})
+			return
+		}
+
+		if match.BolaoID != active.ID {
+			c.JSON(http.StatusForbidden, gin.H{"error": "não é possível registrar palpites em um bolão encerrado"})
 			return
 		}
 

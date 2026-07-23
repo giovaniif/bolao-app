@@ -12,7 +12,6 @@ type User struct {
 	DisplayName        string    `json:"display_name"`
 	FavoriteTeam       *string   `json:"favorite_team,omitempty"`
 	IsAdmin            bool      `json:"is_admin"`
-	AmountPaid         float64   `json:"amount_paid"`
 	PasswordHash       string    `json:"-"`
 	MustChangePassword bool      `json:"must_change_password,omitempty"`
 	CreatedAt          time.Time `json:"created_at"`
@@ -21,6 +20,7 @@ type User struct {
 
 type Match struct {
 	ID             uuid.UUID  `json:"id"`
+	BolaoID        uuid.UUID  `json:"bolao_id"`
 	Round          int        `json:"round"`
 	HomeTeam       string     `json:"home_team"`
 	AwayTeam       string     `json:"away_team"`
@@ -29,6 +29,30 @@ type Match struct {
 	AwayGoals      *int       `json:"away_goals,omitempty"`
 	CreatedAt      time.Time  `json:"created_at"`
 	UpdatedAt      time.Time  `json:"updated_at"`
+}
+
+type Bolao struct {
+	ID         uuid.UUID  `json:"id"`
+	Name       string     `json:"name"`
+	Status     string     `json:"status"`
+	StartedAt  time.Time  `json:"started_at"`
+	FinishedAt *time.Time `json:"finished_at,omitempty"`
+	CreatedAt  time.Time  `json:"created_at"`
+	UpdatedAt  time.Time  `json:"updated_at"`
+}
+
+type BolaoParticipant struct {
+	BolaoID    uuid.UUID `json:"bolao_id"`
+	UserID     uuid.UUID `json:"user_id"`
+	AmountPaid float64   `json:"amount_paid"`
+	JoinedAt   time.Time `json:"joined_at"`
+}
+
+// ParticipantView is a user joined with their participation record for a specific bolão.
+type ParticipantView struct {
+	User
+	AmountPaid float64   `json:"amount_paid"`
+	JoinedAt   time.Time `json:"joined_at"`
 }
 
 type Prediction struct {
@@ -51,8 +75,9 @@ type MatchPartial struct {
 
 type UserWithStats struct {
 	User
-	TotalPoints    int `json:"total_points"`
-	ExactScores    int `json:"exact_scores"`
-	CorrectResults int `json:"correct_results"`
-	RoundsWon      int `json:"rounds_won"`
+	AmountPaid     float64 `json:"amount_paid"`
+	TotalPoints    int     `json:"total_points"`
+	ExactScores    int     `json:"exact_scores"`
+	CorrectResults int     `json:"correct_results"`
+	RoundsWon      int     `json:"rounds_won"`
 }

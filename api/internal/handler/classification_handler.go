@@ -4,16 +4,18 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/bolao-app/api/internal/repository"
 	"github.com/bolao-app/api/internal/service"
 	"github.com/gin-gonic/gin"
 )
 
 type ClassificationHandler struct {
 	classificationSvc *service.ClassificationService
+	bolaoRepo         *repository.BolaoRepository
 }
 
-func NewClassificationHandler(classificationSvc *service.ClassificationService) *ClassificationHandler {
-	return &ClassificationHandler{classificationSvc: classificationSvc}
+func NewClassificationHandler(classificationSvc *service.ClassificationService, bolaoRepo *repository.BolaoRepository) *ClassificationHandler {
+	return &ClassificationHandler{classificationSvc: classificationSvc, bolaoRepo: bolaoRepo}
 }
 
 func (h *ClassificationHandler) Get(c *gin.Context) {
@@ -23,10 +25,16 @@ func (h *ClassificationHandler) Get(c *gin.Context) {
 		round = 999
 	}
 
+	bolaoID, err := resolveBolaoID(c, h.bolaoRepo)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "bolão inválido"})
+		return
+	}
+
 	ctx := c.Request.Context()
 	// Specific round (1..998): classification for that round only. 0 or 999: cumulative up to last round.
 	if round >= 1 && round <= 998 {
-		classification, err := h.classificationSvc.GetClassificationForRound(ctx, round)
+		classification, err := h.classificationSvc.GetClassificationForRound(ctx, bolaoID, round)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -34,7 +42,7 @@ func (h *ClassificationHandler) Get(c *gin.Context) {
 		c.JSON(http.StatusOK, classification)
 		return
 	}
-	classification, err := h.classificationSvc.GetClassification(ctx, round)
+	classification, err := h.classificationSvc.GetClassification(ctx, bolaoID, round)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -50,7 +58,13 @@ func (h *ClassificationHandler) GetByPartials(c *gin.Context) {
 		return
 	}
 
-	classification, err := h.classificationSvc.GetClassificationByPartials(c.Request.Context(), round)
+	bolaoID, err := resolveBolaoID(c, h.bolaoRepo)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "bolão inválido"})
+		return
+	}
+
+	classification, err := h.classificationSvc.GetClassificationByPartials(c.Request.Context(), bolaoID, round)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

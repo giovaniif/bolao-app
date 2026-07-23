@@ -35,17 +35,20 @@ func main() {
 	matchRepo := repository.NewMatchRepository(pool)
 	predictionRepo := repository.NewPredictionRepository(pool)
 	partialRepo := repository.NewPartialRepository(pool)
+	bolaoRepo := repository.NewBolaoRepository(pool)
 
-	classificationSvc := service.NewClassificationService(userRepo, matchRepo, predictionRepo, partialRepo)
-	exportSvc := service.NewExportService(userRepo, matchRepo, predictionRepo)
+	classificationSvc := service.NewClassificationService(bolaoRepo, matchRepo, predictionRepo, partialRepo)
+	exportSvc := service.NewExportService(bolaoRepo, matchRepo, predictionRepo)
+	bolaoSvc := service.NewBolaoService(bolaoRepo, matchRepo)
 
 	authHandler := handler.NewAuthHandler(userRepo, cfg.JWTSecret)
-	userHandler := handler.NewUserHandler(userRepo)
-	matchHandler := handler.NewMatchHandler(matchRepo)
-	predictionHandler := handler.NewPredictionHandler(predictionRepo, matchRepo)
-	partialHandler := handler.NewPartialHandler(matchRepo, partialRepo)
-	classificationHandler := handler.NewClassificationHandler(classificationSvc)
-	exportHandler := handler.NewExportHandler(exportSvc)
+	userHandler := handler.NewUserHandler(userRepo, bolaoRepo)
+	matchHandler := handler.NewMatchHandler(matchRepo, bolaoRepo)
+	predictionHandler := handler.NewPredictionHandler(predictionRepo, matchRepo, bolaoRepo)
+	partialHandler := handler.NewPartialHandler(matchRepo, partialRepo, bolaoRepo)
+	classificationHandler := handler.NewClassificationHandler(classificationSvc, bolaoRepo)
+	exportHandler := handler.NewExportHandler(exportSvc, bolaoRepo)
+	bolaoHandler := handler.NewBolaoHandler(bolaoSvc, bolaoRepo)
 
 	r := gin.Default()
 
@@ -73,6 +76,9 @@ func main() {
 		api.GET("/parciais/round/:round/classification", classificationHandler.GetByPartials)
 		api.GET("/export/round/:round", exportHandler.ExportRound)
 		api.GET("/export/all", exportHandler.ExportAll)
+		api.GET("/boloes", bolaoHandler.List)
+		api.GET("/boloes/active", bolaoHandler.GetActive)
+		api.GET("/boloes/:id/participants", bolaoHandler.ListParticipants)
 
 		admin := api.Group("")
 		admin.Use(handler.AdminMiddleware())
@@ -85,6 +91,9 @@ func main() {
 			admin.DELETE("/matches/:id", matchHandler.DeleteMatch)
 			admin.PUT("/matches/round/:round/closes", matchHandler.UpdateRoundCloses)
 			admin.DELETE("/matches/round/:round", matchHandler.DeleteRound)
+			admin.POST("/boloes", bolaoHandler.Create)
+			admin.POST("/boloes/active/finish", bolaoHandler.FinishActive)
+			admin.PUT("/boloes/:id/participants/:user_id", bolaoHandler.UpdateParticipantAmountPaid)
 		}
 	}
 
@@ -107,7 +116,7 @@ func corsMiddleware() gin.HandlerFunc {
 }
 
 func runMigrations(ctx context.Context, pool *pgxpool.Pool) error {
-	for _, name := range []string{"001_init.sql", "002_timestamptz.sql", "003_match_partials.sql", "004_passwords.sql", "005_partials_nullable.sql"} {
+	for _, name := range []string{"001_init.sql", "002_timestamptz.sql", "003_match_partials.sql", "004_passwords.sql", "005_partials_nullable.sql", "006_boloes.sql"} {
 		path := filepath.Join("migrations", name)
 		content, err := os.ReadFile(path)
 		if err != nil {
@@ -116,12 +125,14 @@ func runMigrations(ctx context.Context, pool *pgxpool.Pool) error {
 		}
 		if err != nil {
 			if name != "001_init.sql" {
+				log.Printf("migration %s: read failed (continuing): %v", name, err)
 				continue
 			}
 			return err
 		}
 		if _, err = pool.Exec(ctx, string(content)); err != nil {
 			if name != "001_init.sql" {
+				log.Printf("migration %s: exec failed (continuing): %v", name, err)
 				continue
 			}
 			return err

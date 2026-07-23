@@ -12,10 +12,11 @@ import (
 type PartialHandler struct {
 	matchRepo   *repository.MatchRepository
 	partialRepo *repository.PartialRepository
+	bolaoRepo   *repository.BolaoRepository
 }
 
-func NewPartialHandler(matchRepo *repository.MatchRepository, partialRepo *repository.PartialRepository) *PartialHandler {
-	return &PartialHandler{matchRepo: matchRepo, partialRepo: partialRepo}
+func NewPartialHandler(matchRepo *repository.MatchRepository, partialRepo *repository.PartialRepository, bolaoRepo *repository.BolaoRepository) *PartialHandler {
+	return &PartialHandler{matchRepo: matchRepo, partialRepo: partialRepo, bolaoRepo: bolaoRepo}
 }
 
 type SetPartialRequest struct {
@@ -31,13 +32,19 @@ func (h *PartialHandler) ListByRound(c *gin.Context) {
 		return
 	}
 
-	matches, err := h.matchRepo.ListByRound(c.Request.Context(), round)
+	bolaoID, err := resolveBolaoID(c, h.bolaoRepo)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "bolão inválido"})
+		return
+	}
+
+	matches, err := h.matchRepo.ListByRound(c.Request.Context(), bolaoID, round)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	partials, err := h.partialRepo.ListByRound(c.Request.Context(), round)
+	partials, err := h.partialRepo.ListByRound(c.Request.Context(), bolaoID, round)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
