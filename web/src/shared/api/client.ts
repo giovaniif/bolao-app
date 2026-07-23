@@ -46,7 +46,10 @@ export async function api<T>(
       data && typeof data === 'object' && 'error' in data && typeof (data as { error: unknown }).error === 'string'
         ? (data as { error: string }).error
         : `Erro ${res.status}`;
-    throw new Error(errorMsg);
+    const err = new Error(errorMsg) as Error & { status?: number; body?: unknown };
+    err.status = res.status;
+    err.body = data;
+    throw err;
   }
 
   if (res.status === 204) {

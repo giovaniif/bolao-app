@@ -2,25 +2,53 @@ import { useState } from 'react';
 import { Layout } from '../../../shared/components/Layout';
 import { useClassification } from '../hooks/useClassification';
 import { useRounds } from '../../matches/hooks/useMatches';
+import { useBoloes } from '../../boloes/hooks/useBoloes';
 import { downloadExportRound, downloadExportAll } from '../api/exportApi';
 import type { UserWithStats } from '../api/classificationApi';
 
 export function ClassificationPage() {
+  const [selectedBolaoId, setSelectedBolaoId] = useState<string>('');
   const [selectedRound, setSelectedRound] = useState<number | ''>('');
   const [exporting, setExporting] = useState<'round' | 'all' | null>(null);
 
-  const { data: rounds = [] } = useRounds();
+  const { data: boloes = [] } = useBoloes();
+  const bolaoId = selectedBolaoId || undefined;
+
+  const { data: rounds = [] } = useRounds(bolaoId);
   const maxRound = rounds.length > 0 ? Math.max(...rounds) : 0;
   const displayRound = selectedRound === '' ? maxRound : selectedRound;
   // "Todas" = classificação acumulada (backend round=0/999). Rodada específica = só aquela rodada.
   const roundForQuery = selectedRound === '' ? undefined : selectedRound;
   const isCumulative = selectedRound === '';
 
-  const { data: classification = [], isLoading, error } = useClassification(roundForQuery);
+  const { data: classification = [], isLoading, error } = useClassification(roundForQuery, bolaoId);
 
   return (
     <Layout title="Classificação">
       <div className="space-y-4">
+        {boloes.length > 1 && (
+          <div>
+            <label className="block text-sm text-[var(--color-text-muted)] mb-1">Bolão</label>
+            <select
+              value={selectedBolaoId}
+              onChange={(e) => {
+                setSelectedBolaoId(e.target.value);
+                setSelectedRound('');
+              }}
+              className="w-full px-3 py-2 rounded-lg bg-[var(--color-card)] border border-slate-600 text-white"
+            >
+              <option value="">Bolão atual</option>
+              {boloes
+                .filter((b) => b.status === 'finished')
+                .map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+            </select>
+          </div>
+        )}
+
         {rounds.length > 0 && (
           <div>
             <label className="block text-sm text-[var(--color-text-muted)] mb-1">
@@ -48,7 +76,7 @@ export function ClassificationPage() {
             onClick={async () => {
               setExporting('round');
               try {
-                await downloadExportRound(Number(displayRound) || 1);
+                await downloadExportRound(Number(displayRound) || 1, bolaoId);
               } catch (e) {
                 alert(e instanceof Error ? e.message : 'Erro ao exportar');
               } finally {
@@ -64,7 +92,7 @@ export function ClassificationPage() {
             onClick={async () => {
               setExporting('all');
               try {
-                await downloadExportAll();
+                await downloadExportAll(bolaoId);
               } catch (e) {
                 alert(e instanceof Error ? e.message : 'Erro ao exportar');
               } finally {

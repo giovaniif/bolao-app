@@ -10,7 +10,6 @@ export interface Profile {
   display_name: string;
   favorite_team: string | null;
   is_admin: boolean;
-  amount_paid: number;
 }
 
 export async function getProfile(): Promise<Profile> {

@@ -6,7 +6,6 @@ export interface User {
   display_name: string;
   favorite_team?: string;
   is_admin: boolean;
-  amount_paid: number;
 }
 
 export interface Match {
@@ -37,7 +36,7 @@ export async function createUser(data: {
 
 export async function updateUser(
   id: string,
-  data: { display_name?: string; favorite_team?: string; amount_paid?: number }
+  data: { display_name?: string; favorite_team?: string }
 ): Promise<User> {
   return api<User>(`/users/${id}`, {
     method: 'PUT',

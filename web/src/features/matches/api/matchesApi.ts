@@ -10,8 +10,9 @@ export interface Match {
   away_goals?: number;
 }
 
-export async function getRounds(): Promise<number[]> {
-  return api<number[]>('/matches/rounds');
+export async function getRounds(bolaoId?: string): Promise<number[]> {
+  const q = bolaoId ? `?bolao_id=${bolaoId}` : '';
+  return api<number[]>(`/matches/rounds${q}`);
 }
 
 export async function getMatchesByRound(round: number): Promise<Match[]> {
