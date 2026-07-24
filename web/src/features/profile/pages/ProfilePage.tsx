@@ -12,25 +12,20 @@ export function ProfilePage() {
   const updateMutation = useUpdateProfile();
   const { updateUser } = useAuth();
   const [teams, setTeams] = useState<string[]>([]);
-  const [form, setForm] = useState({
-    username: '',
-    display_name: '',
-    favorite_team: '' as string,
-  });
+  const [edits, setEdits] = useState<
+    Partial<{ username: string; display_name: string; favorite_team: string }>
+  >({});
 
   useEffect(() => {
     getTeams().then(setTeams).catch(() => setTeams([]));
   }, []);
 
-  useEffect(() => {
-    if (profile) {
-      setForm({
-        username: profile.username,
-        display_name: profile.display_name,
-        favorite_team: profile.favorite_team || '',
-      });
-    }
-  }, [profile]);
+  const form = {
+    username: profile?.username ?? '',
+    display_name: profile?.display_name ?? '',
+    favorite_team: profile?.favorite_team ?? '',
+    ...edits,
+  };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -60,13 +55,13 @@ export function ProfilePage() {
         <Input
           label="Usuário (para login)"
           value={form.username}
-          onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))}
+          onChange={(e) => setEdits((f) => ({ ...f, username: e.target.value }))}
           required
         />
         <Input
           label="Nome"
           value={form.display_name}
-          onChange={(e) => setForm((f) => ({ ...f, display_name: e.target.value }))}
+          onChange={(e) => setEdits((f) => ({ ...f, display_name: e.target.value }))}
           required
         />
         <div>
@@ -76,7 +71,7 @@ export function ProfilePage() {
           <select
             value={form.favorite_team}
             onChange={(e) =>
-              setForm((f) => ({ ...f, favorite_team: e.target.value }))
+              setEdits((f) => ({ ...f, favorite_team: e.target.value }))
             }
             className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-white"
           >

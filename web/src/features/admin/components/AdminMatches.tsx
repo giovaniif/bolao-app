@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   formatDateTime,
   toDateTimeLocalValue,
@@ -20,7 +20,7 @@ import { Button } from '../../../shared/components/Button';
 import { Input } from '../../../shared/components/Input';
 
 export function AdminMatches() {
-  const [round, setRound] = useState<number>(1);
+  const [selectedRound, setSelectedRound] = useState<number>(1);
   const [showAdd, setShowAdd] = useState(false);
   const [newRound, setNewRound] = useState(1);
   const [marketCloses, setMarketCloses] = useState('');
@@ -37,6 +37,10 @@ export function AdminMatches() {
 
   const { data: rounds = [] } = useRounds();
   const { data: teams = [] } = useTeams();
+
+  const round =
+    rounds.length > 0 && !rounds.includes(selectedRound) ? rounds[0] : selectedRound;
+
   const { data: matches = [], isLoading } = useMatchesByRound(round);
 
   const createMatchesMutation = useCreateMatches();
@@ -46,17 +50,11 @@ export function AdminMatches() {
   const deleteMatchMutation = useDeleteMatch(round);
   const deleteRoundMutation = useDeleteRound();
 
-  useEffect(() => {
-    if (rounds.length > 0 && !rounds.includes(round)) {
-      setRound(rounds[0]);
-    }
-  }, [rounds, round]);
-
-  useEffect(() => {
-    if (matches.length > 0 && matches[0].market_closes_at) {
-      setClosesAt((prev) => prev || toDateTimeLocalValue(matches[0].market_closes_at!));
-    }
-  }, [matches]);
+  const closesAtValue =
+    closesAt ||
+    (matches[0]?.market_closes_at
+      ? toDateTimeLocalValue(matches[0].market_closes_at)
+      : '');
 
   async function handleCreateMatches(e: React.FormEvent) {
     e.preventDefault();
@@ -71,7 +69,7 @@ export function AdminMatches() {
         market_closes_at: marketCloses ? fromDateTimeLocalValue(marketCloses) : undefined,
         matches: filtered.map((m) => ({ home_team: m.home, away_team: m.away })),
       });
-      setRound(newRound);
+      setSelectedRound(newRound);
       setShowAdd(false);
       setNewMatches([{ home: '', away: '' }]);
       setMarketCloses('');
@@ -98,9 +96,9 @@ export function AdminMatches() {
   }
 
   async function handleSaveCloses() {
-    if (!closesAt) return;
+    if (!closesAtValue) return;
     try {
-      await updateClosesMutation.mutateAsync(fromDateTimeLocalValue(closesAt));
+      await updateClosesMutation.mutateAsync(fromDateTimeLocalValue(closesAtValue));
       setEditingCloses(false);
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Erro');
@@ -136,7 +134,7 @@ export function AdminMatches() {
       await deleteRoundMutation.mutateAsync(round);
       if (rounds.length > 1) {
         const next = rounds.find((r) => r !== round) ?? rounds[0];
-        setRound(next);
+        setSelectedRound(next);
       }
       setConfirmDeleteRound(false);
     } catch (err) {
@@ -182,7 +180,7 @@ export function AdminMatches() {
         </div>
         <select
           value={round}
-          onChange={(e) => setRound(Number(e.target.value))}
+          onChange={(e) => setSelectedRound(Number(e.target.value))}
           className="w-full px-3 py-2 rounded-lg bg-[var(--color-card)] border border-slate-600 text-white"
         >
           {rounds.map((r) => (
@@ -275,7 +273,7 @@ export function AdminMatches() {
               <div className="flex gap-1">
                 <input
                   type="datetime-local"
-                  value={closesAt}
+                  value={closesAtValue}
                   onChange={(e) => setClosesAt(e.target.value)}
                   className="px-2 py-1 text-sm rounded bg-slate-800 border border-slate-600 text-white"
                 />

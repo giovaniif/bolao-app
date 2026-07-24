@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Layout } from '../../../shared/components/Layout';
 import { useRounds, useMatchesByRound } from '../../matches/hooks/useMatches';
 import { useRoundInUrl } from '../../../shared/hooks/useRoundInUrl';
@@ -8,10 +8,13 @@ import type { Match } from '../../matches/api/matchesApi';
 export function ViewPredictionsPage() {
   const { data: rounds = [] } = useRounds();
   const [round, setRound] = useRoundInUrl(rounds);
-  const [userId, setUserId] = useState<string>('');
+  const [selectedUserId, setSelectedUserId] = useState<string>('');
 
   const { data: matches = [], isLoading: matchesLoading } = useMatchesByRound(round);
   const { data: users = [], isLoading: usersLoading } = useUsers();
+
+  const selectedUser = users.find((u) => u.id === selectedUserId);
+  const userId = selectedUser ? selectedUserId : '';
 
   function isClosed(m: Match): boolean {
     if (!m.market_closes_at) return false;
@@ -25,12 +28,6 @@ export function ViewPredictionsPage() {
     roundClosed ? userId : null
   );
 
-  useEffect(() => {
-    if (userId && users.length > 0 && !users.some((u) => u.id === userId)) {
-      setUserId('');
-    }
-  }, [users, userId]);
-  const selectedUser = users.find((u) => u.id === userId);
   const predByMatch = Object.fromEntries(
     predictions.map((p) => [p.match_id, { h: p.home_goals, a: p.away_goals }])
   );
@@ -74,7 +71,7 @@ export function ViewPredictionsPage() {
               </label>
               <select
                 value={userId}
-                onChange={(e) => setUserId(e.target.value)}
+                onChange={(e) => setSelectedUserId(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg bg-[var(--color-card)] border border-slate-600 text-white"
               >
                 <option value="">Selecione o jogador</option>

@@ -32,7 +32,6 @@ export function PredictionsTinderCard({
   const startX = useRef(0);
   const dragXRef = useRef(0);
   const SWIPE_THRESHOLD = 60;
-  dragXRef.current = dragX;
 
   function handleTouchStart(e: React.TouchEvent) {
     startX.current = e.touches[0].clientX;
@@ -56,6 +55,7 @@ export function PredictionsTinderCard({
 
   function handleMouseDown(e: React.MouseEvent) {
     startX.current = e.clientX;
+    dragXRef.current = 0;
     const onMove = (ev: MouseEvent) => {
       const d = ev.clientX - startX.current;
       dragXRef.current = d;
