@@ -7,30 +7,21 @@ import (
 	"github.com/google/uuid"
 )
 
-// PredEntry e MatchScore são type ALIASES (=), não tipos definidos: []PredEntry é o
-// mesmo tipo que o struct anônimo que CalculateRoundPoints já recebe, então dar nome
-// a eles não muda nenhuma assinatura.
+// Aliases (=), not defined types: []PredEntry is the identical type to the anonymous
+// struct CalculateRoundPoints already takes, so naming them changes no signature.
 type PredEntry = struct{ PredHome, PredAway int }
 type MatchScore = struct{ HomeGoals, AwayGoals int }
 
-// noPredSentinel: palpite ausente com o mercado ainda aberto. CalculateRoundPoints ignora.
+// Missing prediction while the market is still open. CalculateRoundPoints skips it.
 const noPredSentinel = -1
 
-// MarketClosed diz se o mercado do jogo já fechou em `now`.
-//
-// MarketClosesAt nulo significa que nenhuma data de fechamento foi definida, ou seja,
-// mercado ABERTO — o mesmo critério que o caminho de escrita usa em
-// PredictionHandler.UpsertPredictions. Ler e escrever precisam concordar: se a leitura
-// tratasse nulo como fechado, o jogador levaria 0×0 num jogo em que ainda pode palpitar.
+// A nil MarketClosesAt means OPEN, matching the write gate in UpsertPredictions. If reads
+// treated nil as closed, a player would be scored 0×0 on a match they can still bet on.
 func MarketClosed(m models.Match, now time.Time) bool {
 	return m.MarketClosesAt != nil && now.After(*m.MarketClosesAt)
 }
 
-// EffectivePrediction aplica a regra do ausente: quem não palpitou num jogo cujo mercado
-// já fechou é tratado como tendo palpitado 0×0.
-//
-// counts == false significa que o jogo deve ser ignorado por completo (não pontua, não
-// aparece) — palpite ausente e mercado ainda aberto.
+// counts == false means ignore the match entirely: no prediction, market still open.
 func EffectivePrediction(m models.Match, predHome, predAway int, hasPred bool, now time.Time) (home, away int, counts bool) {
 	if hasPred {
 		return predHome, predAway, true
@@ -41,8 +32,6 @@ func EffectivePrediction(m models.Match, predHome, predAway int, hasPred bool, n
 	return 0, 0, false
 }
 
-// EffectivePredEntry é a forma de EffectivePrediction no formato que CalculateRoundPoints
-// consome, devolvendo a sentinela quando o jogo não conta.
 func EffectivePredEntry(m models.Match, predHome, predAway int, hasPred bool, now time.Time) PredEntry {
 	h, a, counts := EffectivePrediction(m, predHome, predAway, hasPred, now)
 	if !counts {
@@ -51,9 +40,7 @@ func EffectivePredEntry(m models.Match, predHome, predAway int, hasPred bool, no
 	return PredEntry{PredHome: h, PredAway: a}
 }
 
-// FillMissingPredictions devolve, na ordem de `matches`, o palpite salvo quando existe ou
-// um 0×0 sintetizado (ID uuid.Nil, timestamps zerados, AutoFilled=true) quando o mercado
-// já fechou. Jogos com mercado aberto e sem palpite ficam de fora.
+// Matches with an open market and no prediction are left out of the result entirely.
 func FillMissingPredictions(matches []models.Match, userID uuid.UUID, existing []models.Prediction, now time.Time) []models.Prediction {
 	byMatch := make(map[uuid.UUID]models.Prediction, len(existing))
 	for _, p := range existing {

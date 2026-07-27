@@ -100,8 +100,7 @@ func CalculateRoundPoints(predictions []PredEntry, matches []MatchScore, awardRo
 
 	for i, m := range matches {
 		p := predMap[i]
-		// Sentinela: palpite ausente com o mercado ainda aberto (ver EffectivePredEntry).
-		// Ausente com mercado fechado já chega aqui como 0×0 e pontua normalmente.
+		// Sentinel: missing prediction, market still open (see EffectivePredEntry).
 		if p.PredHome < 0 || p.PredAway < 0 {
 			continue
 		}
@@ -126,8 +125,8 @@ func CalculateRoundPoints(predictions []PredEntry, matches []MatchScore, awardRo
 	for _, m := range matches {
 		actualRoundTotal += m.HomeGoals + m.AwayGoals
 	}
-	// counted > 0: sem nenhum palpite considerado, roundPredTotal é 0 por vacuidade e
-	// bateria com uma rodada inteira 0-0, premiando quem não palpitou nada.
+	// counted > 0: with nothing counted, roundPredTotal is 0 vacuously and would match an
+	// all-0-0 round, rewarding a player who predicted nothing.
 	if awardRoundTotalBonus && counted > 0 && roundPredTotal == actualRoundTotal {
 		totalPoints += PointsRoundTotalGoals
 	}

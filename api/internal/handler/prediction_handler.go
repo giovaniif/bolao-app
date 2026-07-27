@@ -62,8 +62,6 @@ func (h *PredictionHandler) GetMyPredictions(c *gin.Context) {
 		return
 	}
 
-	// Jogos com mercado fechado e sem palpite viram 0×0 — é assim que eles pontuam
-	// na classificação, então é assim que devem aparecer aqui.
 	matches, err := h.matchRepo.ListByRound(c.Request.Context(), bolaoID, roundInt)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -115,8 +113,7 @@ func (h *PredictionHandler) GetByUserAndRound(c *gin.Context) {
 		return
 	}
 
-	// Reusa o mesmo `now` do gate acima de propósito: ele já provou que todos os jogos
-	// da rodada estão fechados, então todo palpite ausente aqui vira 0×0.
+	// Reuses the gate's `now`, which already proved every match in the round is closed.
 	predictions = service.FillMissingPredictions(matches, userID, predictions, now)
 
 	c.JSON(http.StatusOK, predictions)

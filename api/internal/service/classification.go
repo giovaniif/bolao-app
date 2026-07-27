@@ -10,8 +10,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// matchWithResult é um jogo que já tem placar final, com os gols desempacotados dos
-// ponteiros para não repetir a verificação de nil em cada uso.
 type matchWithResult struct {
 	m          models.Match
 	home, away int
@@ -245,7 +243,7 @@ func (s *ClassificationService) GetClassificationForRound(ctx context.Context, b
 		var predList []PredEntry
 		var matchList []MatchScore
 		for _, mwr := range matchesWithResults {
-			// p é o zero value quando !has; EffectivePredEntry o ignora nesse caso.
+			// p is the zero value when !has; EffectivePredEntry ignores it then.
 			p, has := predByMatch[mwr.m.ID]
 			predList = append(predList, EffectivePredEntry(mwr.m, p.Home, p.Away, has, now))
 			matchList = append(matchList, MatchScore{HomeGoals: mwr.home, AwayGoals: mwr.away})
@@ -290,8 +288,8 @@ func (s *ClassificationService) GetClassificationByPartials(ctx context.Context,
 
 	// Build match list with parciais - only include matches that have parciais preenchidas (não nulas).
 	// Parcial 0×0 explícita conta; ausência de parcial não conta.
-	// scoredMatches guarda o models.Match inteiro (e não só o ID) porque EffectivePredEntry
-	// precisa do MarketClosesAt para decidir se um ausente vira 0×0.
+	// scoredMatches keeps the whole Match, not just the ID: EffectivePredEntry needs
+	// MarketClosesAt.
 	var matchList []MatchScore
 	var scoredMatches []models.Match
 	for _, m := range matches {
@@ -327,7 +325,6 @@ func (s *ClassificationService) GetClassificationByPartials(ctx context.Context,
 	for _, participant := range participants {
 		predByMatch := predByUserMatch[participant.ID]
 
-		// Ausente com mercado fechado vira 0×0; ausente com mercado aberto não pontua.
 		var predList []PredEntry
 		for _, m := range scoredMatches {
 			p, has := predByMatch[m.ID]

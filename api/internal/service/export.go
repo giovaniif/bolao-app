@@ -133,9 +133,9 @@ func buildCSV(rounds []int, matches []models.Match, users []models.User, predict
 		jogo := m.HomeTeam + " x " + m.AwayTeam
 
 		for _, u := range users {
-			// Leitura de dois valores: sem ela um palpite 0-0 de verdade é
-			// indistinguível de um ausente, que é o que fazia esta seção discordar
-			// da CLASSIFICAÇÃO logo abaixo.
+			// Two-value read: without it a real 0-0 prediction is indistinguishable from
+			// a missing one, which is what made this section disagree with the
+			// classification section below.
 			stored, has := predIndex[u.ID][m.ID]
 			ph, pa, counts := EffectivePrediction(m, stored.Home, stored.Away, has, now)
 

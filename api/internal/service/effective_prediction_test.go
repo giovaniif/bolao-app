@@ -17,16 +17,15 @@ func matchClosingAt(closesAt *time.Time) models.Match {
 func timePtr(t time.Time) *time.Time { return &t }
 
 func TestMarketClosed(t *testing.T) {
-	equal := testNow
 	tests := []struct {
 		name     string
 		closesAt *time.Time
 		want     bool
 	}{
-		{"sem data de fechamento = aberto", nil, false},
-		{"fecha daqui uma hora", timePtr(testNow.Add(time.Hour)), false},
-		{"fecha exatamente agora", timePtr(equal), false}, // After é estrito
-		{"fechou uma hora atrás", timePtr(testNow.Add(-time.Hour)), true},
+		{"no closing time set", nil, false},
+		{"closes in an hour", timePtr(testNow.Add(time.Hour)), false},
+		{"closes exactly now", timePtr(testNow), false}, // After is strict
+		{"closed an hour ago", timePtr(testNow.Add(-time.Hour)), true},
 	}
 	for _, tt := range tests {
 		if got := MarketClosed(matchClosingAt(tt.closesAt), testNow); got != tt.want {
@@ -47,13 +46,12 @@ func TestEffectivePrediction(t *testing.T) {
 		wantHome, wantAway int
 		wantCounts         bool
 	}{
-		{"palpite salvo, mercado aberto", open, 2, 1, true, 2, 1, true},
-		{"palpite salvo, mercado fechado", closed, 2, 1, true, 2, 1, true},
-		{"sem palpite, mercado fechado vira 0×0", closed, 0, 0, false, 0, 0, true},
-		{"sem palpite, mercado aberto não conta", open, 0, 0, false, 0, 0, false},
-		// A aresta afiada: sem data de fechamento o jogador ainda pode palpitar,
-		// então não pode levar 0×0.
-		{"sem palpite, sem data de fechamento não conta", nil, 0, 0, false, 0, 0, false},
+		{"stored prediction, market open", open, 2, 1, true, 2, 1, true},
+		{"stored prediction, market closed", closed, 2, 1, true, 2, 1, true},
+		{"no prediction, market closed becomes 0x0", closed, 0, 0, false, 0, 0, true},
+		{"no prediction, market open does not count", open, 0, 0, false, 0, 0, false},
+		// No closing time means the player can still bet, so no 0x0.
+		{"no prediction, no closing time does not count", nil, 0, 0, false, 0, 0, false},
 	}
 	for _, tt := range tests {
 		m := matchClosingAt(tt.closesAt)
@@ -71,35 +69,35 @@ func TestEffectivePredEntry(t *testing.T) {
 	never := matchClosingAt(nil)
 
 	if got := EffectivePredEntry(closed, 0, 0, false, testNow); got.PredHome != 0 || got.PredAway != 0 {
-		t.Errorf("ausente + fechado = %v, want {0,0}", got)
+		t.Errorf("missing + closed = %v, want {0,0}", got)
 	}
 	if got := EffectivePredEntry(open, 0, 0, false, testNow); got.PredHome != noPredSentinel {
-		t.Errorf("ausente + aberto = %v, want sentinela", got)
+		t.Errorf("missing + open = %v, want sentinel", got)
 	}
 	if got := EffectivePredEntry(never, 0, 0, false, testNow); got.PredHome != noPredSentinel {
-		t.Errorf("ausente + sem data = %v, want sentinela", got)
+		t.Errorf("missing + no closing time = %v, want sentinel", got)
 	}
 	if got := EffectivePredEntry(closed, 3, 1, true, testNow); got.PredHome != 3 || got.PredAway != 1 {
-		t.Errorf("palpite salvo = %v, want {3,1}", got)
+		t.Errorf("stored prediction = %v, want {3,1}", got)
 	}
 }
 
-// TestNoShowMatchPoints fixa quanto um 0×0 sintetizado vale por jogo — é o que muda
-// a classificação quando esta regra entra no ar.
+// TestNoShowMatchPoints pins what a synthesized 0x0 is worth per match — this is what
+// moves the standings once the rule ships.
 func TestNoShowMatchPoints(t *testing.T) {
 	tests := []struct {
 		realHome, realAway int
 		want               int
 	}{
-		{0, 0, 18}, // 9 resultado + 3 mandante + 3 visitante + 3 placar exato
-		{1, 1, 12}, // empate sem acertar o placar
-		{0, 1, 3},  // só gols do mandante
-		{2, 2, 12}, // empate sem placar, 4 gols mas total previsto errado
-		{2, 1, 0},  // nada
+		{0, 0, 18}, // 9 result + 3 home + 3 away + 3 exact score
+		{1, 1, 12}, // draw without the exact score
+		{0, 1, 3},  // home goals only
+		{2, 2, 12}, // draw without the score; 4 goals but wrong predicted total
+		{2, 1, 0},
 	}
 	for _, tt := range tests {
 		if got := CalculateMatchPoints(0, 0, tt.realHome, tt.realAway); got != tt.want {
-			t.Errorf("0×0 contra %d-%d = %d, want %d", tt.realHome, tt.realAway, got, tt.want)
+			t.Errorf("0x0 against %d-%d = %d, want %d", tt.realHome, tt.realAway, got, tt.want)
 		}
 	}
 }
@@ -116,13 +114,12 @@ func TestNoShowRoundScoring(t *testing.T) {
 		preds = append(preds, EffectivePredEntry(m, 0, 0, false, testNow))
 	}
 	points, exact, correct := CalculateRoundPoints(preds, results, true)
-	// 18 + 3 = 21. Sem bônus de total de gols (0 previsto vs 1 real) e só um tipo
-	// de placar exato, que vale 0.
+	// 18 + 3. No round-total bonus (0 predicted vs 1 actual) and a single exact-score
+	// type, which is worth 0.
 	if points != 21 || exact != 1 || correct != 1 {
-		t.Errorf("rodada fechada sem palpites = (%d,%d,%d), want (21,1,1)", points, exact, correct)
+		t.Errorf("closed round with no predictions = (%d,%d,%d), want (21,1,1)", points, exact, correct)
 	}
 
-	// Mesma rodada com mercado nunca fechado: o ausente não pontua nada.
 	openMatches := []models.Match{matchClosingAt(nil), matchClosingAt(nil)}
 	preds = nil
 	for _, m := range openMatches {
@@ -130,13 +127,13 @@ func TestNoShowRoundScoring(t *testing.T) {
 	}
 	points, exact, correct = CalculateRoundPoints(preds, results, true)
 	if points != 0 || exact != 0 || correct != 0 {
-		t.Errorf("rodada aberta sem palpites = (%d,%d,%d), want (0,0,0)", points, exact, correct)
+		t.Errorf("open round with no predictions = (%d,%d,%d), want (0,0,0)", points, exact, correct)
 	}
 }
 
-// TestRoundTotalBonusNeedsAtLeastOnePrediction cobre o bug em que uma rodada inteira
-// 0-0 dava os 10 pontos de "acertou o total de gols" para quem não palpitou nada:
-// roundPredTotal (0) batia com actualRoundTotal (0).
+// TestRoundTotalBonusNeedsAtLeastOnePrediction covers the bug where an all-0-0 round
+// handed the 10-point round-total bonus to someone who predicted nothing: roundPredTotal
+// (0) matched actualRoundTotal (0).
 func TestRoundTotalBonusNeedsAtLeastOnePrediction(t *testing.T) {
 	preds := []PredEntry{
 		{PredHome: noPredSentinel, PredAway: noPredSentinel},
@@ -144,7 +141,7 @@ func TestRoundTotalBonusNeedsAtLeastOnePrediction(t *testing.T) {
 	}
 	results := []MatchScore{{HomeGoals: 0, AwayGoals: 0}, {HomeGoals: 0, AwayGoals: 0}}
 	if points, _, _ := CalculateRoundPoints(preds, results, true); points != 0 {
-		t.Errorf("ausente total em rodada 0-0 = %d pontos, want 0", points)
+		t.Errorf("total no-show on an all-0-0 round = %d points, want 0", points)
 	}
 }
 
@@ -166,27 +163,26 @@ func TestFillMissingPredictions(t *testing.T) {
 		testNow,
 	)
 
-	// answered mantém a linha salva, closed vira 0×0, open e never ficam de fora.
 	if len(got) != 2 {
-		t.Fatalf("FillMissingPredictions devolveu %d entradas, want 2: %+v", len(got), got)
+		t.Fatalf("FillMissingPredictions returned %d entries, want 2: %+v", len(got), got)
 	}
 	if got[0].MatchID != answered.ID || got[0].HomeGoals != 3 || got[0].AwayGoals != 1 || got[0].AutoFilled {
-		t.Errorf("palpite salvo foi alterado: %+v", got[0])
+		t.Errorf("stored prediction was altered: %+v", got[0])
 	}
 	if got[1].MatchID != closed.ID || got[1].HomeGoals != 0 || got[1].AwayGoals != 0 || !got[1].AutoFilled {
-		t.Errorf("jogo fechado sem palpite = %+v, want 0×0 AutoFilled", got[1])
+		t.Errorf("closed match with no prediction = %+v, want 0x0 AutoFilled", got[1])
 	}
 	if got[1].ID != uuid.Nil {
-		t.Errorf("palpite sintetizado não deve ter ID de linha, got %v", got[1].ID)
+		t.Errorf("synthesized prediction should have no row ID, got %v", got[1].ID)
 	}
 	if got[1].UserID != userID {
-		t.Errorf("palpite sintetizado com UserID errado: %v", got[1].UserID)
+		t.Errorf("synthesized prediction has wrong UserID: %v", got[1].UserID)
 	}
 }
 
 func TestFillMissingPredictionsNeverNil(t *testing.T) {
 	got := FillMissingPredictions(nil, uuid.New(), nil, testNow)
 	if got == nil {
-		t.Error("FillMissingPredictions devolveu nil; o handler conta com slice não-nula para serializar []")
+		t.Error("returned nil; the handler relies on a non-nil slice to serialize []")
 	}
 }
