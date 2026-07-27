@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/csv"
 	"strconv"
+	"time"
 
 	"github.com/bolao-app/api/internal/models"
 	"github.com/bolao-app/api/internal/repository"
@@ -46,7 +47,7 @@ func (s *ExportService) ExportRoundCSV(ctx context.Context, bolaoID uuid.UUID, r
 		return nil, err
 	}
 
-	return buildCSV([]int{round}, matches, users, predictions)
+	return buildCSV([]int{round}, matches, users, predictions, time.Now())
 }
 
 func (s *ExportService) ExportAllCSV(ctx context.Context, bolaoID uuid.UUID) ([]byte, error) {
@@ -71,7 +72,7 @@ func (s *ExportService) ExportAllCSV(ctx context.Context, bolaoID uuid.UUID) ([]
 		return nil, err
 	}
 
-	return buildCSV(rounds, allMatches, users, predictions)
+	return buildCSV(rounds, allMatches, users, predictions, time.Now())
 }
 
 func participantUsers(participants []models.ParticipantView) []models.User {
@@ -95,7 +96,7 @@ func indexPredictions(predictions []models.Prediction) map[uuid.UUID]map[uuid.UU
 	return index
 }
 
-func buildCSV(rounds []int, matches []models.Match, users []models.User, predictions []models.Prediction) ([]byte, error) {
+func buildCSV(rounds []int, matches []models.Match, users []models.User, predictions []models.Prediction, now time.Time) ([]byte, error) {
 	predIndex := indexPredictions(predictions)
 
 	var buf bytes.Buffer
@@ -132,14 +133,23 @@ func buildCSV(rounds []int, matches []models.Match, users []models.User, predict
 		jogo := m.HomeTeam + " x " + m.AwayTeam
 
 		for _, u := range users {
-			p := predIndex[u.ID][m.ID]
-			pts := CalculateMatchPoints(p.Home, p.Away, hg, ag)
+			// Two-value read: without it a real 0-0 prediction is indistinguishable from
+			// a missing one, which is what made this section disagree with the
+			// classification section below.
+			stored, has := predIndex[u.ID][m.ID]
+			ph, pa, counts := EffectivePrediction(m, stored.Home, stored.Away, has, now)
+
+			palH, palA, pts := "-", "-", 0
+			if counts {
+				palH, palA = strconv.Itoa(ph), strconv.Itoa(pa)
+				pts = CalculateMatchPoints(ph, pa, hg, ag)
+			}
 			_ = w.Write([]string{
 				strconv.Itoa(m.Round),
 				jogo,
 				u.DisplayName,
-				strconv.Itoa(p.Home),
-				strconv.Itoa(p.Away),
+				palH,
+				palA,
 				strconv.Itoa(pts),
 			})
 		}
@@ -153,7 +163,7 @@ func buildCSV(rounds []int, matches []models.Match, users []models.User, predict
 		matchesByRound[m.Round] = append(matchesByRound[m.Round], m)
 	}
 	for _, round := range rounds {
-		classification := getRoundClassification(matchesByRound[round], users, predIndex)
+		classification := getRoundClassification(matchesByRound[round], users, predIndex, now)
 		if len(classification) == 0 {
 			continue
 		}
@@ -190,6 +200,7 @@ func getRoundClassification(
 	matches []models.Match,
 	users []models.User,
 	predIndex map[uuid.UUID]map[uuid.UUID]struct{ Home, Away int },
+	now time.Time,
 ) []classRow {
 	hasResults := len(matches) > 0
 	for _, m := range matches {
@@ -212,16 +223,12 @@ func getRoundClassification(
 
 	for _, user := range users {
 		predByMatch := predIndex[user.ID]
-		const noPred = -1
-		var predList []struct{ PredHome, PredAway int }
-		var matchList []struct{ HomeGoals, AwayGoals int }
+		var predList []PredEntry
+		var matchList []MatchScore
 		for _, m := range matches {
 			p, has := predByMatch[m.ID]
-			if !has {
-				predList = append(predList, struct{ PredHome, PredAway int }{noPred, noPred})
-			} else {
-				predList = append(predList, struct{ PredHome, PredAway int }{p.Home, p.Away})
-			}
+			predList = append(predList, EffectivePredEntry(m, p.Home, p.Away, has, now))
+
 			hg, ag := 0, 0
 			if m.HomeGoals != nil {
 				hg = *m.HomeGoals
@@ -229,7 +236,7 @@ func getRoundClassification(
 			if m.AwayGoals != nil {
 				ag = *m.AwayGoals
 			}
-			matchList = append(matchList, struct{ HomeGoals, AwayGoals int }{hg, ag})
+			matchList = append(matchList, MatchScore{HomeGoals: hg, AwayGoals: ag})
 		}
 		pts, exact, correct := CalculateRoundPoints(predList, matchList, true)
 		scores = append(scores, userScore{user, pts, exact, correct})

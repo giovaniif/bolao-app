@@ -61,8 +61,10 @@ type Prediction struct {
 	MatchID   uuid.UUID `json:"match_id"`
 	HomeGoals int       `json:"home_goals"`
 	AwayGoals int       `json:"away_goals"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	// Synthesized at read time for a closed match with no prediction; no database row exists.
+	AutoFilled bool      `json:"auto_filled,omitempty"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
 }
 
 type MatchPartial struct {

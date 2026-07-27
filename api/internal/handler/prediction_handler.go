@@ -7,6 +7,7 @@ import (
 
 	"github.com/bolao-app/api/internal/models"
 	"github.com/bolao-app/api/internal/repository"
+	"github.com/bolao-app/api/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -60,9 +61,14 @@ func (h *PredictionHandler) GetMyPredictions(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	if predictions == nil {
-		predictions = []models.Prediction{}
+
+	matches, err := h.matchRepo.ListByRound(c.Request.Context(), bolaoID, roundInt)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
+	predictions = service.FillMissingPredictions(matches, userID, predictions, time.Now())
+
 	c.JSON(http.StatusOK, predictions)
 }
 
@@ -106,9 +112,10 @@ func (h *PredictionHandler) GetByUserAndRound(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	if predictions == nil {
-		predictions = []models.Prediction{}
-	}
+
+	// Reuses the gate's `now`, which already proved every match in the round is closed.
+	predictions = service.FillMissingPredictions(matches, userID, predictions, now)
+
 	c.JSON(http.StatusOK, predictions)
 }
 
