@@ -48,10 +48,6 @@ export async function getTeams(): Promise<string[]> {
   return api<string[]>('/teams');
 }
 
-export async function getRounds(): Promise<number[]> {
-  return api<number[]>('/matches/rounds');
-}
-
 export async function getMatchesByRound(round: number): Promise<Match[]> {
   return api<Match[]>(`/matches/round/${round}`);
 }

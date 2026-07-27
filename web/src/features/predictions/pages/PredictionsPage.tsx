@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Layout } from '../../../shared/components/Layout';
-import { useRounds, useMatchesByRound } from '../../matches/hooks/useMatches';
+import { useRounds, useActiveRound, useMatchesByRound } from '../../matches/hooks/useMatches';
 import { useRoundInUrl } from '../../../shared/hooks/useRoundInUrl';
 import { useMyPredictions, useSavePredictions } from '../hooks/usePredictions';
 import { PredictionsTinderCard } from '../components/PredictionsTinderCard';
@@ -11,7 +11,8 @@ type ViewMode = 'tinder' | 'list';
 
 export function PredictionsPage() {
   const { data: rounds = [] } = useRounds();
-  const [round, setRound] = useRoundInUrl(rounds);
+  const { data: activeRound } = useActiveRound();
+  const [round, setRound] = useRoundInUrl(rounds, activeRound);
 
   const [edits, setEdits] = useState<Record<string, { h: number; a: number }>>({});
   const [message, setMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);

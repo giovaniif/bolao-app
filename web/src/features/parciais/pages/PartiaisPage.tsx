@@ -6,7 +6,7 @@ import {
   useSetPartial,
   useClearPartial,
 } from '../hooks/usePartiais';
-import { useRounds } from '../../matches/hooks/useMatches';
+import { useRounds, useActiveRound } from '../../matches/hooks/useMatches';
 import { useRoundInUrl } from '../../../shared/hooks/useRoundInUrl';
 import { PartiaisTinderCard } from '../components/PartiaisTinderCard';
 import { PartiaisSummaryList } from '../components/PartiaisSummaryList';
@@ -15,7 +15,8 @@ type ViewMode = 'list' | 'tinder';
 
 export function PartiaisPage() {
   const { data: rounds = [] } = useRounds();
-  const [round, setRound] = useRoundInUrl(rounds);
+  const { data: activeRound } = useActiveRound();
+  const [round, setRound] = useRoundInUrl(rounds, activeRound);
 
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [currentCardIndex, setCurrentCardIndex] = useState(0);

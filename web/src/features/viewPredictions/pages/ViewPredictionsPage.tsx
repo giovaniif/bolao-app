@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { Layout } from '../../../shared/components/Layout';
-import { useRounds, useMatchesByRound } from '../../matches/hooks/useMatches';
+import { useRounds, useActiveRound, useMatchesByRound } from '../../matches/hooks/useMatches';
 import { useRoundInUrl } from '../../../shared/hooks/useRoundInUrl';
 import { useUsers, usePredictionsByUser } from '../hooks/useViewPredictions';
 import type { Match } from '../../matches/api/matchesApi';
 
 export function ViewPredictionsPage() {
   const { data: rounds = [] } = useRounds();
-  const [round, setRound] = useRoundInUrl(rounds);
+  const { data: activeRound } = useActiveRound();
+  const [round, setRound] = useRoundInUrl(rounds, activeRound);
   const [selectedUserId, setSelectedUserId] = useState<string>('');
 
   const { data: matches = [], isLoading: matchesLoading } = useMatchesByRound(round);

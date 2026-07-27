@@ -1,11 +1,23 @@
 import { useQuery } from '@tanstack/react-query';
-import { getRounds, getMatchesByRound } from '../api/matchesApi';
+import { getRoundsSummary, getMatchesByRound } from '../api/matchesApi';
 import { queryKeys } from '../../../shared/query/queryKeys';
 
+// useRounds and useActiveRound deliberately share a query key: React Query then issues a
+// single request and both resolve together, so the default round never jumps after the
+// round list has already rendered.
 export function useRounds(bolaoId?: string) {
   return useQuery({
     queryKey: queryKeys.rounds(bolaoId),
-    queryFn: () => getRounds(bolaoId),
+    queryFn: () => getRoundsSummary(bolaoId),
+    select: (summary) => summary.rounds,
+  });
+}
+
+export function useActiveRound(bolaoId?: string) {
+  return useQuery({
+    queryKey: queryKeys.rounds(bolaoId),
+    queryFn: () => getRoundsSummary(bolaoId),
+    select: (summary) => summary.active,
   });
 }
 

@@ -10,9 +10,15 @@ export interface Match {
   away_goals?: number;
 }
 
-export async function getRounds(bolaoId?: string): Promise<number[]> {
+export interface RoundsSummary {
+  rounds: number[];
+  /** Round to select by default: the first one after the latest with every result filled in. */
+  active: number;
+}
+
+export async function getRoundsSummary(bolaoId?: string): Promise<RoundsSummary> {
   const q = bolaoId ? `?bolao_id=${bolaoId}` : '';
-  return api<number[]>(`/matches/rounds${q}`);
+  return api<RoundsSummary>(`/matches/rounds/summary${q}`);
 }
 
 export async function getMatchesByRound(round: number): Promise<Match[]> {

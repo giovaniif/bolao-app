@@ -9,6 +9,7 @@ import (
 	"github.com/bolao-app/api/internal/constants"
 	"github.com/bolao-app/api/internal/models"
 	"github.com/bolao-app/api/internal/repository"
+	"github.com/bolao-app/api/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -68,6 +69,24 @@ func (h *MatchHandler) ListRounds(c *gin.Context) {
 		rounds = []int{}
 	}
 	c.JSON(http.StatusOK, rounds)
+}
+
+// ListRoundsSummary returns the rounds plus the one the UI should select by default.
+// Kept separate from ListRounds so the admin screens keep their plain []int response.
+func (h *MatchHandler) ListRoundsSummary(c *gin.Context) {
+	bolaoID, err := resolveBolaoID(c, h.bolaoRepo)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "bolão inválido"})
+		return
+	}
+
+	matches, err := h.matchRepo.ListAllByBolao(c.Request.Context(), bolaoID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, service.SummarizeRounds(matches))
 }
 
 func (h *MatchHandler) ListByRound(c *gin.Context) {
