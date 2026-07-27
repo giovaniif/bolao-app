@@ -61,8 +61,11 @@ type Prediction struct {
 	MatchID   uuid.UUID `json:"match_id"`
 	HomeGoals int       `json:"home_goals"`
 	AwayGoals int       `json:"away_goals"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	// AutoFilled marca um palpite 0×0 sintetizado em tempo de leitura para quem não
+	// preencheu um jogo cujo mercado já fechou. Não existe linha no banco para ele.
+	AutoFilled bool      `json:"auto_filled,omitempty"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
 }
 
 type MatchPartial struct {

@@ -3,11 +3,19 @@ package service
 import (
 	"context"
 	"sort"
+	"time"
 
 	"github.com/bolao-app/api/internal/models"
 	"github.com/bolao-app/api/internal/repository"
 	"github.com/google/uuid"
 )
+
+// matchWithResult é um jogo que já tem placar final, com os gols desempacotados dos
+// ponteiros para não repetir a verificação de nil em cada uso.
+type matchWithResult struct {
+	m          models.Match
+	home, away int
+}
 
 type ClassificationService struct {
 	bolaoRepo      *repository.BolaoRepository
@@ -91,22 +99,16 @@ func (s *ClassificationService) GetClassification(ctx context.Context, bolaoID u
 	// Round winners for tiebreaker
 	roundWinners := make(map[int]uuid.UUID)
 
+	now := time.Now()
+
 	for round := 1; round <= upToRound; round++ {
 		// Considera só jogos com resultado; jogos sem placar são ignorados.
-		var matchesWithResults []struct {
-			m     models.Match
-			home  int
-			away  int
-		}
+		var matchesWithResults []matchWithResult
 		for _, m := range matchesByRound[round] {
 			if m.HomeGoals == nil || m.AwayGoals == nil {
 				continue
 			}
-			matchesWithResults = append(matchesWithResults, struct {
-				m     models.Match
-				home  int
-				away  int
-			}{m, *m.HomeGoals, *m.AwayGoals})
+			matchesWithResults = append(matchesWithResults, matchWithResult{m, *m.HomeGoals, *m.AwayGoals})
 		}
 		if len(matchesWithResults) == 0 {
 			continue
@@ -119,19 +121,17 @@ func (s *ClassificationService) GetClassification(ctx context.Context, bolaoID u
 		})
 
 		for _, participant := range participants {
-			const noPred = -1
-			var predList []struct{ PredHome, PredAway int }
-			var matchList []struct{ HomeGoals, AwayGoals int }
+			var predList []PredEntry
+			var matchList []MatchScore
 			for _, mwr := range matchesWithResults {
-				m := mwr.m
-				predHome, predAway := noPred, noPred
-				if byUser, ok := predByMatchUser[m.ID]; ok {
+				predHome, predAway, hasPred := 0, 0, false
+				if byUser, ok := predByMatchUser[mwr.m.ID]; ok {
 					if p, ok2 := byUser[participant.ID]; ok2 {
-						predHome, predAway = p.Home, p.Away
+						predHome, predAway, hasPred = p.Home, p.Away, true
 					}
 				}
-				predList = append(predList, struct{ PredHome, PredAway int }{predHome, predAway})
-				matchList = append(matchList, struct{ HomeGoals, AwayGoals int }{mwr.home, mwr.away})
+				predList = append(predList, EffectivePredEntry(mwr.m, predHome, predAway, hasPred, now))
+				matchList = append(matchList, MatchScore{HomeGoals: mwr.home, AwayGoals: mwr.away})
 			}
 
 			points, exactScores, correctResults := CalculateRoundPoints(predList, matchList, true)
@@ -202,20 +202,12 @@ func (s *ClassificationService) GetClassificationForRound(ctx context.Context, b
 	if err != nil {
 		return nil, err
 	}
-	var matchesWithResults []struct {
-		m     models.Match
-		home  int
-		away  int
-	}
+	var matchesWithResults []matchWithResult
 	for _, m := range matches {
 		if m.HomeGoals == nil || m.AwayGoals == nil {
 			continue
 		}
-		matchesWithResults = append(matchesWithResults, struct {
-			m     models.Match
-			home  int
-			away  int
-		}{m, *m.HomeGoals, *m.AwayGoals})
+		matchesWithResults = append(matchesWithResults, matchWithResult{m, *m.HomeGoals, *m.AwayGoals})
 	}
 	if len(matchesWithResults) == 0 {
 		participants, _ := s.bolaoRepo.ListParticipants(ctx, bolaoID)
@@ -245,21 +237,18 @@ func (s *ClassificationService) GetClassificationForRound(ctx context.Context, b
 		predByUserMatch[p.UserID][p.MatchID] = struct{ Home, Away int }{p.HomeGoals, p.AwayGoals}
 	}
 
+	now := time.Now()
+
 	result := make([]models.UserWithStats, 0, len(participants))
 	for _, participant := range participants {
 		predByMatch := predByUserMatch[participant.ID]
-		const noPred = -1
-		var predList []struct{ PredHome, PredAway int }
-		var matchList []struct{ HomeGoals, AwayGoals int }
+		var predList []PredEntry
+		var matchList []MatchScore
 		for _, mwr := range matchesWithResults {
-			m := mwr.m
-			p, has := predByMatch[m.ID]
-			if !has {
-				predList = append(predList, struct{ PredHome, PredAway int }{noPred, noPred})
-			} else {
-				predList = append(predList, struct{ PredHome, PredAway int }{p.Home, p.Away})
-			}
-			matchList = append(matchList, struct{ HomeGoals, AwayGoals int }{mwr.home, mwr.away})
+			// p é o zero value quando !has; EffectivePredEntry o ignora nesse caso.
+			p, has := predByMatch[mwr.m.ID]
+			predList = append(predList, EffectivePredEntry(mwr.m, p.Home, p.Away, has, now))
+			matchList = append(matchList, MatchScore{HomeGoals: mwr.home, AwayGoals: mwr.away})
 		}
 		points, exactScores, correctResults := CalculateRoundPoints(predList, matchList, true)
 		result = append(result, models.UserWithStats{
@@ -301,12 +290,14 @@ func (s *ClassificationService) GetClassificationByPartials(ctx context.Context,
 
 	// Build match list with parciais - only include matches that have parciais preenchidas (não nulas).
 	// Parcial 0×0 explícita conta; ausência de parcial não conta.
-	var matchList []struct{ HomeGoals, AwayGoals int }
-	var matchIDs []uuid.UUID
+	// scoredMatches guarda o models.Match inteiro (e não só o ID) porque EffectivePredEntry
+	// precisa do MarketClosesAt para decidir se um ausente vira 0×0.
+	var matchList []MatchScore
+	var scoredMatches []models.Match
 	for _, m := range matches {
 		if p, ok := partials[m.ID]; ok && p.HomeGoals != nil && p.AwayGoals != nil {
-			matchList = append(matchList, struct{ HomeGoals, AwayGoals int }{*p.HomeGoals, *p.AwayGoals})
-			matchIDs = append(matchIDs, m.ID)
+			matchList = append(matchList, MatchScore{HomeGoals: *p.HomeGoals, AwayGoals: *p.AwayGoals})
+			scoredMatches = append(scoredMatches, m)
 		}
 	}
 	if len(matchList) == 0 {
@@ -316,12 +307,6 @@ func (s *ClassificationService) GetClassificationByPartials(ctx context.Context,
 	participants, err := s.bolaoRepo.ListParticipants(ctx, bolaoID)
 	if err != nil {
 		return nil, err
-	}
-
-	// Build match ID to index map for predictions
-	matchIdx := make(map[uuid.UUID]int)
-	for i, id := range matchIDs {
-		matchIdx[id] = i
 	}
 
 	allPredictions, err := s.predictionRepo.GetAllPredictionsForRound(ctx, bolaoID, round)
@@ -336,20 +321,17 @@ func (s *ClassificationService) GetClassificationByPartials(ctx context.Context,
 		predByUserMatch[p.UserID][p.MatchID] = struct{ Home, Away int }{p.HomeGoals, p.AwayGoals}
 	}
 
+	now := time.Now()
+
 	result := make([]models.UserWithStats, 0, len(participants))
 	for _, participant := range participants {
 		predByMatch := predByUserMatch[participant.ID]
 
-		// -1,-1 = palpite ausente (usuário não preencheu esse jogo); não pontua.
-		const noPred = -1
-		var predList []struct{ PredHome, PredAway int }
-		for _, id := range matchIDs {
-			p, has := predByMatch[id]
-			if !has {
-				predList = append(predList, struct{ PredHome, PredAway int }{noPred, noPred})
-			} else {
-				predList = append(predList, struct{ PredHome, PredAway int }{p.Home, p.Away})
-			}
+		// Ausente com mercado fechado vira 0×0; ausente com mercado aberto não pontua.
+		var predList []PredEntry
+		for _, m := range scoredMatches {
+			p, has := predByMatch[m.ID]
+			predList = append(predList, EffectivePredEntry(m, p.Home, p.Away, has, now))
 		}
 
 		points, exactScores, correctResults := CalculateRoundPoints(predList, matchList, false)

@@ -82,17 +82,13 @@ func matchResult(home, away int) string {
 }
 
 // awardRoundTotalBonus: true = rodada completa (classificação final/export); false = parciais (não dar bônus, pois a soma dos palpites é da rodada inteira).
-func CalculateRoundPoints(predictions []struct {
-	PredHome, PredAway int
-}, matches []struct {
-	HomeGoals, AwayGoals int
-}, awardRoundTotalBonus bool) (int, int, int) {
+func CalculateRoundPoints(predictions []PredEntry, matches []MatchScore, awardRoundTotalBonus bool) (int, int, int) {
 	totalPoints := 0
 	exactScores := 0
 	correctResults := 0
 
 	// Build prediction map by match index
-	predMap := make(map[int]struct{ PredHome, PredAway int })
+	predMap := make(map[int]PredEntry)
 	for i, p := range predictions {
 		predMap[i] = p
 	}
@@ -100,13 +96,16 @@ func CalculateRoundPoints(predictions []struct {
 	// Track exact score types for bonus
 	exactScoreTypes := make(map[string]bool)
 	roundPredTotal := 0
+	counted := 0
 
 	for i, m := range matches {
 		p := predMap[i]
-		// Sentinela: palpite ausente (ex.: usuário não preencheu a rodada). Não pontua.
+		// Sentinela: palpite ausente com o mercado ainda aberto (ver EffectivePredEntry).
+		// Ausente com mercado fechado já chega aqui como 0×0 e pontua normalmente.
 		if p.PredHome < 0 || p.PredAway < 0 {
 			continue
 		}
+		counted++
 		roundPredTotal += p.PredHome + p.PredAway
 
 		pts := CalculateMatchPoints(p.PredHome, p.PredAway, m.HomeGoals, m.AwayGoals)
@@ -127,7 +126,9 @@ func CalculateRoundPoints(predictions []struct {
 	for _, m := range matches {
 		actualRoundTotal += m.HomeGoals + m.AwayGoals
 	}
-	if awardRoundTotalBonus && roundPredTotal == actualRoundTotal {
+	// counted > 0: sem nenhum palpite considerado, roundPredTotal é 0 por vacuidade e
+	// bateria com uma rodada inteira 0-0, premiando quem não palpitou nada.
+	if awardRoundTotalBonus && counted > 0 && roundPredTotal == actualRoundTotal {
 		totalPoints += PointsRoundTotalGoals
 	}
 

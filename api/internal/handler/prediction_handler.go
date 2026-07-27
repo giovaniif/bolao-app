@@ -7,6 +7,7 @@ import (
 
 	"github.com/bolao-app/api/internal/models"
 	"github.com/bolao-app/api/internal/repository"
+	"github.com/bolao-app/api/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -60,9 +61,16 @@ func (h *PredictionHandler) GetMyPredictions(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	if predictions == nil {
-		predictions = []models.Prediction{}
+
+	// Jogos com mercado fechado e sem palpite viram 0×0 — é assim que eles pontuam
+	// na classificação, então é assim que devem aparecer aqui.
+	matches, err := h.matchRepo.ListByRound(c.Request.Context(), bolaoID, roundInt)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
+	predictions = service.FillMissingPredictions(matches, userID, predictions, time.Now())
+
 	c.JSON(http.StatusOK, predictions)
 }
 
@@ -106,9 +114,11 @@ func (h *PredictionHandler) GetByUserAndRound(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	if predictions == nil {
-		predictions = []models.Prediction{}
-	}
+
+	// Reusa o mesmo `now` do gate acima de propósito: ele já provou que todos os jogos
+	// da rodada estão fechados, então todo palpite ausente aqui vira 0×0.
+	predictions = service.FillMissingPredictions(matches, userID, predictions, now)
+
 	c.JSON(http.StatusOK, predictions)
 }
 
