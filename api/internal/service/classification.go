@@ -15,6 +15,67 @@ type matchWithResult struct {
 	home, away int
 }
 
+type roundScore struct {
+	points         int
+	exactScores    int
+	correctResults int
+}
+
+// scoreParticipantRound scores one participant over one round. lookup reports the stored
+// prediction for a match, with has=false when the participant did not submit one — which
+// EffectivePredEntry turns into 0×0 if that match's market has closed.
+func scoreParticipantRound(
+	matches []matchWithResult,
+	lookup func(matchID uuid.UUID) (home, away int, has bool),
+	awardRoundTotalBonus bool,
+	now time.Time,
+) roundScore {
+	predList := make([]PredEntry, 0, len(matches))
+	matchList := make([]MatchScore, 0, len(matches))
+	for _, mwr := range matches {
+		home, away, has := lookup(mwr.m.ID)
+		predList = append(predList, EffectivePredEntry(mwr.m, home, away, has, now))
+		matchList = append(matchList, MatchScore{HomeGoals: mwr.home, AwayGoals: mwr.away})
+	}
+	points, exactScores, correctResults := CalculateRoundPoints(predList, matchList, awardRoundTotalBonus)
+	return roundScore{points, exactScores, correctResults}
+}
+
+// pickRoundWinner returns the round winner, or ok=false when nobody scored. Players on
+// zero are skipped, so a round nobody scored in has no winner.
+//
+// The last tiebreaker is the user ID. It is arbitrary, but Go randomizes map iteration, so
+// without it a fully tied round picks a different winner on every request and RoundsWon —
+// a standings tiebreaker — flaps between page loads. Players tied on every real criterion
+// have to be separated by something stable.
+func pickRoundWinner(scores map[uuid.UUID]roundScore) (uuid.UUID, bool) {
+	var winner uuid.UUID
+	var best roundScore
+	found := false
+	for uid, rs := range scores {
+		if rs.points == 0 {
+			continue
+		}
+		if !found || beatsRoundWinner(uid, rs, winner, best) {
+			winner, best, found = uid, rs, true
+		}
+	}
+	return winner, found
+}
+
+func beatsRoundWinner(uid uuid.UUID, rs roundScore, winner uuid.UUID, best roundScore) bool {
+	if rs.points != best.points {
+		return rs.points > best.points
+	}
+	if rs.exactScores != best.exactScores {
+		return rs.exactScores > best.exactScores
+	}
+	if rs.correctResults != best.correctResults {
+		return rs.correctResults > best.correctResults
+	}
+	return uid.String() < winner.String()
+}
+
 type ClassificationService struct {
 	bolaoRepo      *repository.BolaoRepository
 	matchRepo      *repository.MatchRepository
@@ -112,59 +173,26 @@ func (s *ClassificationService) GetClassification(ctx context.Context, bolaoID u
 			continue
 		}
 
-		roundScores := make(map[uuid.UUID]struct {
-			points         int
-			exactScores    int
-			correctResults int
-		})
+		roundScores := make(map[uuid.UUID]roundScore)
 
 		for _, participant := range participants {
-			var predList []PredEntry
-			var matchList []MatchScore
-			for _, mwr := range matchesWithResults {
-				predHome, predAway, hasPred := 0, 0, false
-				if byUser, ok := predByMatchUser[mwr.m.ID]; ok {
+			rs := scoreParticipantRound(matchesWithResults, func(matchID uuid.UUID) (int, int, bool) {
+				if byUser, ok := predByMatchUser[matchID]; ok {
 					if p, ok2 := byUser[participant.ID]; ok2 {
-						predHome, predAway, hasPred = p.Home, p.Away, true
+						return p.Home, p.Away, true
 					}
 				}
-				predList = append(predList, EffectivePredEntry(mwr.m, predHome, predAway, hasPred, now))
-				matchList = append(matchList, MatchScore{HomeGoals: mwr.home, AwayGoals: mwr.away})
-			}
+				return 0, 0, false
+			}, true, now)
 
-			points, exactScores, correctResults := CalculateRoundPoints(predList, matchList, true)
+			userStats[participant.ID].TotalPoints += rs.points
+			userStats[participant.ID].ExactScores += rs.exactScores
+			userStats[participant.ID].CorrectResults += rs.correctResults
 
-			userStats[participant.ID].TotalPoints += points
-			userStats[participant.ID].ExactScores += exactScores
-			userStats[participant.ID].CorrectResults += correctResults
-
-			roundScores[participant.ID] = struct {
-				points         int
-				exactScores    int
-				correctResults int
-			}{points, exactScores, correctResults}
+			roundScores[participant.ID] = rs
 		}
 
-		// Find round winner (max points, tiebreaker: exact scores, then correct results)
-		var maxPoints int
-		var winner uuid.UUID
-		first := true
-		for uid, rs := range roundScores {
-			if rs.points == 0 {
-				continue
-			}
-			if first || rs.points > maxPoints {
-				maxPoints = rs.points
-				winner = uid
-				first = false
-			} else if rs.points == maxPoints {
-				ws := roundScores[winner]
-				if rs.exactScores > ws.exactScores || (rs.exactScores == ws.exactScores && rs.correctResults > ws.correctResults) {
-					winner = uid
-				}
-			}
-		}
-		if !first && maxPoints > 0 {
+		if winner, ok := pickRoundWinner(roundScores); ok {
 			roundWinners[round] = winner
 			userStats[winner].RoundsWon++
 		}
@@ -240,21 +268,17 @@ func (s *ClassificationService) GetClassificationForRound(ctx context.Context, b
 	result := make([]models.UserWithStats, 0, len(participants))
 	for _, participant := range participants {
 		predByMatch := predByUserMatch[participant.ID]
-		var predList []PredEntry
-		var matchList []MatchScore
-		for _, mwr := range matchesWithResults {
+		rs := scoreParticipantRound(matchesWithResults, func(matchID uuid.UUID) (int, int, bool) {
 			// p is the zero value when !has; EffectivePredEntry ignores it then.
-			p, has := predByMatch[mwr.m.ID]
-			predList = append(predList, EffectivePredEntry(mwr.m, p.Home, p.Away, has, now))
-			matchList = append(matchList, MatchScore{HomeGoals: mwr.home, AwayGoals: mwr.away})
-		}
-		points, exactScores, correctResults := CalculateRoundPoints(predList, matchList, true)
+			p, has := predByMatch[matchID]
+			return p.Home, p.Away, has
+		}, true, now)
 		result = append(result, models.UserWithStats{
 			User:           participant.User,
 			AmountPaid:     participant.AmountPaid,
-			TotalPoints:    points,
-			ExactScores:    exactScores,
-			CorrectResults: correctResults,
+			TotalPoints:    rs.points,
+			ExactScores:    rs.exactScores,
+			CorrectResults: rs.correctResults,
 			RoundsWon:      0,
 		})
 	}
@@ -288,17 +312,13 @@ func (s *ClassificationService) GetClassificationByPartials(ctx context.Context,
 
 	// Build match list with parciais - only include matches that have parciais preenchidas (não nulas).
 	// Parcial 0×0 explícita conta; ausência de parcial não conta.
-	// scoredMatches keeps the whole Match, not just the ID: EffectivePredEntry needs
-	// MarketClosesAt.
-	var matchList []MatchScore
-	var scoredMatches []models.Match
+	var scoredMatches []matchWithResult
 	for _, m := range matches {
 		if p, ok := partials[m.ID]; ok && p.HomeGoals != nil && p.AwayGoals != nil {
-			matchList = append(matchList, MatchScore{HomeGoals: *p.HomeGoals, AwayGoals: *p.AwayGoals})
-			scoredMatches = append(scoredMatches, m)
+			scoredMatches = append(scoredMatches, matchWithResult{m, *p.HomeGoals, *p.AwayGoals})
 		}
 	}
-	if len(matchList) == 0 {
+	if len(scoredMatches) == 0 {
 		return []models.UserWithStats{}, nil
 	}
 
@@ -325,19 +345,19 @@ func (s *ClassificationService) GetClassificationByPartials(ctx context.Context,
 	for _, participant := range participants {
 		predByMatch := predByUserMatch[participant.ID]
 
-		var predList []PredEntry
-		for _, m := range scoredMatches {
-			p, has := predByMatch[m.ID]
-			predList = append(predList, EffectivePredEntry(m, p.Home, p.Away, has, now))
-		}
+		// awardRoundTotalBonus stays false: the predictions cover the whole round while
+		// the parciais only cover the matches played so far.
+		rs := scoreParticipantRound(scoredMatches, func(matchID uuid.UUID) (int, int, bool) {
+			p, has := predByMatch[matchID]
+			return p.Home, p.Away, has
+		}, false, now)
 
-		points, exactScores, correctResults := CalculateRoundPoints(predList, matchList, false)
 		result = append(result, models.UserWithStats{
 			User:           participant.User,
 			AmountPaid:     participant.AmountPaid,
-			TotalPoints:    points,
-			ExactScores:    exactScores,
-			CorrectResults: correctResults,
+			TotalPoints:    rs.points,
+			ExactScores:    rs.exactScores,
+			CorrectResults: rs.correctResults,
 			RoundsWon:      0,
 		})
 	}
