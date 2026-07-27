@@ -6,7 +6,6 @@ import {
 import {
   getUsers,
   getTeams,
-  getRounds,
   getMatchesByRound,
   createMatches,
   updateMatch,
@@ -33,12 +32,9 @@ export function useTeams() {
   });
 }
 
-export function useRounds() {
-  return useQuery({
-    queryKey: queryKeys.rounds(),
-    queryFn: () => getRounds(),
-  });
-}
+// Re-exported rather than redefined: this used to be a second query on the same key with
+// its own fetcher, which would now disagree with useMatches about the payload shape.
+export { useRounds } from '../../matches/hooks/useMatches';
 
 export function useMatchesByRound(round: number) {
   return useQuery({

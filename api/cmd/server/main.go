@@ -63,6 +63,7 @@ func main() {
 		api.POST("/auth/change-password", authHandler.ChangePassword)
 		api.GET("/classification", classificationHandler.Get)
 		api.GET("/matches/rounds", matchHandler.ListRounds)
+		api.GET("/matches/rounds/summary", matchHandler.ListRoundsSummary)
 		api.GET("/matches/round/:round", matchHandler.ListByRound)
 		api.GET("/users", userHandler.List)
 		api.GET("/predictions", predictionHandler.GetMyPredictions)
