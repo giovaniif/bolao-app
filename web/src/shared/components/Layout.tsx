@@ -26,6 +26,14 @@ export function Layout({ children, title }: LayoutProps) {
           </Link>
           <div className="flex items-center gap-2">
             <Link
+              to="/hall-dos-campeoes"
+              aria-label="Hall dos Campeões"
+              title="Hall dos Campeões"
+              className="text-lg leading-none hover:opacity-80"
+            >
+              🏆
+            </Link>
+            <Link
               to="/perfil"
               className="text-sm text-[var(--color-primary)] truncate max-w-[120px] hover:underline"
             >

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { login } from './authApi'
+import { API_BASE } from '../../../shared/api/client'
 
 const mockFetch = vi.fn()
 
@@ -23,7 +24,7 @@ describe('authApi', () => {
 
     const res = await login('admin', '123')
     expect(mockFetch).toHaveBeenCalledWith(
-      '/api/auth/login',
+      `${API_BASE}/auth/login`,
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({ username: 'admin', password: '123' }),

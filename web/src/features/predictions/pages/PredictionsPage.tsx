@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Layout } from '../../../shared/components/Layout';
 import { useRounds, useMatchesByRound } from '../../matches/hooks/useMatches';
 import { useRoundInUrl } from '../../../shared/hooks/useRoundInUrl';
@@ -13,35 +13,36 @@ export function PredictionsPage() {
   const { data: rounds = [] } = useRounds();
   const [round, setRound] = useRoundInUrl(rounds);
 
-  const [predictions, setPredictions] = useState<Record<string, { h: number; a: number }>>({});
+  const [edits, setEdits] = useState<Record<string, { h: number; a: number }>>({});
   const [message, setMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [viewMode, setViewMode] = useState<ViewMode>('tinder');
+  const [prevRound, setPrevRound] = useState(round);
 
   const { data: matches = [], isLoading } = useMatchesByRound(round);
   const { data: myPredictions = [] } = useMyPredictions(round);
   const savePredictionsMutation = useSavePredictions(round);
 
-  useEffect(() => {
-    const map: Record<string, { h: number; a: number }> = {};
-    for (const pred of myPredictions) {
-      map[pred.match_id] = { h: pred.home_goals, a: pred.away_goals };
-    }
-    for (const match of matches) {
-      if (!map[match.id]) {
-        map[match.id] = { h: 0, a: 0 };
-      }
-    }
-    setPredictions(map);
-  }, [matches, myPredictions]);
-
-  useEffect(() => {
+  if (round !== prevRound) {
+    setPrevRound(round);
     setCurrentCardIndex(0);
     setViewMode('tinder');
-  }, [round]);
+  }
+
+  const predictions = useMemo(() => {
+    const saved: Record<string, { h: number; a: number }> = {};
+    for (const pred of myPredictions) {
+      saved[pred.match_id] = { h: pred.home_goals, a: pred.away_goals };
+    }
+    const map: Record<string, { h: number; a: number }> = {};
+    for (const match of matches) {
+      map[match.id] = edits[match.id] ?? saved[match.id] ?? { h: 0, a: 0 };
+    }
+    return map;
+  }, [matches, myPredictions, edits]);
 
   function handleChange(matchId: string, home: number, away: number) {
-    setPredictions((prev) => ({
+    setEdits((prev) => ({
       ...prev,
       [matchId]: { h: home, a: away },
     }));

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Layout } from '../../../shared/components/Layout';
 import {
   usePartialsByRound,
@@ -19,38 +19,40 @@ export function PartiaisPage() {
 
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
-  const [partials, setPartials] = useState<
+  const [edits, setEdits] = useState<
     Record<string, { h: number | null; a: number | null }>
   >({});
   const [message, setMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+  const [prevRound, setPrevRound] = useState(round);
 
   const { data: matches = [], isLoading } = usePartialsByRound(round);
   const { data: classification = [] } = usePartialClassification(round);
   const setPartialMutation = useSetPartial(round);
   const clearPartialMutation = useClearPartial(round);
 
-  useEffect(() => {
+  if (round !== prevRound) {
+    setPrevRound(round);
+    setCurrentCardIndex(0);
+    setViewMode('list');
+  }
+
+  const partials = useMemo(() => {
     const map: Record<string, { h: number | null; a: number | null }> = {};
     for (const m of matches) {
-      map[m.id] = {
+      map[m.id] = edits[m.id] ?? {
         h: m.partial_home ?? null,
         a: m.partial_away ?? null,
       };
     }
-    setPartials(map);
-  }, [matches]);
-
-  useEffect(() => {
-    setCurrentCardIndex(0);
-    setViewMode('list');
-  }, [round]);
+    return map;
+  }, [matches, edits]);
 
   function handleChange(
     matchId: string,
     home: number | null,
     away: number | null
   ) {
-    setPartials((prev) => ({
+    setEdits((prev) => ({
       ...prev,
       [matchId]: { h: home, a: away },
     }));

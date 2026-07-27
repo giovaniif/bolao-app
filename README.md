@@ -37,10 +37,11 @@ API available at http://localhost:3333. Migrations run automatically on startup.
 
 ```bash
 cd web
-VITE_API_URL=http://localhost:3333 npm run dev
+npm run dev
 ```
 
-Frontend available at http://localhost:5173.
+Frontend available at http://localhost:5173. The dev server proxies `/api` to
+`http://localhost:3333` by default; set `VITE_API_URL` to point it elsewhere.
 
 ---
 
@@ -109,11 +110,22 @@ The frontend is deployed on Vercel pointing at the `web/` directory.
 | Build Command | `npm run build` |
 | Output Directory | `dist` |
 
-Required environment variable:
+Required environment variable, scoped per Vercel environment:
 
-| Variable | Value |
-|---|---|
-| `VITE_API_URL` | API URL on Render |
+| Variable | Environment | Value |
+|---|---|---|
+| `VITE_API_URL` | Preview | `bolao-api-dev` URL on Render |
+| `VITE_API_URL` | Production | `bolao-api` URL on Render |
+
+`VITE_API_URL` must **not** be set for "All Environments" — that is what would make PR
+previews talk to the production API. Verify the scoping with:
+
+```bash
+vercel env ls
+```
+
+Builds fail fast when `VITE_API_URL` is missing, so a misconfigured environment surfaces
+as a failed deploy instead of a bundle that silently requests `/api` on the Vercel domain.
 
 ---
 

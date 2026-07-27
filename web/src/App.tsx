@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider, useAuth } from './shared/hooks/useAuth';
+import { AuthProvider } from './shared/hooks/AuthProvider';
+import { useAuth } from './shared/hooks/useAuth';
 import { LoginPage } from './features/auth/pages/LoginPage';
 import { ChangePasswordPage } from './features/auth/pages/ChangePasswordPage';
 import { ClassificationPage } from './features/classification/pages/ClassificationPage';
@@ -9,6 +10,7 @@ import { AdminPage } from './features/admin/pages/AdminPage';
 import { ProfilePage } from './features/profile/pages/ProfilePage';
 import { PartiaisPage } from './features/parciais/pages/PartiaisPage';
 import { ViewPredictionsPage } from './features/viewPredictions/pages/ViewPredictionsPage';
+import { ChampionsPage } from './features/champions/pages/ChampionsPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -94,6 +96,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <ViewPredictionsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/hall-dos-campeoes"
+        element={
+          <ProtectedRoute>
+            <ChampionsPage />
           </ProtectedRoute>
         }
       />
