@@ -13,7 +13,7 @@ export function useRoundInUrl(rounds: number[]): [number, (round: number) => voi
   const rodadaNum = rodadaParam ? parseInt(rodadaParam, 10) : NaN;
   const validFromUrl =
     Number.isFinite(rodadaNum) && rounds.length > 0 && rounds.includes(rodadaNum);
-  const defaultRound = rounds.length > 0 ? rounds[0] : 0;
+  const defaultRound = rounds.length > 0 ? Math.max(...rounds) : 0;
   const round = validFromUrl ? rodadaNum : defaultRound;
 
   // Ao carregar rounds, corrige URL se rodada estiver ausente ou inválida
