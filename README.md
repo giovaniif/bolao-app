@@ -8,8 +8,6 @@ Prediction pool management app for the Brazilian football championship.
 - **Backend**: Go + Gin + PostgreSQL
 - **Infra**: Docker Compose (dev), Render (API), Vercel (frontend), Supabase (database), GitHub Actions (CI/CD)
 
----
-
 ## Local development
 
 Run each service individually:
@@ -43,19 +41,6 @@ npm run dev
 Frontend available at http://localhost:5173. The dev server proxies `/api` to
 `http://localhost:3333` by default; set `VITE_API_URL` to point it elsewhere.
 
----
-
-## Full Docker Compose (optional)
-
-To run everything via Docker (no hot reload):
-
-```bash
-docker compose up --build
-# Frontend: http://localhost:5175 | API: http://localhost:3335
-```
-
----
-
 ## CI
 
 Build and test run as separate actions per area, each only triggering when files in that area
@@ -77,14 +62,11 @@ variables and the deploy trigger — there's no separate Dockerfile or docker-co
 
 See `.github/workflows/deploy.yml`.
 
----
-
 ## Production deploy
 
 ### Database – Supabase
 
 The database runs on Supabase (managed PostgreSQL). Migrations run automatically on API startup.
-
 Use the **session pooler** URL (IPv4) to avoid connectivity issues.
 
 ### API – Render
@@ -129,68 +111,9 @@ as a failed deploy instead of a bundle that silently requests `/api` on the Verc
 
 ---
 
-## First access
-
-1. Create the first admin user via SQL (default initial password: `123`):
-
-```sql
-INSERT INTO users (id, username, display_name, is_admin, amount_paid, password_hash, must_change_password)
-VALUES (
-  gen_random_uuid(),
-  'admin',
-  'Administrator',
-  true,
-  0,
-  '$2a$10$uTr26SWYWuGs.D/j0JJtf.ClwuNgzbE38JRdB76Xoyk41JKdNKkv2',
-  true
-);
-```
-
-2. Access the app and log in with username `admin` and password `123`.
-
-3. On first login, you'll be required to change the password.
-
-4. As admin, register the other users (all start with password `123`) and add the round matches.
-
 ## Features
 
 - **Admin**: register users, add matches, set the closing date, fill in results, track payments (R$ 70 total)
 - **Players**: fill in predictions until the closing date
 - **Standings**: based on the criteria defined in `criterios.md`
 - **Partial rounds**: filter by round to view cumulative standings
-
-## Predictions seed
-
-To import predictions from a file (e.g. for the first round):
-
-```bash
-make seed-palpites
-# or: cd api && go run ./cmd/seed-palpites ../palpites.md
-```
-
-The `palpites.md` file must have:
-1. Match order (Home x Away)
-2. For each user: name (username) followed by scores in the same order
-
-Example:
-```
-Match order:
-Vitória x Remo
-Atlético-MG x Palmeiras
-...
-
-user1
-1x2
-0x1
-...
-```
-
-## Tests
-
-```bash
-# Backend
-cd api && go test ./...
-
-# Frontend
-cd web && npm run test
-```
