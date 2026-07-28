@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './shared/hooks/AuthProvider';
 import { useAuth } from './shared/hooks/useAuth';
@@ -8,8 +8,7 @@ import { ClassificationPage } from './features/classification/pages/Classificati
 import { PredictionsPage } from './features/predictions/pages/PredictionsPage';
 import { AdminPage } from './features/admin/pages/AdminPage';
 import { ProfilePage } from './features/profile/pages/ProfilePage';
-import { PartiaisPage } from './features/parciais/pages/PartiaisPage';
-import { ViewPredictionsPage } from './features/viewPredictions/pages/ViewPredictionsPage';
+import { RoundPage, type RoundTab } from './features/round/pages/RoundPage';
 import { ChampionsPage } from './features/champions/pages/ChampionsPage';
 
 const queryClient = new QueryClient({
@@ -37,6 +36,14 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/alterar-senha" replace />;
   }
   return <>{children}</>;
+}
+
+/** The old Galera and Parciais routes keep working, landing on the matching tab. */
+export function RedirectToRound({ tab }: { tab: RoundTab }) {
+  const { search } = useLocation();
+  const params = new URLSearchParams(search);
+  params.set('aba', tab);
+  return <Navigate to={{ pathname: '/rodada', search: `?${params}` }} replace />;
 }
 
 function AppRoutes() {
@@ -84,21 +91,15 @@ function AppRoutes() {
         }
       />
       <Route
-        path="/parciais"
+        path="/rodada"
         element={
           <ProtectedRoute>
-            <PartiaisPage />
+            <RoundPage />
           </ProtectedRoute>
         }
       />
-      <Route
-        path="/ver-palpites"
-        element={
-          <ProtectedRoute>
-            <ViewPredictionsPage />
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/parciais" element={<RedirectToRound tab="parciais" />} />
+      <Route path="/ver-palpites" element={<RedirectToRound tab="galera" />} />
       <Route
         path="/hall-dos-campeoes"
         element={

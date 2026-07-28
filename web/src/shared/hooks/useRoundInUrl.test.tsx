@@ -1,15 +1,17 @@
 import { describe, it, expect } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { MemoryRouter, useSearchParams } from 'react-router-dom'
 import { useRoundInUrl } from './useRoundInUrl'
 
 function Probe({ rounds, activeRound }: { rounds: number[]; activeRound?: number }) {
-  const [round] = useRoundInUrl(rounds, activeRound)
+  const [round, setRound] = useRoundInUrl(rounds, activeRound)
   const [searchParams] = useSearchParams()
   return (
     <>
       <span data-testid="round">{round}</span>
       <span data-testid="param">{searchParams.get('rodada') ?? ''}</span>
+      <span data-testid="aba">{searchParams.get('aba') ?? ''}</span>
+      <button onClick={() => setRound(1)}>go to round 1</button>
     </>
   )
 }
@@ -85,5 +87,22 @@ describe('useRoundInUrl', () => {
   it('seleciona a rodada ativa mesmo sendo a última', () => {
     renderAt('/palpites', [1, 2, 3], 3)
     expect(screen.getByTestId('round').textContent).toBe('3')
+  })
+
+  it('keeps sibling params when correcting the round in the URL', async () => {
+    renderAt('/rodada?aba=galera', [1, 2, 3])
+    await waitFor(() =>
+      expect(screen.getByTestId('param').textContent).toBe('3')
+    )
+    expect(screen.getByTestId('aba').textContent).toBe('galera')
+  })
+
+  it('keeps sibling params when changing round', async () => {
+    renderAt('/rodada?rodada=3&aba=galera', [1, 2, 3])
+    fireEvent.click(screen.getByText('go to round 1'))
+    await waitFor(() =>
+      expect(screen.getByTestId('param').textContent).toBe('1')
+    )
+    expect(screen.getByTestId('aba').textContent).toBe('galera')
   })
 })
