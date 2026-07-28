@@ -168,6 +168,53 @@ describe('ChampionsPage', () => {
     })
   })
 
+  it('lists the seasons and the biggest winners in the gallery', async () => {
+    vi.stubGlobal('fetch', mockFetch([BOLAO_2025, BOLAO_2024, BOLAO_ATIVO]))
+    renderWithProviders(<ChampionsPage />, { route: '/hall-dos-campeoes?vista=temporadas' })
+
+    expect(await screen.findByText('MAIORES VENCEDORES')).toBeTruthy()
+
+    // Each gallery row is a button; the champion also appears under MAIORES VENCEDORES,
+    // so querying by role avoids matching both occurrences.
+    const rows = await screen.findAllByRole('button', { name: /Brasileirão/ })
+    // The bolão name becomes the eyebrow, uppercased by CSS, hence the original casing.
+    expect(rows.map((b) => b.textContent)).toEqual([
+      expect.stringContaining('Brasileirão 2025'),
+      expect.stringContaining('Brasileirão 2024'),
+    ])
+    expect(rows[0].textContent).toContain('Maria Silva')
+    expect(rows[1].textContent).toContain('Pedro Costa')
+
+    const winners = screen.getByText('MAIORES VENCEDORES').parentElement!
+    expect(within(winners).getAllByText('1 título')).toHaveLength(2)
+  })
+
+  it('picking a season in the gallery opens its champion', async () => {
+    vi.stubGlobal('fetch', mockFetch([BOLAO_2025, BOLAO_2024, BOLAO_ATIVO]))
+    renderWithProviders(<ChampionsPage />, { route: '/hall-dos-campeoes?vista=temporadas' })
+
+    fireEvent.click(await screen.findByRole('button', { name: /Pedro Costa/ }))
+
+    expect(await screen.findByText('CAMPEÃO 2024')).toBeTruthy()
+  })
+
+  it('the gallery works with a single finished bolão', async () => {
+    vi.stubGlobal('fetch', mockFetch([BOLAO_2025, BOLAO_ATIVO]))
+    renderWithProviders(<ChampionsPage />, { route: '/hall-dos-campeoes?vista=temporadas' })
+
+    expect(await screen.findByRole('button', { name: /Brasileirão 2025/ })).toBeTruthy()
+    expect(await screen.findByText('1 título')).toBeTruthy()
+  })
+
+  // With one season there are no chips, but the gallery must still be reachable.
+  it('shows the view switcher even with a single season', async () => {
+    vi.stubGlobal('fetch', mockFetch([BOLAO_2025, BOLAO_ATIVO]))
+    renderPage()
+
+    expect(await screen.findByRole('tab', { name: 'Temporadas' })).toBeTruthy()
+    expect(screen.queryByRole('tablist', { name: 'Temporada' })).toBeNull()
+  })
+
   it('hides the hero when the bolão has no results', async () => {
     const empty = { ...BOLAO_2025, id: 'b-empty' }
     vi.stubGlobal('fetch', mockFetch([empty]))
