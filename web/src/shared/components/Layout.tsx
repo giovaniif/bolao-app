@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
-import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from './Button';
+import { BottomNav } from './BottomNav';
 
 interface LayoutProps {
   children: ReactNode;
@@ -9,7 +10,7 @@ interface LayoutProps {
 }
 
 export function Layout({ children, title }: LayoutProps) {
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   function handleLogout() {
@@ -17,8 +18,9 @@ export function Layout({ children, title }: LayoutProps) {
     navigate('/login');
   }
 
+  // pb-28 clears the new bar, which is about 96px tall with the centre pill.
   return (
-    <div className="min-h-screen pb-20">
+    <div className="min-h-screen pb-28">
       <header className="sticky top-0 z-10 bg-[var(--color-bg)]/95 backdrop-blur border-b border-slate-700">
         <div className="flex items-center justify-between px-4 py-3 max-w-2xl mx-auto">
           <Link to="/" className="font-bold text-[var(--color-primary)]">
@@ -53,48 +55,7 @@ export function Layout({ children, title }: LayoutProps) {
 
       <main className="px-4 py-4 max-w-2xl mx-auto">{children}</main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-[var(--color-card)] border-t border-slate-700 safe-area-pb">
-        <div className="flex justify-around py-2 max-w-2xl mx-auto">
-          <NavLinkWithRodada to="/">Classificação</NavLinkWithRodada>
-          <NavLinkWithRodada to="/palpites">Palpites</NavLinkWithRodada>
-          <NavLinkWithRodada to="/rodada">Rodada</NavLinkWithRodada>
-          {isAdmin() && <NavLink to="/admin">Admin</NavLink>}
-        </div>
-      </nav>
+      <BottomNav />
     </div>
-  );
-}
-
-function NavLink({ to, children }: { to: string; children: ReactNode }) {
-  const location = useLocation();
-  const active = location.pathname === to;
-  return (
-    <Link
-      to={to}
-      className={`flex-1 py-2 text-center text-sm font-medium ${
-        active ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-muted)] hover:text-[var(--color-primary)]'
-      }`}
-    >
-      {children}
-    </Link>
-  );
-}
-
-/** Keeps ?rodada=N when switching tabs. */
-function NavLinkWithRodada({ to, children }: { to: string; children: ReactNode }) {
-  const location = useLocation();
-  const [searchParams] = useSearchParams();
-  const rodada = searchParams.get('rodada');
-  const href = rodada ? `${to}?rodada=${rodada}` : to;
-  const active = location.pathname === to;
-  return (
-    <Link
-      to={href}
-      className={`flex-1 py-2 text-center text-sm font-medium ${
-        active ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-muted)] hover:text-[var(--color-primary)]'
-      }`}
-    >
-      {children}
-    </Link>
   );
 }
