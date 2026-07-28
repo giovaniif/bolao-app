@@ -5,6 +5,8 @@ import { useRounds } from '../../matches/hooks/useMatches';
 import { useBoloes } from '../../boloes/hooks/useBoloes';
 import { downloadExportRound, downloadExportAll } from '../api/exportApi';
 import { ClassificationRow } from '../components/ClassificationRow';
+import { ChampionsEntryCard } from '../../champions/components/ChampionsEntryCard';
+import { useSeasons } from '../../champions/hooks/useSeasons';
 
 export function ClassificationPage() {
   const [selectedBolaoId, setSelectedBolaoId] = useState<string>('');
@@ -13,6 +15,7 @@ export function ClassificationPage() {
 
   const { data: boloes = [] } = useBoloes();
   const bolaoId = selectedBolaoId || undefined;
+  const { seasons } = useSeasons();
 
   const { data: rounds = [] } = useRounds(bolaoId);
   const maxRound = rounds.length > 0 ? Math.max(...rounds) : 0;
@@ -26,6 +29,8 @@ export function ClassificationPage() {
   return (
     <Layout title="Classificação">
       <div className="space-y-4">
+        {seasons.length > 0 && <ChampionsEntryCard latest={seasons[0]} />}
+
         {boloes.length > 1 && (
           <div>
             <label className="block text-sm text-[var(--color-text-muted)] mb-1">Bolão</label>
