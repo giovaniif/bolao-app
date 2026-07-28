@@ -57,8 +57,7 @@ export function Layout({ children, title }: LayoutProps) {
         <div className="flex justify-around py-2 max-w-2xl mx-auto">
           <NavLinkWithRodada to="/">Classificação</NavLinkWithRodada>
           <NavLinkWithRodada to="/palpites">Palpites</NavLinkWithRodada>
-          <NavLinkWithRodada to="/ver-palpites">Galera</NavLinkWithRodada>
-          <NavLinkWithRodada to="/parciais">Parciais</NavLinkWithRodada>
+          <NavLinkWithRodada to="/rodada">Rodada</NavLinkWithRodada>
           {isAdmin() && <NavLink to="/admin">Admin</NavLink>}
         </div>
       </nav>
@@ -81,7 +80,7 @@ function NavLink({ to, children }: { to: string; children: ReactNode }) {
   );
 }
 
-/** Mantém ?rodada=N ao trocar de aba (Palpites, Galera, Parciais). */
+/** Keeps ?rodada=N when switching tabs. */
 function NavLinkWithRodada({ to, children }: { to: string; children: ReactNode }) {
   const location = useLocation();
   const [searchParams] = useSearchParams();
