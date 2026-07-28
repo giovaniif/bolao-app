@@ -24,9 +24,10 @@ tests, and `SCORING.md` together, in the same PR.
 1. **Tests always.** Every behavioural change adds or updates tests, and no change may
    lower coverage in the package or module it touches. See `.claude/testing.md`.
 2. **Code is English.** Identifiers, comments, commit messages, branch names, test names.
-   So is all repository documentation. Portuguese is reserved for user-facing product
-   copy only: UI strings in `web/` and API error messages returned to clients.
-   See `.claude/code-style.md`.
+   So is all repository documentation, and everything written *about* the code: Linear
+   issue titles and descriptions, PR titles and PR descriptions. Portuguese is reserved
+   for user-facing product copy only: UI strings in `web/`, API error messages returned to
+   clients, and route or query-param values. See `.claude/code-style.md`.
 3. **Comments are the exception, not the habit.** Write one only when the *why* cannot be
    read off the code — a non-obvious invariant, a workaround, a business rule with an
    external source. Never narrate what the next line does. See `.claude/code-style.md`.
