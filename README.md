@@ -115,5 +115,5 @@ as a failed deploy instead of a bundle that silently requests `/api` on the Verc
 
 - **Admin**: register users, add matches, set the closing date, fill in results, track payments (R$ 70 total)
 - **Players**: fill in predictions until the closing date
-- **Standings**: based on the criteria defined in `criterios.md`
+- **Standings**: based on the criteria defined in `SCORING.md`
 - **Partial rounds**: filter by round to view cumulative standings

@@ -2,7 +2,7 @@ package service
 
 import "fmt"
 
-// Scoring implements the rules from criterios.md
+// Scoring implements the rules from SCORING.md
 const (
 	PointsCorrectResult    = 9  // Indicação correta do time vencedor
 	PointsCorrectDraw      = 12 // Indicação de empate sem acerto do placar

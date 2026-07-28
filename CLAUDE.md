@@ -8,8 +8,9 @@ Read `README.md` for how to run things locally. This file is about *how we write
 ## The five rules
 
 1. **Every change ships with tests.** Coverage never goes down. → @.claude/testing.md
-2. **All code is written in English** — identifiers, comments, commits, test names.
-   Docs and user-facing copy stay in Portuguese. → @.claude/code-style.md
+2. **All code is written in English** — identifiers, comments, commits, test names,
+   and all repository documentation. Portuguese is reserved for user-facing product
+   copy: UI strings in `web/` and API error messages. → @.claude/code-style.md
 3. **Do not write comments** unless they explain behaviour that is genuinely hard to
    infer from the code. → @.claude/code-style.md
 4. **Lint must pass for both `web/` and `api/`** before a PR goes up. → @.claude/linting.md

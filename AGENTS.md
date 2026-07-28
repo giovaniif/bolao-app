@@ -14,17 +14,18 @@ Prediction pool ("bolão") for the Brazilian football championship.
 | Web | React 19, TypeScript, Vite, TanStack Query, Tailwind v4 | `web/` |
 | Infra | Docker Compose (dev), Render (API), Vercel (web), Supabase (DB), GitHub Actions | root |
 
-Local setup lives in `README.md`. The scoring rules are specified in `criterios.md` —
-which the README and `internal/service/scoring.go` both cite but which is **not currently
-in the repository**; until it is restored, `internal/service/scoring.go` and its tests are
-the authoritative statement of the rules.
+Local setup lives in `README.md`. The scoring rules are specified in `SCORING.md`
+(repo root), cited by both the README and `internal/service/scoring.go`. It **is** the
+specification: a change to any scoring constant or rule must update `scoring.go`, its
+tests, and `SCORING.md` together, in the same PR.
 
 ## Non-negotiable rules
 
 1. **Tests always.** Every behavioural change adds or updates tests, and no change may
    lower coverage in the package or module it touches. See `.claude/testing.md`.
 2. **Code is English.** Identifiers, comments, commit messages, branch names, test names.
-   Portuguese stays in product documentation and user-facing strings only.
+   So is all repository documentation. Portuguese is reserved for user-facing product
+   copy only: UI strings in `web/` and API error messages returned to clients.
    See `.claude/code-style.md`.
 3. **Comments are the exception, not the habit.** Write one only when the *why* cannot be
    read off the code — a non-obvious invariant, a workaround, a business rule with an
