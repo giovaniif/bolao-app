@@ -43,8 +43,25 @@ jobs:
           go-version-file: api/go.mod
           cache-dependency-path: api/go.sum
 
+      - name: Format
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then
+            # gofmt -l always exits 0, even when it lists files, so the
+            # non-empty check above is what actually fails the build.
+            echo "The following files are not gofmt-formatted:"
+            echo "$unformatted"
+            exit 1
+          fi
+
       - name: Vet
         run: go vet ./...
+
+      - name: Lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.12.2
+          working-directory: api
 
       # -short skips the DB-backed repository test (user_repository_test.go);
       # CI doesn't run migrations against a live schema, only unit-level tests.
