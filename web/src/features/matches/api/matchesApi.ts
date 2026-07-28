@@ -14,6 +14,8 @@ export interface RoundsSummary {
   rounds: number[];
   /** Round to select by default: the first one after the latest with every result filled in. */
   active: number;
+  /** Matches whose market has closed with no result — what the admin still owes. */
+  pending_results: number;
 }
 
 export async function getRoundsSummary(bolaoId?: string): Promise<RoundsSummary> {

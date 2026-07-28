@@ -70,6 +70,8 @@ export function useUpdateMatchResults(round: number) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.matches(round) });
       queryClient.invalidateQueries({ queryKey: ['classification'] });
+      // The summary carries pending_results, which feeds the admin banner.
+      queryClient.invalidateQueries({ queryKey: queryKeys.rounds() });
     },
   });
 }

@@ -86,7 +86,7 @@ func (h *MatchHandler) ListRoundsSummary(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, service.SummarizeRounds(matches))
+	c.JSON(http.StatusOK, service.SummarizeRounds(matches, time.Now()))
 }
 
 func (h *MatchHandler) ListByRound(c *gin.Context) {

@@ -2,6 +2,7 @@ package service
 
 import (
 	"sort"
+	"time"
 
 	"github.com/bolao-app/api/internal/models"
 )
@@ -11,20 +12,34 @@ import (
 type RoundsSummary struct {
 	Rounds []int `json:"rounds"`
 	Active int   `json:"active"`
+	// PendingResults counts matches whose market has already closed but whose result has
+	// not been entered — what the admin still owes the bolão. Matches without a
+	// market_closes_at are excluded: nothing says they should have been played yet.
+	//
+	// Deliberately different from the unresolved count in BolaoService.FinishActive, which
+	// ignores market_closes_at because finishing a bolão needs every match resolved.
+	PendingResults int `json:"pending_results"`
 }
 
 // SummarizeRounds lists the rounds of a bolão and picks the active one: the first round
 // after the latest finished one, where a round is finished once every match in it has a
 // result. Falls back to the last round when they are all finished, and to the first round
 // when none is.
-func SummarizeRounds(matches []models.Match) RoundsSummary {
+//
+// now is a parameter rather than a time.Now() call so PendingResults stays testable, the
+// same way scoreParticipantRound takes it.
+func SummarizeRounds(matches []models.Match, now time.Time) RoundsSummary {
 	finished := make(map[int]bool)
+	pending := 0
 	for _, m := range matches {
 		if _, seen := finished[m.Round]; !seen {
 			finished[m.Round] = true
 		}
 		if m.HomeGoals == nil || m.AwayGoals == nil {
 			finished[m.Round] = false
+			if m.MarketClosesAt != nil && m.MarketClosesAt.Before(now) {
+				pending++
+			}
 		}
 	}
 
@@ -35,7 +50,7 @@ func SummarizeRounds(matches []models.Match) RoundsSummary {
 	sort.Ints(rounds)
 
 	if len(rounds) == 0 {
-		return RoundsSummary{Rounds: []int{}, Active: 0}
+		return RoundsSummary{Rounds: []int{}, Active: 0, PendingResults: 0}
 	}
 
 	// Latest finished round, then the first round after it. Scanning for the *latest*
@@ -56,5 +71,5 @@ func SummarizeRounds(matches []models.Match) RoundsSummary {
 		}
 	}
 
-	return RoundsSummary{Rounds: rounds, Active: active}
+	return RoundsSummary{Rounds: rounds, Active: active, PendingResults: pending}
 }
