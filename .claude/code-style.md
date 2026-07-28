@@ -7,18 +7,21 @@ exception**. The rest is convention already visible in the codebase.
 
 Identifiers, function and type names, test names, commit messages, branch names, and
 **comments** are written in English — always, including in files that currently are not.
-This now extends to all repository documentation, too: `README.md`, `SCORING.md`,
-everything under `.claude/`.
+This extends to all repository documentation (`README.md`, `SCORING.md`, everything under
+`.claude/`) and to everything we write *about* the code: Linear issue titles and
+descriptions, PR titles and PR descriptions.
 
-Portuguese stays in exactly two places, both user-facing product copy, not documentation:
+Portuguese stays in exactly three places, all user-facing product copy, none of it prose
+we write for each other:
 
 | Portuguese is correct | Why |
 |---|---|
 | UI copy in `web/` (labels, buttons, empty states) | The app's users are Brazilian |
 | API error messages returned to the client | `shared/api/client.ts` surfaces `data.error` straight into the UI — they are user-facing copy, not code |
+| Route paths and query-param *values* | `/palpites`, `?rodada=7`, `?aba=galera` appear in links people share |
 
-(Linear issue descriptions also stay Portuguese, but they live outside the repo, so they
-are not part of this table.)
+The identifiers around those params are still English: `useTabInUrl<RoundTab>('aba', …)`
+reads a Portuguese value into an English type.
 
 So this is right, not a violation:
 

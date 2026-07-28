@@ -24,8 +24,10 @@ Statuses: `Backlog → Todo → In Progress → In Review → Done` (plus `Cance
    moves the issue to In Review.
 6. **Done** follows the merge, not the push.
 
-Issue descriptions are written in Portuguese — they are product docs, and that is fine.
-The branch name, commits, and code are English (see `.claude/code-style.md`).
+Issue titles and descriptions are written in English, as are branch names, commits, PR
+titles and PR descriptions (see `.claude/code-style.md`). Portuguese is reserved for
+product copy the user actually reads: UI strings, API error messages, and route or
+query-param values.
 
 ### Estimates
 
@@ -127,8 +129,8 @@ Prefixes in use: `feat`, `fix`, `chore`, `ci`, `docs`, `refactor`, `test`.
 
 Subject lines say **why** where it's not obvious — `fix: default to the latest round on
 Palpites and Parciais` is better than `fix: round bug`. PRs squash-merge into `main` with
-the PR number appended (`(#14)`), so the commit subject is what survives in history. Make
-it count.
+the PR number appended (`(#14)`), so the **PR title** is what survives in history. Make it
+count, and keep it in English for the same reason: it becomes a permanent line in the log.
 
 PR description covers: the Linear issue, what changed, how it was verified. Never open a
 PR from a branch whose checklist in `.claude/linting.md` has not passed.
