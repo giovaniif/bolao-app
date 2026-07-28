@@ -24,6 +24,11 @@
   padding-bottom: max(22px, env(safe-area-inset-bottom, 0px));
 }
 
+/* Hall of Champions entry card. */
+@utility bg-gold-entry {
+  background-image: linear-gradient(100deg, rgba(255, 215, 0, 0.14), rgba(255, 215, 0, 0.03));
+}
+
 body {
   margin: 0;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
