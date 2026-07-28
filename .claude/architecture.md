@@ -37,7 +37,7 @@ Two service shapes coexist, both correct:
   matchRepo, predictionRepo, partialRepo)`, for orchestration across several repositories.
 
 New scoring or classification logic goes in a pure function, called from wherever needs it.
-That is why `scoring.go` has no dependencies: it is the rulebook from `criterios.md`,
+That is why `scoring.go` has no dependencies: it is the rulebook from `SCORING.md`,
 expressed as named constants (`PointsExactScoreHigh = 10`) rather than magic numbers.
 
 ### Wiring
@@ -156,8 +156,7 @@ Two behaviours worth knowing before touching scoring:
 - The round-total-goals bonus is awarded only for a **complete** round, never for partials
   — the predicted total spans the whole round, so comparing it mid-round is meaningless.
 
-`criterios.md` is cited by the README and by `scoring.go` as the specification of the
-scoring rules, but **the file is not in the repository** (it exists only in old history).
-Until someone restores it, `internal/service/scoring.go` plus `scoring_test.go` are the
-authoritative statement of the rules — which is exactly why changing a points constant
-without a matching test case is unacceptable here.
+`SCORING.md` (repo root) **is** the specification of the scoring rules, cited by the
+README and by `scoring.go`. A change to any scoring constant or rule must update
+`scoring.go`, its tests, and `SCORING.md` together, in the same PR — if the code and the
+document ever disagree, that is a bug, not a matter of picking which one to trust.

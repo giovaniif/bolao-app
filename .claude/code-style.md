@@ -7,14 +7,18 @@ exception**. The rest is convention already visible in the codebase.
 
 Identifiers, function and type names, test names, commit messages, branch names, and
 **comments** are written in English — always, including in files that currently are not.
+This now extends to all repository documentation, too: `README.md`, `SCORING.md`,
+everything under `.claude/`.
 
-Portuguese stays in exactly three places:
+Portuguese stays in exactly two places, both user-facing product copy, not documentation:
 
 | Portuguese is correct | Why |
 |---|---|
-| Product docs (`README.md`, Linear issues, specs) | Written for the people running the bolão |
 | UI copy in `web/` (labels, buttons, empty states) | The app's users are Brazilian |
 | API error messages returned to the client | `shared/api/client.ts` surfaces `data.error` straight into the UI — they are user-facing copy, not code |
+
+(Linear issue descriptions also stay Portuguese, but they live outside the repo, so they
+are not part of this table.)
 
 So this is right, not a violation:
 
@@ -58,7 +62,7 @@ the code is the way it is:
 
 - A non-obvious invariant or edge case that a future edit would break.
 - A workaround for external behaviour, naming the cause.
-- A business rule whose source is outside the code (`criterios.md`, the spreadsheet).
+- A business rule whose source is outside the code (`SCORING.md`, the spreadsheet).
 
 Good — every one of these is load-bearing:
 

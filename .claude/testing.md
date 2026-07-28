@@ -47,8 +47,9 @@ actually gone up — never as an aspirational target.
 Pure functions holding the business rules: scoring, classification, round detection,
 effective predictions, export. No database, no HTTP. These are the tests that matter most
 and they are cheap to write — anything with a scoring or standings rule behind it belongs
-here. Since `criterios.md` is missing from the repo (see `.claude/architecture.md`), these
-tests *are* the specification: a rule with no test case is a rule nobody can verify.
+here. `SCORING.md` (repo root) is the specification; every rule it documents needs a
+matching test case here — a rule with no test case is a rule nobody can verify, and a test
+with no corresponding line in `SCORING.md` is undocumented behavior.
 
 Use table-driven tests, one case per rule and per edge, with names that state the rule in
 plain language (see `internal/service/round_test.go`):
