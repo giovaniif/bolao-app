@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Layout } from '../../../shared/components/Layout';
 import { Button } from '../../../shared/components/Button';
 import { Input } from '../../../shared/components/Input';
@@ -10,7 +10,8 @@ import { useAuth } from '../../../shared/hooks/useAuth';
 export function ProfilePage() {
   const { data: profile, isLoading } = useProfile();
   const updateMutation = useUpdateProfile();
-  const { updateUser } = useAuth();
+  const { updateUser, logout } = useAuth();
+  const navigate = useNavigate();
   const [teams, setTeams] = useState<string[]>([]);
   const [edits, setEdits] = useState<
     Partial<{ username: string; display_name: string; favorite_team: string }>
@@ -95,6 +96,18 @@ export function ProfilePage() {
           </Link>
         </p>
       </form>
+
+      <div className="mt-8 pt-4 border-t border-card">
+        <Button
+          variant="ghost"
+          onClick={() => {
+            logout();
+            navigate('/login');
+          }}
+        >
+          Sair
+        </Button>
+      </div>
     </Layout>
   );
 }

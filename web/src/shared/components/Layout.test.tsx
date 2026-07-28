@@ -90,3 +90,31 @@ describe('BottomNav', () => {
     expect(tabs().queryByRole('link', { name: 'Admin' })).toBeNull()
   })
 })
+
+describe('AppHeader', () => {
+  function header() {
+    return within(screen.getByRole('banner'))
+  }
+
+  it('has only the wordmark and the profile avatar', () => {
+    renderAt('/')
+    const interactive = [...header().getAllByRole('link'), ...header().queryAllByRole('button')]
+    expect(interactive).toHaveLength(2)
+  })
+
+  it('links to the profile from the avatar', () => {
+    renderAt('/')
+    expect(header().getByRole('link', { name: 'Meu perfil' }).getAttribute('href')).toBe('/perfil')
+  })
+
+  it('no longer has the Sair button or the trophy link', () => {
+    renderAt('/')
+    expect(header().queryByRole('button', { name: 'Sair' })).toBeNull()
+    expect(header().queryByRole('link', { name: 'Hall dos Campeões' })).toBeNull()
+  })
+
+  it('falls back to the username until /me responds', () => {
+    renderAt('/')
+    expect(header().getByText('G')).toBeTruthy()
+  })
+})
