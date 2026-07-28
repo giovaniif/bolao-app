@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { screen, within } from '@testing-library/react'
+import { screen, within, waitFor } from '@testing-library/react'
 import { renderWithProviders } from '../../test/renderWithProviders'
 import { Layout } from './Layout'
 
@@ -23,10 +23,22 @@ function setUser(isAdmin = false) {
   localStorage.setItem('user', JSON.stringify({ id: 'u1', username: 'gio', is_admin: isAdmin }))
 }
 
+function stubFetch(summary: unknown = { rounds: [1], active: 1, pending_results: 0 }) {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string) => ({
+      ok: true,
+      status: 200,
+      text: async () =>
+        JSON.stringify(url.includes('/matches/rounds/summary') ? summary : []),
+    }))
+  )
+}
+
 beforeEach(() => {
   localStorage.setItem('token', 't')
   setUser()
-  vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, status: 200, text: async () => '[]' })))
+  stubFetch()
 })
 
 afterEach(() => {
@@ -116,5 +128,70 @@ describe('AppHeader', () => {
   it('falls back to the username until /me responds', () => {
     renderAt('/')
     expect(header().getByText('G')).toBeTruthy()
+  })
+})
+
+describe('AdminBanner', () => {
+  /**
+   * "Modo admin" is also the loading label, so asserting on it without waiting would pass
+   * even if the settled state were wrong. Wait for the summary to land first.
+   */
+  async function summaryLoaded() {
+    await waitFor(() =>
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining('rounds/summary'),
+        expect.anything()
+      )
+    )
+    await waitFor(() => expect(screen.getByText(/Modo admin/)).toBeTruthy())
+  }
+
+  it('renders nothing for a non-admin', async () => {
+    stubFetch({ rounds: [1], active: 1, pending_results: 3 })
+    renderAt('/')
+    await waitFor(() => expect(screen.queryByText(/Modo admin/)).toBeNull())
+    expect(screen.queryByRole('link', { name: 'Abrir' })).toBeNull()
+  })
+
+  it('shows the pending result count for an admin', async () => {
+    setUser(true)
+    stubFetch({ rounds: [1], active: 1, pending_results: 3 })
+    renderAt('/')
+
+    expect(await screen.findByText('Modo admin · 3 resultados por lançar')).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Abrir' }).getAttribute('href')).toBe('/admin')
+  })
+
+  it('uses the singular for a single result', async () => {
+    setUser(true)
+    stubFetch({ rounds: [1], active: 1, pending_results: 1 })
+    renderAt('/')
+    expect(await screen.findByText('Modo admin · 1 resultado por lançar')).toBeTruthy()
+  })
+
+  // "0 resultados por lançar" is noise; the banner is still useful as a shortcut.
+  it('omits the count when nothing is pending', async () => {
+    setUser(true)
+    stubFetch({ rounds: [1], active: 1, pending_results: 0 })
+    renderAt('/')
+    await summaryLoaded()
+    expect(screen.getByText('Modo admin')).toBeTruthy()
+  })
+
+  // The API may not have shipped the field yet; the banner degrades instead of showing
+  // "undefined".
+  it('omits the count when the API sends no pending_results', async () => {
+    setUser(true)
+    stubFetch({ rounds: [1], active: 1 })
+    renderAt('/')
+    await summaryLoaded()
+    expect(screen.getByText('Modo admin')).toBeTruthy()
+  })
+
+  it('does not appear inside /admin', async () => {
+    setUser(true)
+    stubFetch({ rounds: [1], active: 1, pending_results: 3 })
+    renderAt('/admin')
+    await waitFor(() => expect(screen.queryByText(/Modo admin/)).toBeNull())
   })
 })

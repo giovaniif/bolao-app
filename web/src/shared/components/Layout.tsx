@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { AdminBanner } from './AdminBanner';
 import { AppHeader } from './AppHeader';
 import { BottomNav } from './BottomNav';
 
@@ -12,6 +13,8 @@ export function Layout({ children, title }: LayoutProps) {
   return (
     <div className="min-h-screen pb-28">
       <AppHeader title={title} />
+
+      <AdminBanner />
 
       <main className="px-4 py-4 max-w-2xl mx-auto">{children}</main>
 
