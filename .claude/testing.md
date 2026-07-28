@@ -28,9 +28,17 @@ Current backend baseline (`go test ./... -short -cover`, as of the last audit):
 
 New packages start at a high bar. Do not let a fresh file land at 0%.
 
-> Gap to close: `web/` has no coverage reporter installed (`@vitest/coverage-v8`), and
-> neither CI workflow enforces a coverage floor. Until that is fixed, coverage is checked
-> by review, not by machine. Adding the reporter and a CI threshold is a tracked task.
+`web/` has `@vitest/coverage-v8` installed and a coverage floor enforced by Vitest itself:
+
+```bash
+cd web && npm run test:coverage      # vitest run --coverage
+```
+
+`vitest.config.ts` sets `thresholds` (statements 12%, branches 15%, functions 9%, lines
+12%) pinned to the coverage measured at the time the floor was introduced. The command
+fails the moment any of the four drops below its number, so the ratchet is enforced by the
+tool, not by review. Raise a threshold only when the measured coverage that backs it has
+actually gone up — never as an aspirational target.
 
 ## What to test, by layer
 

@@ -9,6 +9,7 @@ warnings. A warning you intend to ignore is a warning that will be ignored forev
 cd web
 npm run lint          # eslint .
 npm run build         # tsc -b && vite build — type errors are lint errors too
+npm run test:coverage # vitest run --coverage — enforces the coverage floor
 ```
 
 Config: `web/eslint.config.js` (flat config), composed of:
