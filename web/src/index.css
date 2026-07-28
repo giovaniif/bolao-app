@@ -1,6 +1,12 @@
 @import "tailwindcss";
 
-:root {
+/*
+ * @theme registers the colours with Tailwind, which buys `bg-accent/18` instead of eleven
+ * copy-pasted rgba() literals for the gold alphas the Hall redesign needs. `static` is
+ * required: plain @theme tree-shakes variables that only appear inside arbitrary values
+ * like bg-[var(--color-card)], and the rest of the app still uses them that way.
+ */
+@theme static {
   --color-primary: #00a651;
   --color-primary-dark: #008c44;
   --color-accent: #ffd700;
@@ -8,6 +14,14 @@
   --color-card: #1e293b;
   --color-text: #f8fafc;
   --color-text-muted: #94a3b8;
+
+  --color-nav: #131f35;        /* bottom bar surface */
+  --color-on-primary: #04140b; /* label on the green pill */
+}
+
+/* The bar wants 22px of breathing room, or the home indicator inset when that is larger. */
+@utility safe-area-pb {
+  padding-bottom: max(22px, env(safe-area-inset-bottom, 0px));
 }
 
 body {
