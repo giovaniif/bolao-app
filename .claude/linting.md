@@ -34,6 +34,7 @@ cd api
 gofmt -l .            # must print NOTHING; any listed file is unformatted
 go vet ./...          # must exit clean
 go build ./...
+golangci-lint run ./... # must print "0 issues"
 ```
 
 `gofmt -l .` printing a filename is a failure even though its exit code is 0 — check the
@@ -42,11 +43,14 @@ output, not just the status. To fix: `gofmt -w .`.
 `go vet` is what CI runs (`.github/workflows/backend-ci.yml`, Test job). Both are currently
 clean; keep them that way.
 
-> Gap to close: the API has no `golangci-lint` configuration, so beyond `gofmt` and
-> `go vet` nothing catches unused code, shadowed errors, or unchecked returns. Adding
-> `.golangci.yml` (`errcheck`, `staticcheck`, `ineffassign`, `unused`, `govet`) plus a CI
-> step is a tracked task — do it as its own Linear issue rather than folding it into a
-> feature PR, since the first run will surface pre-existing findings across the codebase.
+The API is configured for `golangci-lint` v2 via `api/.golangci.yml`, targeting Go 1.23.
+It enables `errcheck`, `staticcheck`, `ineffassign`, `unused`, and `govet` — catching
+unused code, shadowed errors, and unchecked returns that `gofmt` and `go vet` alone miss.
+Run it with `cd api && golangci-lint run ./...`; a clean run prints `0 issues.`.
+
+> Gap to close: `golangci-lint` is not yet wired into CI (see the CI table below), so a
+> green PR is not proof it passed — run it locally before pushing until that's tracked
+> and closed.
 
 ## CI
 
