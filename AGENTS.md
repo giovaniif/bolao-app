@@ -39,7 +39,11 @@ cd tools && go test ./... && go run ./lint-agents .. && go run ./lint-comments .
 
 ## Rules
 
-1. **Tests always.** Every change in behavior adds or updates tests. Coverage never goes down in the package or file you touch. If you cannot test something, say so in the PR and explain why.
+1. **Tests always, and first** ([ADR 0010](docs/adr/0010-test-first.md)). Every change in behavior adds or updates tests. Coverage never goes down in the package or file you touch. If you cannot test something, say so in the PR and explain why.
+   - Write the failing test, see it fail, then write the code. Commit the test before the code that makes it pass.
+   - CI's `tdd` job (`tools/tdd-check`) fails a PR when a non-merge commit changes tests and production code together. `refactor:` commits and Markdown are exempt.
+   - It also runs the PR's new and changed tests on the base branch. They must fail there. A test-only PR titled `test:` is exempt.
+   - Check a branch before you push: `tools/tdd-check origin/main HEAD` on a clean tree.
 2. **English everywhere** ([ADR 0008](docs/adr/0008-linear-and-graphite.md)). Identifiers, comments, test names, commits, branches, docs, Linear issues, PR titles and PR descriptions are English. Portuguese is only for product copy that users read:
    - UI strings in `web/`
    - API error messages (the web shows `data.error` as is)
