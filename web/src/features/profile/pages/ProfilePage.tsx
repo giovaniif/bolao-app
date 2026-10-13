@@ -6,12 +6,15 @@ import { Input } from '../../../shared/components/Input';
 import { useProfile, useUpdateProfile } from '../hooks/useProfile';
 import { getTeams } from '../api/profileApi';
 import { useAuth } from '../../../shared/hooks/useAuth';
+import { PushToggle } from '../../notifications/components/PushToggle';
+import { usePushSubscription } from '../../notifications/hooks/usePushSubscription';
 
 export function ProfilePage() {
   const { data: profile, isLoading } = useProfile();
   const updateMutation = useUpdateProfile();
   const { updateUser, logout } = useAuth();
   const navigate = useNavigate();
+  const push = usePushSubscription();
   const [teams, setTeams] = useState<string[]>([]);
   const [edits, setEdits] = useState<
     Partial<{ username: string; display_name: string; favorite_team: string }>
@@ -96,6 +99,14 @@ export function ProfilePage() {
           </Link>
         </p>
       </form>
+
+      <PushToggle
+        status={push.status}
+        isPending={push.isPending}
+        error={push.error}
+        onEnable={push.enable}
+        onDisable={push.disable}
+      />
 
       <div className="mt-8 pt-4 border-t border-card">
         <Button

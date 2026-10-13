@@ -9,4 +9,5 @@ export const queryKeys = {
   boloes: ['boloes'] as const,
   activeBolao: ['boloes', 'active'] as const,
   bolaoParticipants: (bolaoId: string) => ['boloes', bolaoId, 'participants'] as const,
+  pushStatus: ['push', 'status'] as const,
 };
