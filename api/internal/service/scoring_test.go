@@ -36,6 +36,25 @@ func TestCalculateRoundPointsRoundTotalBonusOnlyForCompleteRounds(t *testing.T) 
 	}
 }
 
+func TestCalculateRoundPointsRoundTotalSumsBothSidesOfEachPrediction(t *testing.T) {
+	tests := []struct {
+		name      string
+		preds     []PredEntry
+		matches   []MatchScore
+		wantBonus bool
+	}{
+		{"0x2 and 1x1 both total 2 goals", []PredEntry{{0, 2}}, []MatchScore{{1, 1}}, true},
+		{"2x0 against 1x2 is 2 goals against 3", []PredEntry{{2, 0}}, []MatchScore{{1, 2}}, false},
+	}
+	for _, tt := range tests {
+		withBonus, _, _ := CalculateRoundPoints(tt.preds, tt.matches, true)
+		withoutBonus, _, _ := CalculateRoundPoints(tt.preds, tt.matches, false)
+		if got := withBonus != withoutBonus; got != tt.wantBonus {
+			t.Errorf("%s: bonus awarded = %v, want %v", tt.name, got, tt.wantBonus)
+		}
+	}
+}
+
 func TestCalculateRoundPointsMissingPredictionWithOpenMarketIsSkipped(t *testing.T) {
 	preds := []PredEntry{{1, 0}, {noPredSentinel, noPredSentinel}}
 	matches := []MatchScore{{1, 0}, {0, 0}}
@@ -74,6 +93,7 @@ func TestCalculateMatchPoints(t *testing.T) {
 		{"exact draw counts the result as 9, not 12", 1, 1, 1, 1, 18},
 		{"draw in a 4+ goal match without the exact score", 2, 2, 3, 3, 12},
 		{"exact score in a 4+ goal match adds 10 plus 3 for the total", 3, 3, 3, 3, 28},
+		{"a match with exactly 4 goals already counts as 4+", 3, 1, 3, 1, 28},
 		{"exact 0-0", 0, 0, 0, 0, 18},
 		{"exact away win", 1, 2, 1, 2, 18},
 		{"right total in a 4+ goal match without the exact score adds 3", 3, 1, 2, 2, 3},
