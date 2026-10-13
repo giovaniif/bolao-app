@@ -25,3 +25,6 @@ jobs:
 
       - name: Lint AGENTS.md
         run: go run ./lint-agents ..
+
+      - name: Lint comments
+        run: go run ./lint-comments -allow lint-comments/allowlist.txt ..

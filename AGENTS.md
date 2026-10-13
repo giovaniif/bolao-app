@@ -17,7 +17,7 @@ Claude Code and Codex load an `AGENTS.md` from each directory they work in. Here
 |---|---|
 | [api/](api/AGENTS.md) | layering, multi-tenancy, migrations, Go conventions, backend tests and lint |
 | [web/](web/AGENTS.md) | feature folders, the data path, TS/React conventions, PWA and push, frontend tests and lint |
-| [tools/](tools/AGENTS.md) | the repo lint tools (`lint-agents`) |
+| [tools/](tools/AGENTS.md) | the repo lint tools (`lint-agents`, `lint-comments`) |
 
 **Where guidance goes.** Put area-specific guidance in the `AGENTS.md` of the directory where most edits for it start, not here. Give a new scoped `AGENTS.md` a `CLAUDE.md` symlink beside it (`ln -s AGENTS.md CLAUDE.md`) and a row in the table above. Keep this file under 150 lines. `lint-agents` checks the line count, the symlinks and every relative link. See [ADR 0007](docs/adr/0007-scoped-agents-md.md).
 
@@ -30,7 +30,7 @@ Write prose docs, ADRs, Linear issues and PR descriptions in the Simplified Tech
 ```bash
 cd api && gofmt -l . && go vet ./... && golangci-lint run ./... && go test ./... -short
 cd web && npm run lint && npm run test:coverage && npm run build
-cd tools && go test ./... && go run ./lint-agents ..
+cd tools && go test ./... && go run ./lint-agents .. && go run ./lint-comments -allow lint-comments/allowlist.txt ..
 ```
 
 - `gofmt -l .` must print nothing. Its exit code is 0 even when it lists files.
@@ -45,8 +45,12 @@ cd tools && go test ./... && go run ./lint-agents ..
    - API error messages (the web shows `data.error` as is)
    - route paths and query-param values (`/palpites`, `?rodada=7`), because people share the links
 3. **`bolão` is the one domain word kept in Portuguese** in identifiers (`bolao`, `Bolao`, `boloes`), because the DB schema and the API contract use it. Use English for all other terms: `round`, `match`, `prediction`, `partial`, `classification`, `participant`. Old names such as `PartiaisPage` and `parciais/` are legacy. Rename them only when you refactor that area.
-4. **Comments only when they earn their place.** Write one only to explain *why*: a non-obvious invariant, a workaround for external behavior, or a rule whose source is outside the code. Prefer a named constant or helper. Translate old Portuguese comments in the block you edit.
-5. **Lint clean.** Zero errors and zero warnings in both projects. Do not silence a rule. A single-line disable needs a reason.
+4. **No comments, anywhere** ([ADR 0009](docs/adr/0009-no-comments.md)). This covers Go (tests too), TS/TSX, CSS, SQL, YAML, shell and Dockerfiles. Names and tests explain the code.
+   - Put a constraint or quirk that the code cannot show into a test named after it, and into the commit message of the workaround.
+   - Put usage and design notes in the scoped `AGENTS.md`, an ADR or the README. Put open work in a Linear issue.
+   - Only tool directives stay: `//go:`, a bare `//nolint:<linters>`, generated-code headers, `/// <reference ...>`, `// eslint-disable-next-line <rule>`, shebangs, `# yaml-language-server:` and Dockerfile `# syntax=`.
+   - `tools/lint-comments` fails CI on all other comments.
+5. **Lint clean.** Zero errors and zero warnings in both projects. Do not silence a rule. A single-line disable names the rule, and the commit message gives the reason.
 6. **Scoring changes touch three files together:** `api/internal/service/scoring.go`, its tests and `SCORING.md`, in the same PR. If code and doc disagree, that is a bug.
 
 ## Workflow

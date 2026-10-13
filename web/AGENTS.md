@@ -14,7 +14,7 @@ npm run dev             # proxies /api to VITE_API_URL or http://localhost:3333
 
 - The dev server binds all interfaces and accepts `.ts.net` hosts (`vite.config.ts`).
 - `npm run build` fails without `VITE_API_URL`, so a bundle never falls back to `/api` on the Vercel domain.
-- ESLint: `@eslint/js`, `typescript-eslint`, `react-hooks` and `react-refresh`. `react-hooks/exhaustive-deps` finds real bugs. Fix the dependencies, do not silence the rule. No file-wide `eslint-disable`.
+- ESLint: `@eslint/js`, `typescript-eslint`, `react-hooks` and `react-refresh`. `react-hooks/exhaustive-deps` finds real bugs. Fix the dependencies, do not silence the rule. No file-wide `eslint-disable`. The only disable that `lint-comments` passes is `// eslint-disable-next-line <rule>`.
 
 ## Layout
 

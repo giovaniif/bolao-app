@@ -78,7 +78,6 @@ See [ADR 0004](../docs/adr/0004-startup-migrations.md).
 - `defer rows.Close()` after every `Query`, and return `rows.Err()` after the loop.
 - Nullable columns map to pointer fields (`*int`, `*time.Time`) with `json:",omitempty"`.
 - Secrets never go in a serialized struct: `PasswordHash string \`json:"-"\``.
-- An exported identifier whose purpose is not clear from its signature gets a `// Name does X.` doc comment.
 - When you change a JSON tag, grep `web/src` for the field in the same PR. The compiler does not catch it.
 
 ## Tests
