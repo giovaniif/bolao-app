@@ -19,7 +19,6 @@ const PARTICIPANTS = Array.from({ length: 14 }, (_, i) => ({
   joined_at: '2026-03-01T00:00:00Z',
 }))
 
-// The market has already closed, so the players tab shows its player picker.
 const MATCHES = [
   {
     id: 'm-1',
@@ -66,7 +65,6 @@ function tab(name: string) {
   return screen.getByRole('tab', { name })
 }
 
-// "Rodada 7" is both the title and a chip label; the heading role disambiguates.
 function heading(name: string) {
   return screen.findByRole('heading', { name })
 }
@@ -103,7 +101,6 @@ describe('RoundPage', () => {
     fireEvent.click(tab('Galera'))
     await waitFor(() => expect(tab('Galera').getAttribute('aria-selected')).toBe('true'))
 
-    // The players tab mounts and fetches its own matches, but nothing round-level repeats.
     const afterSwitch = calls.slice(before)
     expect(afterSwitch.filter((u) => u.includes('/matches/rounds/summary'))).toHaveLength(0)
     expect(afterSwitch.filter((u) => u.includes('/parciais/round/'))).toHaveLength(0)
@@ -125,7 +122,6 @@ describe('RoundPage', () => {
     await waitFor(() => expect(tab('Parciais').getAttribute('aria-selected')).toBe('true'))
     fireEvent.click(tab('Galera'))
 
-    // The panel was hidden, never unmounted, so the chosen player is still selected.
     expect(await screen.findByText('Palpites de Jogador 3')).toBeTruthy()
   })
 

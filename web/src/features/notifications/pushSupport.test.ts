@@ -44,8 +44,8 @@ function fakeWindow({
 describe('isIOS', () => {
   it.each([
     ['iPhone', IPHONE, 5, true],
-    ['iPad posing as a Mac', IPAD, 5, true],
-    ['a real Mac', IPAD, 0, false],
+    ['iPad, which reports itself as a Mac with touch', IPAD, 5, true],
+    ['a Mac without touch is not iOS', IPAD, 0, false],
     ['Android', ANDROID, 5, false],
   ])('%s', (_, userAgent, maxTouchPoints, want) => {
     expect(isIOS({ userAgent, maxTouchPoints } as Navigator)).toBe(want);

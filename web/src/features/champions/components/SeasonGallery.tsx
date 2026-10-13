@@ -6,7 +6,6 @@ interface SeasonGalleryProps {
   onSelect: (bolaoId: string) => void;
 }
 
-/** Finished seasons, newest first. */
 export function SeasonGallery({ seasons, onSelect }: SeasonGalleryProps) {
   return (
     <div className="space-y-3">
@@ -42,8 +41,6 @@ function SeasonRow({
         tone={highlight ? 'gold' : 'muted'}
       />
       <span className="flex-1 min-w-0">
-        {/* CSS uppercase on purpose here: the text is the bolão name, and tests look for
-            it as the admin wrote it. */}
         <span
           className={`block text-xs font-bold tracking-[0.1em] uppercase truncate ${
             highlight ? 'text-accent' : 'text-slate-500'

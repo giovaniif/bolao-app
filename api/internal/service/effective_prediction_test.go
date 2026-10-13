@@ -22,9 +22,9 @@ func TestMarketClosed(t *testing.T) {
 		closesAt *time.Time
 		want     bool
 	}{
-		{"no closing time set", nil, false},
+		{"no closing time means open", nil, false},
 		{"closes in an hour", timePtr(testNow.Add(time.Hour)), false},
-		{"closes exactly now", timePtr(testNow), false}, // After is strict
+		{"closes exactly now is still open", timePtr(testNow), false},
 		{"closed an hour ago", timePtr(testNow.Add(-time.Hour)), true},
 	}
 	for _, tt := range tests {
@@ -50,7 +50,6 @@ func TestEffectivePrediction(t *testing.T) {
 		{"stored prediction, market closed", closed, 2, 1, true, 2, 1, true},
 		{"no prediction, market closed becomes 0x0", closed, 0, 0, false, 0, 0, true},
 		{"no prediction, market open does not count", open, 0, 0, false, 0, 0, false},
-		// No closing time means the player can still bet, so no 0x0.
 		{"no prediction, no closing time does not count", nil, 0, 0, false, 0, 0, false},
 	}
 	for _, tt := range tests {
@@ -82,22 +81,21 @@ func TestEffectivePredEntry(t *testing.T) {
 	}
 }
 
-// TestNoShowMatchPoints pins what a synthesized 0x0 is worth per match — this is what
-// moves the standings once the rule ships.
 func TestNoShowMatchPoints(t *testing.T) {
 	tests := []struct {
+		name               string
 		realHome, realAway int
 		want               int
 	}{
-		{0, 0, 18}, // 9 result + 3 home + 3 away + 3 exact score
-		{1, 1, 12}, // draw without the exact score
-		{0, 1, 3},  // home goals only
-		{2, 2, 12}, // draw without the score; 4 goals but wrong predicted total
-		{2, 1, 0},
+		{"0-0 is an exact score", 0, 0, 18},
+		{"another draw scores the draw", 1, 1, 12},
+		{"an away 0-1 matches home goals only", 0, 1, 3},
+		{"2-2 is a draw but not the 4-goal total", 2, 2, 12},
+		{"a home win scores nothing", 2, 1, 0},
 	}
 	for _, tt := range tests {
 		if got := CalculateMatchPoints(0, 0, tt.realHome, tt.realAway); got != tt.want {
-			t.Errorf("0x0 against %d-%d = %d, want %d", tt.realHome, tt.realAway, got, tt.want)
+			t.Errorf("%s: 0x0 against %d-%d = %d, want %d", tt.name, tt.realHome, tt.realAway, got, tt.want)
 		}
 	}
 }
@@ -114,8 +112,6 @@ func TestNoShowRoundScoring(t *testing.T) {
 		preds = append(preds, EffectivePredEntry(m, 0, 0, false, testNow))
 	}
 	points, exact, correct := CalculateRoundPoints(preds, results, true)
-	// 18 + 3. No round-total bonus (0 predicted vs 1 actual) and a single exact-score
-	// type, which is worth 0.
 	if points != 21 || exact != 1 || correct != 1 {
 		t.Errorf("closed round with no predictions = (%d,%d,%d), want (21,1,1)", points, exact, correct)
 	}
@@ -131,9 +127,6 @@ func TestNoShowRoundScoring(t *testing.T) {
 	}
 }
 
-// TestRoundTotalBonusNeedsAtLeastOnePrediction covers the bug where an all-0-0 round
-// handed the 10-point round-total bonus to someone who predicted nothing: roundPredTotal
-// (0) matched actualRoundTotal (0).
 func TestRoundTotalBonusNeedsAtLeastOnePrediction(t *testing.T) {
 	preds := []PredEntry{
 		{PredHome: noPredSentinel, PredAway: noPredSentinel},

@@ -6,7 +6,6 @@ import (
 
 const DefaultPassword = "123"
 
-// Hash de "123" para novos usuários (bcrypt cost 10)
 var DefaultPasswordHash = mustHash(DefaultPassword)
 
 func mustHash(pwd string) string {

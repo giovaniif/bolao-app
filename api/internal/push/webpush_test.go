@@ -100,7 +100,7 @@ func TestWebPushSenderSubject(t *testing.T) {
 		subject string
 		want    string
 	}{
-		{"configured with mailto is not doubled", "mailto:admin@example.com", "mailto:admin@example.com"},
+		{"mailto prefix is not doubled, which Apple rejects with 403", "mailto:admin@example.com", "mailto:admin@example.com"},
 		{"bare address gets mailto", "admin@example.com", "mailto:admin@example.com"},
 		{"https subject is kept", "https://bolao.example", "https://bolao.example"},
 	}
@@ -118,5 +118,11 @@ func TestWebPushSenderSubject(t *testing.T) {
 		if got := vapidSubject(t, auth); got != tt.want {
 			t.Errorf("%s: sub = %q, want %q", tt.name, got, tt.want)
 		}
+	}
+}
+
+func TestTTLDoesNotOutliveTheTenMinuteReminder(t *testing.T) {
+	if ttlSeconds > 10*60 {
+		t.Errorf("ttlSeconds = %d, want at most 600 so a late phone never gets \"closes in 10 minutes\" after closing", ttlSeconds)
 	}
 }

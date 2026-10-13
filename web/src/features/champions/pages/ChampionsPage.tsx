@@ -11,7 +11,6 @@ import { FinalStandings } from '../components/FinalStandings';
 import { SeasonGallery } from '../components/SeasonGallery';
 import { BiggestWinners } from '../components/BiggestWinners';
 
-/** Values stay Portuguese: they are user-facing and appear in shared links. */
 const VIEWS = ['campeao', 'temporadas'] as const;
 type HallView = (typeof VIEWS)[number];
 
@@ -27,8 +26,6 @@ export function ChampionsPage() {
   const [view, setView] = useTabInUrl<HallView>('vista', VIEWS, 'campeao');
   const season = seasons.find((s) => s.bolao.id === selectedId) ?? seasons[0];
 
-  // Selected season only. rounds_won is not a shortcut: a round nobody scored in has no
-  // winner, so summing it undercounts.
   const { data: rounds } = useRounds(season?.bolao.id);
 
   if (isLoading && seasons.length === 0) {
@@ -79,8 +76,6 @@ export function ChampionsPage() {
   return (
     <Layout title="Hall dos Campeões">
       <div className="space-y-4">
-        {/* The switcher always shows: with one season the gallery still has its row and
-            the winners card. The chips do not, since there is nothing to choose. */}
         <SegmentedControl
           label="Visão do Hall"
           options={SEGMENTS}

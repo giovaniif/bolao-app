@@ -20,7 +20,6 @@ export function ClassificationPage() {
   const { data: rounds = [] } = useRounds(bolaoId);
   const maxRound = rounds.length > 0 ? Math.max(...rounds) : 0;
   const displayRound = selectedRound === '' ? maxRound : selectedRound;
-  // "Todas" = classificação acumulada (backend round=0/999). Rodada específica = só aquela rodada.
   const roundForQuery = selectedRound === '' ? undefined : selectedRound;
   const isCumulative = selectedRound === '';
 

@@ -7,7 +7,6 @@ interface SeasonChipsProps {
   onSelect: (bolaoId: string) => void;
 }
 
-/** Replaces the finished-bolão select. */
 export function SeasonChips({ seasons, selectedId, onSelect }: SeasonChipsProps) {
   return (
     <ChipRow

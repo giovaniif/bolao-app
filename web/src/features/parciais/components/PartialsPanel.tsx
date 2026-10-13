@@ -14,7 +14,6 @@ interface PartialsPanelProps {
   round: number;
 }
 
-/** Body of the Parciais tab. RoundPage owns the round and passes it down. */
 export function PartialsPanel({ round }: PartialsPanelProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
@@ -63,8 +62,6 @@ export function PartialsPanel({ round }: PartialsPanelProps) {
       for (const m of matches) {
         const p = partials[m.id];
         if (!p) continue;
-        // Both null means nothing was entered; otherwise a null side is a team the user
-        // never tapped, which is a real 0.
         const h = p.h ?? 0;
         const a = p.a ?? 0;
         if (p.h == null && p.a == null) continue;

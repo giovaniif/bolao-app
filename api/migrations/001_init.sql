@@ -1,4 +1,3 @@
--- Users table
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     username VARCHAR(50) UNIQUE NOT NULL,
@@ -10,7 +9,6 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Matches table
 CREATE TABLE IF NOT EXISTS matches (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     round INT NOT NULL,
@@ -23,7 +21,6 @@ CREATE TABLE IF NOT EXISTS matches (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Predictions table
 CREATE TABLE IF NOT EXISTS predictions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -35,7 +32,6 @@ CREATE TABLE IF NOT EXISTS predictions (
     UNIQUE(user_id, match_id)
 );
 
--- Indexes
 CREATE INDEX IF NOT EXISTS idx_matches_round ON matches(round);
 CREATE INDEX IF NOT EXISTS idx_predictions_user ON predictions(user_id);
 CREATE INDEX IF NOT EXISTS idx_predictions_match ON predictions(match_id);

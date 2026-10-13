@@ -115,7 +115,6 @@ export function PredictionsTinderCard({
           </div>
 
           <div className="space-y-8">
-            {/* Mandante */}
             <div>
               <p className="text-sm text-[var(--color-text-muted)] mb-2">
                 Mandante
@@ -150,7 +149,6 @@ export function PredictionsTinderCard({
               ×
             </div>
 
-            {/* Visitante */}
             <div>
               <p className="text-sm text-[var(--color-text-muted)] mb-2">
                 Visitante
@@ -190,7 +188,6 @@ export function PredictionsTinderCard({
         </div>
       </div>
 
-      {/* Indicadores e navegação */}
       <div className="flex items-center justify-between mt-4 px-2">
         <button
           type="button"

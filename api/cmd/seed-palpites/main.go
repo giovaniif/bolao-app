@@ -15,7 +15,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// IDs das partidas da rodada 1, na ordem do palpites.md (Vitória x Remo, Atlético-MG x Palmeiras, ...)
 var round1MatchIDs = []uuid.UUID{
 	uuid.MustParse("4048c80d-18c3-4ab4-b3dc-f952f35e6818"),
 	uuid.MustParse("9caf85d9-f07d-4255-9e70-35e901dfb2cf"),
@@ -82,12 +81,10 @@ func parsePalpitesFile(path string) (map[string][]string, error) {
 			continue
 		}
 
-		// Formato "Mandante x Visitante" (apenas para pular, ordem vem dos IDs)
 		if strings.Contains(line, " x ") {
 			continue
 		}
 
-		// Formato "HxA" (ex: 1x2, 0x0)
 		if scoreRe.MatchString(line) {
 			if currentUser != "" {
 				preds = append(preds, line)
@@ -95,7 +92,6 @@ func parsePalpitesFile(path string) (map[string][]string, error) {
 			continue
 		}
 
-		// Nome de usuário
 		if currentUser != "" && len(preds) > 0 {
 			userPreds[currentUser] = preds
 			preds = nil
@@ -128,7 +124,6 @@ func parseScore(s string) (home, away int, err error) {
 func seedPredictions(ctx context.Context, pool *pgxpool.Pool, userPredictions map[string][]string) error {
 	matchIDs := round1MatchIDs
 
-	// Buscar user_id por username
 	userIDs := make(map[string]uuid.UUID)
 	for username := range userPredictions {
 		var id uuid.UUID
@@ -139,7 +134,6 @@ func seedPredictions(ctx context.Context, pool *pgxpool.Pool, userPredictions ma
 		userIDs[username] = id
 	}
 
-	// Inserir palpites
 	insertQuery := `
 		INSERT INTO predictions (id, user_id, match_id, home_goals, away_goals)
 		VALUES ($1, $2, $3, $4, $5)

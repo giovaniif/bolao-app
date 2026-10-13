@@ -3,14 +3,6 @@ import { useSearchParams } from 'react-router-dom';
 
 const RODADA_KEY = 'rodada';
 
-/**
- * Keeps the selected round in the URL (?rodada=N), so it survives a reload and carries
- * across screens.
- *
- * Pass activeRound (see useActiveRound) to default to the round in play rather than the
- * last one that exists. It comes from the same request as `rounds`, so by the time there
- * are rounds to show it has already arrived; the highest round is only a safety net.
- */
 export function useRoundInUrl(
   rounds: number[],
   activeRound?: number
@@ -29,8 +21,6 @@ export function useRoundInUrl(
   }
   const round = validFromUrl ? rodadaNum : defaultRound;
 
-  // Merge instead of replace: setSearchParams(object) swaps the whole query string and
-  // would wipe sibling params such as ?aba=galera on the round screen.
   const writeRound = useCallback(
     (r: number) => {
       setSearchParams(

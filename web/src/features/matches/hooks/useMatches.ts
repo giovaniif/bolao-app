@@ -2,9 +2,6 @@ import { useQuery } from '@tanstack/react-query';
 import { getRoundsSummary, getMatchesByRound } from '../api/matchesApi';
 import { queryKeys } from '../../../shared/query/queryKeys';
 
-// useRounds, useActiveRound and usePendingResults deliberately share a query key: React
-// Query then issues a single request and all three resolve together, so the default round
-// never jumps after the round list has rendered, and the admin banner costs nothing.
 export function useRounds(bolaoId?: string) {
   return useQuery({
     queryKey: queryKeys.rounds(bolaoId),

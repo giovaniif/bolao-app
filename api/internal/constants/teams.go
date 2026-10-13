@@ -1,6 +1,5 @@
 package constants
 
-// Brasileirão 2026 - 20 times da Série A
 var Teams = []string{
 	"Athletico-PR",
 	"Atlético-MG",

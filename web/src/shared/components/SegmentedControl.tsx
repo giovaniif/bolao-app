@@ -1,7 +1,6 @@
 export interface Segment<T extends string> {
   value: T;
   label: string;
-  /** id of the matching tabpanel, for aria-controls */
   panelId?: string;
 }
 
@@ -9,7 +8,6 @@ interface SegmentedControlProps<T extends string> {
   options: readonly Segment<T>[];
   value: T;
   onChange: (value: T) => void;
-  /** aria-label for the tablist */
   label: string;
 }
 

@@ -41,7 +41,6 @@ interface FocusableClient {
   navigate(url: string): Promise<unknown>;
 }
 
-// Reuses an open tab of the app instead of stacking new windows on every tap.
 export async function openNotificationTarget(
   data: unknown,
   origin: string,

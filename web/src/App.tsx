@@ -38,7 +38,6 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-/** The old Galera and Parciais routes keep working, landing on the matching tab. */
 export function RedirectToRound({ tab }: { tab: RoundTab }) {
   const { search } = useLocation();
   const params = new URLSearchParams(search);
@@ -113,7 +112,6 @@ function AppRoutes() {
   );
 }
 
-// Base path para GitHub Pages (ex: /bolao-app). Em dev é ''.
 const basename = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
 
 export default function App() {

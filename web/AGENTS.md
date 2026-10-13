@@ -64,6 +64,25 @@ Features: `admin`, `auth`, `boloes`, `champions`, `classification`, `matches`, `
 - Tailwind utility classes inline. No CSS modules, no styled-components. Use `Button`, `Input` and `Layout` before you write a new one.
 - `@` is an alias for `src/` in `vitest.config.ts`. Relative imports are the norm. Do not churn them.
 
+## Behavior notes
+
+- Route paths and tab values stay Portuguese (`/rodada?aba=galera`). They appear in shared links.
+- The old Galera and Parciais routes redirect to the matching `/rodada` tab. `BottomNav` lights Rodada for them, so a direct link never leaves the bar with nothing active.
+- `useRoundInUrl` defaults to the active round from the rounds summary. It merges into the query string, so `?aba=` survives a round change.
+- `useTabInUrl` never writes on mount. Two hooks that write in the same tick overwrite each other, so only the round corrects the URL.
+- `useRounds`, `useActiveRound` and `usePendingResults` share one query key. One request feeds all three, so the default round does not jump and `AdminBanner` costs no request. `useAdmin` re-exports them.
+- `useSeasons` uses the same key as `useClassification(undefined, bolaoId)`. Its `staleTime` is infinite, because a finished bolão's ranking never changes.
+- `RoundPage` mounts each panel on first use and then only hides it. Unmounting would discard unsaved partials and the selected player.
+- In `PartialsPanel`, both sides `null` means nothing was entered. One `null` side is a team the user never tapped, which is a real 0.
+- The Hall of Champions reads the season year from the bolão name, not the dates. It counts titles on the client. It computes round winners per season, because `rounds_won` skips rounds nobody scored in.
+- `ChampionHero` uppercases its text in JSX, because Testing Library matches DOM text. `SeasonGallery` uses CSS uppercase, so tests find the name as the admin wrote it.
+- `Avatar` hides its initials from screen readers. The wrapping link or the text beside it gives the name.
+- `ChipRow` scrolls the active chip into view. jsdom has no `scrollIntoView`, so `src/test/setup.ts` stubs it.
+- The API sends UTC. `shared/utils/date.ts` shows times in the device time zone and converts `datetime-local` values back to UTC ISO.
+- `index.css` uses `@theme static`. Plain `@theme` removes variables used only in arbitrary values such as `bg-[var(--color-card)]`.
+- `pushSupport` treats a Mac with touch as an iPad, because iPadOS reports itself as a Mac.
+- On a notification click, the service worker focuses an open app tab before it opens a new window.
+
 ## PWA and push
 
 See [ADR 0006](../docs/adr/0006-web-push-via-pg-cron.md).

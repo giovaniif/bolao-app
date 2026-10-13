@@ -48,7 +48,6 @@ type BolaoParticipant struct {
 	JoinedAt   time.Time `json:"joined_at"`
 }
 
-// ParticipantView is a user joined with their participation record for a specific bolão.
 type ParticipantView struct {
 	User
 	AmountPaid float64   `json:"amount_paid"`
@@ -56,12 +55,11 @@ type ParticipantView struct {
 }
 
 type Prediction struct {
-	ID        uuid.UUID `json:"id"`
-	UserID    uuid.UUID `json:"user_id"`
-	MatchID   uuid.UUID `json:"match_id"`
-	HomeGoals int       `json:"home_goals"`
-	AwayGoals int       `json:"away_goals"`
-	// Synthesized at read time for a closed match with no prediction; no database row exists.
+	ID         uuid.UUID `json:"id"`
+	UserID     uuid.UUID `json:"user_id"`
+	MatchID    uuid.UUID `json:"match_id"`
+	HomeGoals  int       `json:"home_goals"`
+	AwayGoals  int       `json:"away_goals"`
 	AutoFilled bool      `json:"auto_filled,omitempty"`
 	CreatedAt  time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`

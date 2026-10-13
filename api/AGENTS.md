@@ -69,6 +69,35 @@ See [ADR 0004](../docs/adr/0004-startup-migrations.md).
 - Only `001_init.sql` is fatal on failure. Later ones log and continue, so a non-idempotent migration fails quietly in production.
 - Never edit a migration that ran anywhere. Add a new one.
 
+## Behavior notes
+
+These rules have no unit test, because they live in handlers or SQL that need a database. Keep them when you edit the code.
+
+- `resolveBolaoID` reads `?bolao_id=` to browse a finished bolão read-only. Without it, it uses the active bolão.
+- `assertMatchInActiveBolao` returns 403 for a match of a finished bolão. It stops a stale client that edits a match by id.
+- A user can read another user's predictions for a round only after every market in the round closed.
+- The finish-bolão body is optional. No body means `force=false`. `FinishActive` then refuses with `ErrUnresolvedMatches` while a match has no result.
+- `FinishActive` counts every match without a result. `PendingResults` counts only matches whose market closed. Both are correct.
+- Classification `round`: `1`..`998` is that round only. `0` or `999` is cumulative up to the last round that exists.
+- Classification loads the whole bolão in three queries (`ListAllByBolao`, `GetAllForBolao`), not one query per round.
+- A partial score of `NULL` means "not entered" and does not count. An explicit 0×0 partial counts (migration 005).
+- `FlexibleTime` accepts RFC3339 with a time zone and stores the time in UTC.
+- One bolão is active at a time. A unique partial index backs the app check, and `Create` returns `ErrActiveBolaoExists` when it loses the race.
+- Creating a bolão enrolls every user (`EnrollAllUsers`, `amount_paid` 0). A user created mid-season is enrolled with `AddParticipant`.
+- New users get the bcrypt hash of `123` as password (`auth/password.go`, migration 004). They change it on first login.
+- Migration 006 wraps the data that existed before bolões in one bolão, once. It moves `users.amount_paid` to `bolao_participants`, guarded by `information_schema`.
+- The export CSV starts with a UTF-8 BOM for Excel. Its sections are JOGOS, PALPITES (matches with a result only) and CLASSIFICAÇÃO per round. Predictions are read with a two-value lookup, so a real 0-0 differs from a missing one.
+- `cmd/seed-palpites` reads `palpites.md`: a username line, then one `HxA` line per match. It skips `Home x Away` lines. The match order comes from `round1MatchIDs`.
+
+### Push
+
+- `NewPushHandler` with a nil notifier means no VAPID keys. Subscribe returns 503 and the tick does nothing. The rest of the API still runs.
+- Supabase `pg_cron` calls the tick every minute (see the README).
+- `AnnounceRound` sends in the background, so the admin request does not wait. It does nothing until the round has a deadline.
+- `Upsert` moves a known endpoint to the new user. A browser that logs in as someone else stops notifying the previous user.
+- `ClaimNotification` races concurrent ticks on the primary key, so exactly one sends. The key holds `closes_at`, so a moved deadline re-arms the reminders (migration 007). A new-round notice keys on the Unix epoch instead, so it is sent once.
+- A reminder stays due for its whole window, so a missed tick does not lose it. A day-before reminder later than one hour is skipped.
+
 ## Go conventions
 
 - Constructors: `NewXRepository(pool)` and `NewXHandler(deps...)`, returning a pointer. Dependencies are struct fields.

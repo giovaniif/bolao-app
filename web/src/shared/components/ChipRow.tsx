@@ -10,7 +10,6 @@ interface ChipRowProps<T extends string | number> {
   value: T;
   onChange: (value: T) => void;
   tone?: 'primary' | 'gold';
-  /** aria-label for the tablist */
   label: string;
 }
 
@@ -28,7 +27,6 @@ export function ChipRow<T extends string | number>({
 }: ChipRowProps<T>) {
   const activeRef = useRef<HTMLButtonElement>(null);
 
-  // A 38-round season would otherwise open scrolled to round 1.
   useEffect(() => {
     activeRef.current?.scrollIntoView({ inline: 'center', block: 'nearest' });
   }, [value]);

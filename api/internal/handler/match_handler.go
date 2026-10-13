@@ -76,8 +76,6 @@ func (h *MatchHandler) ListRounds(c *gin.Context) {
 	c.JSON(http.StatusOK, rounds)
 }
 
-// ListRoundsSummary returns the rounds plus the one the UI should select by default.
-// Kept separate from ListRounds so the admin screens keep their plain []int response.
 func (h *MatchHandler) ListRoundsSummary(c *gin.Context) {
 	bolaoID, err := resolveBolaoID(c, h.bolaoRepo)
 	if err != nil {
@@ -293,9 +291,6 @@ func (h *MatchHandler) DeleteRound(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "rodada excluída"})
 }
 
-// assertMatchInActiveBolao writes a 403 response and returns a non-nil error if the
-// match doesn't belong to the currently active bolão (defense-in-depth against a
-// stale client trying to edit a finished bolão's match by id).
 func (h *MatchHandler) assertMatchInActiveBolao(c *gin.Context, matchID uuid.UUID) error {
 	match, err := h.matchRepo.GetByID(c.Request.Context(), matchID)
 	if err != nil {

@@ -151,7 +151,6 @@ export function PredictionsPage() {
               disabled={isClosed(currentMatch)}
             />
 
-            {/* Resumo compacto abaixo do card */}
             <details className="rounded-lg bg-[var(--color-card)] border border-slate-700">
               <summary className="px-4 py-3 cursor-pointer text-sm text-[var(--color-text-muted)] hover:text-[var(--color-primary)]">
                 Ver resumo dos jogos

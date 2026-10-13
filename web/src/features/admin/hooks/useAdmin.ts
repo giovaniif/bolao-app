@@ -32,8 +32,6 @@ export function useTeams() {
   });
 }
 
-// Re-exported rather than redefined: this used to be a second query on the same key with
-// its own fetcher, which would now disagree with useMatches about the payload shape.
 export { useRounds } from '../../matches/hooks/useMatches';
 
 export function useMatchesByRound(round: number) {
@@ -70,7 +68,6 @@ export function useUpdateMatchResults(round: number) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.matches(round) });
       queryClient.invalidateQueries({ queryKey: ['classification'] });
-      // The summary carries pending_results, which feeds the admin banner.
       queryClient.invalidateQueries({ queryKey: queryKeys.rounds() });
     },
   });

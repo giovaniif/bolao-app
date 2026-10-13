@@ -8,7 +8,6 @@ describe('Avatar', () => {
     expect(screen.getByText('GF')).toBeTruthy()
   })
 
-  // Without this a screen reader announces "GF Giovani Farias" on the profile link.
   it('hides the glyph from the accessibility tree', () => {
     render(<Avatar name="Giovani Farias" />)
     expect(screen.getByText('GF').getAttribute('aria-hidden')).toBe('true')

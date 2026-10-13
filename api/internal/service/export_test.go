@@ -30,7 +30,6 @@ func exportUser(name string) models.User {
 	return models.User{ID: uuid.New(), Username: name, DisplayName: name}
 }
 
-// FieldsPerRecord = -1 because each section of the CSV has a different column count.
 func parseCSV(t *testing.T, raw []byte) [][]string {
 	t.Helper()
 	r := csv.NewReader(bytes.NewReader(bytes.TrimPrefix(raw, []byte{0xEF, 0xBB, 0xBF})))
@@ -52,8 +51,6 @@ func findRow(records [][]string, col int, want string, minLen int) []string {
 	return nil
 }
 
-// The section ends at the next header: encoding/csv discards the blank lines separating
-// the sections, so they cannot be used as the delimiter.
 func sectionAfter(records [][]string, header string) [][]string {
 	start := -1
 	for i, rec := range records {
@@ -73,9 +70,6 @@ func sectionAfter(records [][]string, header string) [][]string {
 	return records[start:]
 }
 
-// The round is 0-0 plus 0-1 on purpose: the predicted goal total (0) does not match the
-// actual one (1), so the round bonus stays out and the PALPITES rows must sum to exactly
-// the CLASSIFICAÇÃO total.
 func TestBuildCSVPalpitesAgreeWithClassification(t *testing.T) {
 	now := testNow
 	closed := timePtr(now.Add(-time.Hour))

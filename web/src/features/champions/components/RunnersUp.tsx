@@ -5,7 +5,6 @@ interface RunnersUpProps {
   third?: UserWithStats;
 }
 
-/** 2nd and 3rd side by side. Rank is carried by colour and label, not emoji. */
 export function RunnersUp({ runnerUp, third }: RunnersUpProps) {
   if (!runnerUp) return null;
 

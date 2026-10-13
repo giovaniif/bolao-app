@@ -21,9 +21,6 @@ type roundScore struct {
 	correctResults int
 }
 
-// scoreParticipantRound scores one participant over one round. lookup reports the stored
-// prediction for a match, with has=false when the participant did not submit one — which
-// EffectivePredEntry turns into 0×0 if that match's market has closed.
 func scoreParticipantRound(
 	matches []matchWithResult,
 	lookup func(matchID uuid.UUID) (home, away int, has bool),
@@ -41,13 +38,6 @@ func scoreParticipantRound(
 	return roundScore{points, exactScores, correctResults}
 }
 
-// pickRoundWinner returns the round winner, or ok=false when nobody scored. Players on
-// zero are skipped, so a round nobody scored in has no winner.
-//
-// The last tiebreaker is the user ID. It is arbitrary, but Go randomizes map iteration, so
-// without it a fully tied round picks a different winner on every request and RoundsWon —
-// a standings tiebreaker — flaps between page loads. Players tied on every real criterion
-// have to be separated by something stable.
 func pickRoundWinner(scores map[uuid.UUID]roundScore) (uuid.UUID, bool) {
 	var winner uuid.UUID
 	var best roundScore
@@ -106,8 +96,6 @@ type RoundScore struct {
 }
 
 func (s *ClassificationService) GetClassification(ctx context.Context, bolaoID uuid.UUID, upToRound int) ([]models.UserWithStats, error) {
-	// Fetch everything for the bolão in bulk (3 queries total, regardless of round count)
-	// instead of one query per round per participant.
 	allMatches, err := s.matchRepo.ListAllByBolao(ctx, bolaoID)
 	if err != nil {
 		return nil, err
@@ -121,7 +109,6 @@ func (s *ClassificationService) GetClassification(ctx context.Context, bolaoID u
 		}
 	}
 
-	// Quando "todas" as rodadas são pedidas (0 ou >= 999), usar a última rodada que existe no banco
 	if upToRound <= 0 || upToRound >= 999 {
 		upToRound = maxRound
 	}
@@ -155,13 +142,11 @@ func (s *ClassificationService) GetClassification(ctx context.Context, bolaoID u
 		}
 	}
 
-	// Round winners for tiebreaker
 	roundWinners := make(map[int]uuid.UUID)
 
 	now := time.Now()
 
 	for round := 1; round <= upToRound; round++ {
-		// Considera só jogos com resultado; jogos sem placar são ignorados.
 		var matchesWithResults []matchWithResult
 		for _, m := range matchesByRound[round] {
 			if m.HomeGoals == nil || m.AwayGoals == nil {
@@ -198,7 +183,6 @@ func (s *ClassificationService) GetClassification(ctx context.Context, bolaoID u
 		}
 	}
 
-	// Build result and sort by tiebreaker rules
 	result := make([]models.UserWithStats, 0, len(userStats))
 	for _, u := range userStats {
 		result = append(result, *u)
@@ -221,8 +205,6 @@ func (s *ClassificationService) GetClassification(ctx context.Context, bolaoID u
 	return result, nil
 }
 
-// GetClassificationForRound returns ranking for a single round only (points in that round),
-// using final match results. For cumulative classification use GetClassification.
 func (s *ClassificationService) GetClassificationForRound(ctx context.Context, bolaoID uuid.UUID, round int) ([]models.UserWithStats, error) {
 	matches, err := s.matchRepo.ListByRound(ctx, bolaoID, round)
 	if err != nil {
@@ -269,7 +251,6 @@ func (s *ClassificationService) GetClassificationForRound(ctx context.Context, b
 	for _, participant := range participants {
 		predByMatch := predByUserMatch[participant.ID]
 		rs := scoreParticipantRound(matchesWithResults, func(matchID uuid.UUID) (int, int, bool) {
-			// p is the zero value when !has; EffectivePredEntry ignores it then.
 			p, has := predByMatch[matchID]
 			return p.Home, p.Away, has
 		}, true, now)
@@ -299,7 +280,6 @@ func (s *ClassificationService) GetClassificationForRound(ctx context.Context, b
 	return result, nil
 }
 
-// GetClassificationByPartials returns ranking for a single round using parciais as results.
 func (s *ClassificationService) GetClassificationByPartials(ctx context.Context, bolaoID uuid.UUID, round int) ([]models.UserWithStats, error) {
 	matches, err := s.matchRepo.ListByRound(ctx, bolaoID, round)
 	if err != nil {
@@ -310,8 +290,6 @@ func (s *ClassificationService) GetClassificationByPartials(ctx context.Context,
 		return nil, err
 	}
 
-	// Build match list with parciais - only include matches that have parciais preenchidas (não nulas).
-	// Parcial 0×0 explícita conta; ausência de parcial não conta.
 	var scoredMatches []matchWithResult
 	for _, m := range matches {
 		if p, ok := partials[m.ID]; ok && p.HomeGoals != nil && p.AwayGoals != nil {
@@ -345,8 +323,6 @@ func (s *ClassificationService) GetClassificationByPartials(ctx context.Context,
 	for _, participant := range participants {
 		predByMatch := predByUserMatch[participant.ID]
 
-		// awardRoundTotalBonus stays false: the predictions cover the whole round while
-		// the parciais only cover the matches played so far.
 		rs := scoreParticipantRound(scoredMatches, func(matchID uuid.UUID) (int, int, bool) {
 			p, has := predByMatch[matchID]
 			return p.Home, p.Away, has

@@ -11,8 +11,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// ErrActiveBolaoExists is returned by Create when a bolão is already active
-// (backstop for the app-level check, races against the unique partial index).
 var ErrActiveBolaoExists = errors.New("já existe um bolão ativo")
 
 type BolaoRepository struct {
@@ -99,7 +97,6 @@ func (r *BolaoRepository) Finish(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-// EnrollAllUsers adds every existing user as a participant of bolaoID (amount_paid defaults to 0).
 func (r *BolaoRepository) EnrollAllUsers(ctx context.Context, bolaoID uuid.UUID) error {
 	query := `INSERT INTO bolao_participants (bolao_id, user_id)
 		SELECT $1, id FROM users
@@ -108,7 +105,6 @@ func (r *BolaoRepository) EnrollAllUsers(ctx context.Context, bolaoID uuid.UUID)
 	return err
 }
 
-// AddParticipant enrolls a single user in bolaoID (used when a new user is created mid-season).
 func (r *BolaoRepository) AddParticipant(ctx context.Context, bolaoID, userID uuid.UUID) error {
 	query := `INSERT INTO bolao_participants (bolao_id, user_id)
 		VALUES ($1, $2)

@@ -7,7 +7,6 @@ interface PlayerPredictionsPanelProps {
   round: number;
 }
 
-/** Body of the Galera tab. RoundPage owns the round and passes it down. */
 export function PlayerPredictionsPanel({ round }: PlayerPredictionsPanelProps) {
   const [selectedUserId, setSelectedUserId] = useState<string>('');
 

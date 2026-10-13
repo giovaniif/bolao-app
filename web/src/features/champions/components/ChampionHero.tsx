@@ -3,7 +3,6 @@ import type { Season } from '../hooks/useSeasons';
 
 interface ChampionHeroProps {
   season: Season;
-  /** Rounds in the season; absent while loading. */
   rounds?: number;
 }
 
@@ -18,7 +17,6 @@ export function ChampionHero({ season, rounds }: ChampionHeroProps) {
   return (
     <div className="rounded-[22px] p-5 border border-accent/45 bg-gold-hero flex flex-col gap-4">
       <div className="flex items-center justify-between gap-3">
-        {/* Uppercase in the JSX, not via CSS: Testing Library matches DOM text. */}
         <span className="text-[11px] font-extrabold tracking-[0.14em] text-accent">
           CAMPEÃO {year}
         </span>
