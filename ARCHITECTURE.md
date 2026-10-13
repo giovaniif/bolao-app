@@ -2,6 +2,8 @@
 
 ## Stack
 
+See [ADR 0001](docs/adr/0001-go-api-and-react-pwa.md) and [ADR 0005](docs/adr/0005-hosting.md).
+
 | Area | Stack | Path | Hosting |
 |---|---|---|---|
 | API | Go 1.23, Gin, pgx/v5 | `api/` | Render (Docker, free plan) |
@@ -38,6 +40,8 @@ Every domain row (matches, predictions, participants) has a `bolao_id`. Writes g
 3. A handler validates the input, calls a service or a repository, and responds. Go JSON tags are `snake_case`, and the TypeScript interfaces mirror them with no mapping layer.
 
 ## Push notifications
+
+See [ADR 0006](docs/adr/0006-web-push-via-pg-cron.md).
 
 - The web is an installable PWA. Its service worker (`web/src/sw.ts`) shows Web Push messages.
 - The API stores subscriptions and sends three reminders per round: new round, 1 day before close and 10 minutes before close. `notification_log` makes each one send at most once.

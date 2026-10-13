@@ -35,7 +35,7 @@ migrations/            numbered .sql, run on start
 
 ## Layering
 
-`handler → service → repository`. The arrows point one way only.
+`handler → service → repository`. The arrows point one way only ([ADR 0002](../docs/adr/0002-layering.md)).
 
 - A handler never writes SQL.
 - A service never imports `gin` and never touches `*pgxpool.Pool`. It takes repositories (or interfaces of them) or plain data, and returns plain data.
@@ -54,11 +54,15 @@ migrations/            numbered .sql, run on start
 
 ## Multi-tenancy by bolão
 
+See [ADR 0003](../docs/adr/0003-multi-tenancy-by-bolao.md).
+
 - Writes go only to the **active** bolão. Finished bolões are read-only forever.
 - A new repository method that reads or writes domain data takes `bolaoID uuid.UUID`.
 - A new endpoint that returns domain data calls `resolveBolaoID(c, h.bolaoRepo)` (`?bolao_id=` or the active one). Do not write the fallback again.
 
 ## Migrations
+
+See [ADR 0004](../docs/adr/0004-startup-migrations.md).
 
 - Numbered SQL files, applied from a **hardcoded list** in `runMigrations` on every start. A new file must also go in that list.
 - They run on every boot, so make them idempotent: `CREATE TABLE IF NOT EXISTS`, `ADD COLUMN IF NOT EXISTS`, guarded `DO $$` blocks.

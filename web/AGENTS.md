@@ -66,6 +66,8 @@ Features: `admin`, `auth`, `boloes`, `champions`, `classification`, `matches`, `
 
 ## PWA and push
 
+See [ADR 0006](../docs/adr/0006-web-push-via-pg-cron.md).
+
 - `vite-plugin-pwa` builds `src/sw.ts` with `injectManifest` and no precache, so the app never serves a stale bundle. The worker has its own `tsconfig.sw.json` (WebWorker lib), and `tsconfig.app.json` excludes it.
 - `features/notifications` holds the opt-in: `pushApi.ts`, `usePushSubscription` and `PushToggle` on the profile page.
 - On iOS in a Safari tab, the toggle becomes a hint to add the app to the Home Screen, because iOS has Web Push only in the installed app.
