@@ -1,6 +1,6 @@
 # ADR 0008: Linear issues and Graphite stacks
 
-Status: accepted, 2026-07-28.
+Status: superseded by [ADR 0012](0012-github-issues-and-gh-stack.md), 2026-10-13. Accepted 2026-07-28.
 
 ## Decision
 

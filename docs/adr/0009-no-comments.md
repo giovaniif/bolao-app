@@ -10,7 +10,7 @@ Status: accepted, 2026-10-13. Adapted from agent-workspace ADR 0044. Replaces th
 - What a comment used to carry goes elsewhere:
   - A hidden constraint or quirk goes into a test named after it, which fails if the workaround goes, and into the commit message that adds the workaround.
   - Usage and design notes go in the scoped `AGENTS.md`, an ADR, `SCORING.md` or the README.
-  - Open work goes in a Linear issue.
+  - Open work goes in a GitHub issue.
 - The files that had comments on adoption sat in an allowlist. BOL-34 emptied it and removed it on 2026-10-13.
 
 ## Why
