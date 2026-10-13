@@ -103,3 +103,17 @@ func TestWebTestdataRunsItsDirectory(t *testing.T) {
 		t.Fatalf("exit %d, want 0 after running src on base\n%s", code, out)
 	}
 }
+
+func TestPlaywrightSpecsCountAsTests(t *testing.T) {
+	r := newRepo(t, webProject("a"))
+	r.commit("test(web): a is b, with its screen", map[string]string{
+		"web/src/a.test.ts":       webTest("b"),
+		"web/e2e/screens.spec.ts": "export const screen = 1;\n",
+		"web/e2e/fixtures/api.ts": "export const api = 1;\n",
+	})
+	r.commit("feat(web): a is b", map[string]string{"web/src/a.ts": webSrc("b")})
+	code, out := r.check(webEnv...)
+	if code != 0 || strings.Contains(out, "web/e2e") {
+		t.Fatalf("exit %d, want 0: web/e2e holds Playwright specs, which are tests and do not run on base\n%s", code, out)
+	}
+}
