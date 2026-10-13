@@ -220,3 +220,20 @@ func TestNotificationServiceAnnouncesARoundOnceEvenWhenItsDeadlineMoves(t *testi
 		t.Errorf("deliveries = %d, want 1: an admin fixing the close time must not re-announce the round", len(sender.payloads))
 	}
 }
+
+func TestEndpointHostNamesThePushServiceInLogs(t *testing.T) {
+	tests := []struct {
+		endpoint string
+		want     string
+	}{
+		{"https://fcm.googleapis.com/fcm/send/abc", "fcm.googleapis.com"},
+		{"https://web.push.apple.com/QK3W", "web.push.apple.com"},
+		{"no-host-here", "unknown push service"},
+		{"://broken", "unknown push service"},
+	}
+	for _, tt := range tests {
+		if got := endpointHost(tt.endpoint); got != tt.want {
+			t.Errorf("endpointHost(%q) = %q, want %q", tt.endpoint, got, tt.want)
+		}
+	}
+}
