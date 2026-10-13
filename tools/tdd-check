@@ -1,0 +1,237 @@
+#!/usr/bin/env bash
+set -euo pipefail
+base=$(git rev-parse --verify --quiet "$1^{commit}") || { echo "tdd: unknown base $1"; exit 2; }
+head=$(git rev-parse --verify --quiet "$2^{commit}") || { echo "tdd: unknown head $2"; exit 2; }
+start_ref=$(git symbolic-ref --quiet --short HEAD || git rev-parse HEAD)
+
+is_test_path() {
+  case "$1" in
+    (*_test.go | testdata/* | */testdata/* | test/*) return 0 ;;
+    (web/*.test.ts | web/*.test.tsx | web/src/test/*) return 0 ;;
+    (*) return 1 ;;
+  esac
+}
+
+non_test_paths() {
+  git diff --name-only -z --no-renames "$base...$head" | while IFS= read -r -d '' f; do
+    is_test_path "$f" || echo "$f"
+  done
+}
+
+title="${TDD_PR_TITLE:-}"
+case "$title" in
+  (test:*)
+    offending=$(non_test_paths)
+    if [ -z "$offending" ]; then
+      echo "tdd: ok, test-only PR titled test: is exempt"
+      exit 0
+    fi
+    echo "tdd: a test: PR is exempt only when it changes no production code; these files are not tests:"
+    echo "$offending"
+    echo "tdd: running the normal check; retitle the PR or split the production change out"
+    ;;
+esac
+
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+
+same_go_tokens() {
+  if [ ! -x "$tmp/sametokens" ]; then
+    mkdir -p "$tmp/sametokens.src"
+    printf 'module sametokens\n\ngo 1.22\n' >"$tmp/sametokens.src/go.mod"
+    cat >"$tmp/sametokens.src/main.go" <<'GO'
+package main
+
+import (
+	"go/scanner"
+	"go/token"
+	"os"
+	"slices"
+)
+
+func tokens(path string) []string {
+	src, err := os.ReadFile(path)
+	if err != nil {
+		os.Exit(2)
+	}
+	file := token.NewFileSet().AddFile(path, -1, len(src))
+	var s scanner.Scanner
+	bad := false
+	s.Init(file, src, func(token.Position, string) { bad = true }, 0)
+	var out []string
+	for {
+		_, tok, lit := s.Scan()
+		if tok == token.EOF {
+			break
+		}
+		if tok == token.SEMICOLON {
+			lit = ""
+		}
+		out = append(out, tok.String()+" "+lit)
+	}
+	if bad {
+		os.Exit(1)
+	}
+	return out
+}
+
+func main() {
+	if !slices.Equal(tokens(os.Args[1]), tokens(os.Args[2])) {
+		os.Exit(1)
+	}
+}
+GO
+    (cd "$tmp/sametokens.src" && GOWORK=off GOFLAGS= go build -o "$tmp/sametokens" .)
+  fi
+  git show "$1" >"$tmp/old.go"
+  git show "$2" >"$tmp/new.go"
+  "$tmp/sametokens" "$tmp/old.go" "$tmp/new.go"
+}
+
+changed_tests() {
+  local old="$1" new="$2" status from to
+  changed=()
+  removed=()
+  while IFS= read -r -d '' status; do
+    IFS= read -r -d '' from
+    to="$from"
+    case "$status" in
+    (R*) IFS= read -r -d '' to ;;
+    (D) removed+=("$from"); continue ;;
+    esac
+    case "$to" in (fakes_test.go | */fakes_test.go | *_fake_test.go) continue ;; esac
+    if [ "$status" != A ]; then
+      case "$to" in
+      (*.go)
+        ! same_go_tokens "$old:$from" "$new:$to" || continue ;;
+      (*.golden | *.txt)
+        ! git diff --quiet --ignore-space-change --ignore-blank-lines "$old:$from" "$new:$to" || continue ;;
+      (*)
+        ! git diff --quiet --ignore-space-change --ignore-blank-lines -I '^[[:space:]]*(//|#)' "$old:$from" "$new:$to" || continue ;;
+      esac
+    fi
+    changed+=("$to")
+    [ "$from" = "$to" ] || removed+=("$from")
+  done < <(git diff --name-status -z -M --diff-filter=AMRD "$old" "$new" -- '*_test.go' '*/testdata/*' 'web/*.test.ts' 'web/*.test.tsx')
+}
+
+mixed=0
+while IFS= read -r c; do
+  subject=$(git log -1 --format=%s "$c")
+  case "$subject" in (refactor:* | refactor\(*) continue ;; esac
+  changed_tests "$c^" "$c"
+  [ ${#changed[@]} -gt 0 ] || continue
+  prod=$(git diff-tree --no-commit-id -r --name-only -z --no-renames "$c" | while IFS= read -r -d '' f; do
+    case "$f" in (*.md) continue ;; esac
+    is_test_path "$f" || echo "$f"
+  done)
+  [ -n "$prod" ] || continue
+  echo "tdd: commit $(git log -1 --format='%h %s' "$c") changes tests and production code together:"
+  # shellcheck disable=SC2086
+  printf "  %s\n" "${changed[@]}" $prod
+  mixed=1
+done < <(git rev-list --no-merges --reverse "$base..$head")
+if [ "$mixed" -ne 0 ]; then
+  echo "tdd: FAIL. Commit each failing test on its own, before the commit that makes it pass."
+  exit 1
+fi
+
+changed_tests "$(git merge-base "$base" "$head")" "$head"
+if [ ${#changed[@]} -eq 0 ]; then
+  echo "tdd: no added or changed test files or testdata (port fakes, whitespace-only and comment-only changes are exempt)"
+  exit 0
+fi
+
+if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+  echo "tdd: the worktree has uncommitted changes; commit or set them aside first"
+  exit 2
+fi
+restore_start() {
+  git reset --quiet --hard
+  git checkout --quiet "$start_ref"
+  rm -rf "$tmp"
+}
+trap restore_start EXIT
+git checkout --quiet --detach "$base"
+git checkout "$head" -- "${changed[@]}"
+for f in ${removed[@]+"${removed[@]}"}; do
+  rm -f "$f"
+done
+
+module_of() {
+  local dir="$1"
+  while [ "$dir" != "." ] && [ ! -f "$dir/go.mod" ]; do
+    dir=$(dirname "$dir")
+  done
+  echo "$dir"
+}
+
+go_units=$(for f in "${changed[@]}"; do
+  case "$f" in
+    (web/*) ;;
+    (*/testdata/*) echo "${f%%/testdata/*}" ;;
+    (testdata/*) echo "." ;;
+    (*) dirname "$f" ;;
+  esac
+done | sort -u)
+web_units=$(for f in "${changed[@]}"; do
+  case "$f" in
+    (web/testdata/*) echo "." ;;
+    (web/*/testdata/*) f="${f#web/}"; echo "${f%%/testdata/*}" ;;
+    (web/*) echo "${f#web/}" ;;
+  esac
+done | sort -u)
+read -r -a skip_dirs <<<"${TDD_SKIP_DIRS-api/internal/repository}"
+passed=()
+for dir in $go_units; do
+  skip=0
+  for s in ${skip_dirs[@]+"${skip_dirs[@]}"}; do
+    [ "$dir" = "$s" ] && skip=1
+  done
+  if [ "$skip" -eq 1 ]; then
+    echo "tdd: skip $dir on base: its tests need a database, which CI does not have"
+    continue
+  fi
+  mod=$(module_of "$dir")
+  if [ "$mod" = "." ]; then
+    pkg="./$dir"
+    where=""
+  else
+    pkg="./${dir#"$mod"/}"
+    [ "$dir" = "$mod" ] && pkg="."
+    where=" in $mod"
+  fi
+  if [ ! -f "$mod/go.mod" ]; then
+    echo "tdd: no $mod/go.mod on base, so the tests in $dir cannot pass there"
+    continue
+  fi
+  echo "tdd: go test $pkg$where on base"
+  if (cd "$mod" && go test -count=1 -short "$pkg"); then
+    passed+=("$dir")
+  fi
+done
+
+if [ -n "$web_units" ]; then
+  if [ ! -f web/package.json ]; then
+    echo "tdd: no web/package.json on base, so these web tests cannot pass there:" $web_units
+  else
+    read -r -a web_install <<<"${TDD_WEB_INSTALL:-npm ci --no-audit --no-fund --ignore-scripts}"
+    read -r -a web_test <<<"${TDD_WEB_TEST:-npx vitest run}"
+    if ! (cd web && "${web_install[@]}"); then
+      echo "tdd: FAIL. ${web_install[*]} failed in web on base"
+      exit 1
+    fi
+    for unit in $web_units; do
+      echo "tdd: vitest $unit on base"
+      if (cd web && "${web_test[@]}" "$unit"); then
+        passed+=("web/$unit")
+      fi
+    done
+  fi
+fi
+
+if [ ${#passed[@]} -gt 0 ]; then
+  echo "tdd: FAIL. These tests pass on the base branch, so they don't cover new behavior: ${passed[*]}"
+  exit 1
+fi
+echo "tdd: ok, every new or changed test fails on base"

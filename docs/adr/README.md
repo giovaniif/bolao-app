@@ -13,3 +13,4 @@ One file per decision, numbered in order. A record does not change after it is a
 | [0007](0007-scoped-agents-md.md) | Scoped AGENTS.md files |
 | [0008](0008-linear-and-graphite.md) | Linear issues and Graphite stacks |
 | [0009](0009-no-comments.md) | No comments |
+| [0010](0010-test-first.md) | Test first, enforced by CI |
