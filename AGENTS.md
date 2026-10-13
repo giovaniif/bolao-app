@@ -111,6 +111,7 @@ gh stack merge <top-pr> --squash     # merge the stack up to that PR, after appr
 - The PR description gives `Closes #<n>`, what changed and how you verified it.
 - Do not open a PR until the commands above pass.
 - CodeRabbit reviews each PR with the rules in `.coderabbit.yaml`. Fix or answer each finding before you merge.
+- Keep open PRs green with the [babysit-prs skill](.claude/skills/babysit-prs/SKILL.md): it fixes failed CI, answers review threads, rebases stacks and checks the UI screenshots. Run it once with `/babysit-prs`, or every 10 minutes with `/loop 10m /babysit-prs`. It never merges. A merge waits for the user's approval of that stack.
 
 ### Deploys
 
