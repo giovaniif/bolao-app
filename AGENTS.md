@@ -31,6 +31,7 @@ Write prose docs, ADRs, Linear issues and PR descriptions in the Simplified Tech
 cd api && gofmt -l . && go vet ./... && golangci-lint run ./... && go test ./... -short
 cd web && npm run lint && npm run test:coverage && npm run build
 cd tools && go test ./... && go run ./lint-agents .. && go run ./lint-comments ..
+tools/mutate                      # mutation testing on api/internal/service; needs gremlins
 ```
 
 - `gofmt -l .` must print nothing. Its exit code is 0 even when it lists files.
