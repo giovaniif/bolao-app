@@ -27,3 +27,4 @@ go run ./lint-comments ..
   - **`test:` PRs.** A PR titled `test:` whose changed files are all tests is exempt. CI passes the title in `TDD_PR_TITLE`.
   - `TDD_WEB_INSTALL` and `TDD_WEB_TEST` replace the two web commands. Its tests in `tddcheck/` use them to run without Node.
   - It refuses uncommitted changes. On exit, pass or fail, it puts back the branch you started on.
+- **`mutate [gremlins]`**: runs `gremlins` on `api/internal/service` ([ADR 0011](../docs/adr/0011-mutation-testing.md)). It fails below `MUTATE_THRESHOLD` (default 83, the measured efficacy). It uses 4 workers and `--timeout-coefficient 50`. With more workers, the builds compete for CPU and most mutants time out, which gives a false score. Install it with `go install github.com/go-gremlins/gremlins/cmd/gremlins@v0.6.0`.

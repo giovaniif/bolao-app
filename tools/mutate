@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+gremlins="${1:-gremlins}"
+threshold="${MUTATE_THRESHOLD:-83}"
+cd "$(dirname "$0")/../api"
+"$gremlins" unleash --workers 4 --timeout-coefficient 50 --threshold-efficacy "$threshold" ./internal/service

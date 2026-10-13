@@ -14,3 +14,4 @@ One file per decision, numbered in order. A record does not change after it is a
 | [0008](0008-linear-and-graphite.md) | Linear issues and Graphite stacks |
 | [0009](0009-no-comments.md) | No comments |
 | [0010](0010-test-first.md) | Test first, enforced by CI |
+| [0011](0011-mutation-testing.md) | Mutation testing on the service rules |
