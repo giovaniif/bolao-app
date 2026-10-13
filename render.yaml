@@ -14,6 +14,14 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        sync: false
+      - key: CRON_SECRET
+        sync: false
 
   # Dev/staging — deploy triggered by push to main (see .github/workflows/deploy.yml).
   # Same Dockerfile/build as production; only the envs differ (DATABASE_URL points at the
@@ -31,4 +39,12 @@ services:
       - key: DATABASE_URL
         sync: false
       - key: JWT_SECRET
+        sync: false
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        sync: false
+      - key: CRON_SECRET
         sync: false

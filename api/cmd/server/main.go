@@ -9,6 +9,7 @@ import (
 	"github.com/bolao-app/api/internal/config"
 	"github.com/bolao-app/api/internal/database"
 	"github.com/bolao-app/api/internal/handler"
+	"github.com/bolao-app/api/internal/push"
 	"github.com/bolao-app/api/internal/repository"
 	"github.com/bolao-app/api/internal/service"
 	"github.com/gin-gonic/gin"
@@ -36,14 +37,26 @@ func main() {
 	predictionRepo := repository.NewPredictionRepository(pool)
 	partialRepo := repository.NewPartialRepository(pool)
 	bolaoRepo := repository.NewBolaoRepository(pool)
+	pushRepo := repository.NewPushRepository(pool)
 
 	classificationSvc := service.NewClassificationService(bolaoRepo, matchRepo, predictionRepo, partialRepo)
 	exportSvc := service.NewExportService(bolaoRepo, matchRepo, predictionRepo)
 	bolaoSvc := service.NewBolaoService(bolaoRepo, matchRepo)
+	var notificationSvc *service.NotificationService
+	if cfg.VAPIDPublicKey != "" && cfg.VAPIDPrivateKey != "" && cfg.VAPIDSubject != "" {
+		notificationSvc = service.NewNotificationService(pushRepo, push.NewWebPushSender(cfg.VAPIDPublicKey, cfg.VAPIDPrivateKey, cfg.VAPIDSubject))
+	} else {
+		log.Print("push notifications disabled: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY or VAPID_SUBJECT not set")
+	}
 
 	authHandler := handler.NewAuthHandler(userRepo, cfg.JWTSecret)
 	userHandler := handler.NewUserHandler(userRepo, bolaoRepo)
-	matchHandler := handler.NewMatchHandler(matchRepo, bolaoRepo)
+	var notifier handler.RoundNotifier
+	if notificationSvc != nil {
+		notifier = notificationSvc
+	}
+	pushHandler := handler.NewPushHandler(pushRepo, bolaoRepo, matchRepo, notifier, cfg.VAPIDPublicKey, cfg.CronSecret)
+	matchHandler := handler.NewMatchHandler(matchRepo, bolaoRepo, pushHandler)
 	predictionHandler := handler.NewPredictionHandler(predictionRepo, matchRepo, bolaoRepo)
 	partialHandler := handler.NewPartialHandler(matchRepo, partialRepo, bolaoRepo)
 	classificationHandler := handler.NewClassificationHandler(classificationSvc, bolaoRepo)
@@ -56,6 +69,8 @@ func main() {
 
 	r.POST("/api/auth/login", authHandler.Login)
 	r.GET("/api/teams", userHandler.GetTeams)
+	r.GET("/api/push/public-key", pushHandler.PublicKey)
+	r.POST("/api/internal/notifications/tick", pushHandler.Tick)
 
 	api := r.Group("/api")
 	api.Use(handler.AuthMiddleware(cfg.JWTSecret))
@@ -70,6 +85,8 @@ func main() {
 		api.GET("/predictions/round/:round/user/:user_id", predictionHandler.GetByUserAndRound)
 		api.POST("/predictions", predictionHandler.UpsertPredictions)
 		api.GET("/me", userHandler.GetMe)
+		api.POST("/push/subscriptions", pushHandler.Subscribe)
+		api.DELETE("/push/subscriptions", pushHandler.Unsubscribe)
 		api.PUT("/me", userHandler.UpdateMe)
 		api.GET("/parciais/round/:round", partialHandler.ListByRound)
 		api.PUT("/parciais/match/:id", partialHandler.SetPartial)

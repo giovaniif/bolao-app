@@ -158,9 +158,10 @@ func TestNotificationServiceNotify(t *testing.T) {
 		t.Errorf("payload = %s (%v)", sender.payloads[0], err)
 	}
 
+	r.ClosesAt = r.ClosesAt.Add(time.Hour)
 	sent, err = svc.Notify(context.Background(), uuid.New(), r)
 	if err != nil || sent != 0 || len(sender.payloads) != 4 {
-		t.Errorf("repeat notify: sent = %d, err = %v, deliveries = %d; want nothing resent", sent, err, len(sender.payloads))
+		t.Errorf("announcing again after the deadline moved: sent = %d, err = %v, deliveries = %d; want nothing resent", sent, err, len(sender.payloads))
 	}
 }
 
@@ -185,5 +186,21 @@ func TestNotificationServiceTick(t *testing.T) {
 	}
 	if len(sender.payloads) != 1 {
 		t.Errorf("deliveries = %d, want 1: only round 7 is due and only once", len(sender.payloads))
+	}
+}
+
+func TestNotificationServiceRemindersRearmWhenDeadlineMoves(t *testing.T) {
+	store := &fakeStore{claimed: map[string]bool{}, subs: []models.PushSubscription{{Endpoint: "ok"}}}
+	sender := &fakeSender{status: map[string]int{"ok": 201}}
+	svc := NewNotificationService(store, sender)
+	bolao := uuid.New()
+
+	for _, at := range []time.Time{closeTime, closeTime, closeTime.Add(time.Hour)} {
+		if _, err := svc.Notify(context.Background(), bolao, Reminder{Kind: ReminderTenMinutes, Round: 7, ClosesAt: at}); err != nil {
+			t.Fatalf("Notify: %v", err)
+		}
+	}
+	if len(sender.payloads) != 2 {
+		t.Errorf("deliveries = %d, want 2: once per distinct deadline", len(sender.payloads))
 	}
 }

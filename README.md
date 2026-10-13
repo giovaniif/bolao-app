@@ -80,6 +80,41 @@ Required environment variables on Render:
 | `DATABASE_URL` | Supabase session pooler URL |
 | `JWT_SECRET` | Secure random string (e.g. `openssl rand -hex 32`) |
 | `PORT` | `8080` (already set in `render.yaml`) |
+| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | Web Push key pair, one per environment (see below) |
+| `VAPID_SUBJECT` | Contact for push services, e.g. `mailto:you@example.com` |
+| `CRON_SECRET` | Secure random string, shared with the Supabase cron job |
+
+Push notifications stay disabled (and the API logs it) until all three `VAPID_*` variables
+are set. Generate a key pair with:
+
+```bash
+npx web-push generate-vapid-keys
+```
+
+### Push reminders – Supabase pg_cron
+
+Render's free plan sleeps when idle, so the API cannot keep its own timer. Supabase calls
+the tick endpoint every minute instead (which also wakes the API). It sends the "1 day
+before" and "10 minutes before" reminders; "new round" is sent when an admin creates the
+round's matches or sets its close time. Run once per Supabase project, after enabling the
+`pg_cron` and `pg_net` extensions (Database → Extensions):
+
+```sql
+select cron.schedule(
+  'bolao-push-tick',
+  '* * * * *',
+  $$
+  select net.http_post(
+    url := 'https://<render-api-host>/api/internal/notifications/tick',
+    headers := jsonb_build_object('X-Cron-Secret', '<CRON_SECRET>'),
+    timeout_milliseconds := 60000
+  );
+  $$
+);
+```
+
+Inspect recent runs with `select * from net._http_response order by created desc limit 10;`
+and remove the job with `select cron.unschedule('bolao-push-tick');`.
 
 ### Frontend – Vercel
 
