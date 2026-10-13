@@ -5,10 +5,12 @@ on:
     branches: [main]
     paths:
       - 'web/**'
+      - 'tools/pr-screenshots'
       - '.github/workflows/frontend-ci.yml'
   pull_request:
     paths:
       - 'web/**'
+      - 'tools/pr-screenshots'
       - '.github/workflows/frontend-ci.yml'
 
 jobs:
@@ -58,3 +60,51 @@ jobs:
 
       - name: Test
         run: npm run test:coverage
+
+  ui:
+    name: UI screenshots
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        working-directory: web
+        run: npm ci
+
+      - name: Install Chromium
+        working-directory: web
+        run: npx playwright install --with-deps chromium
+
+      - name: Capture the screens
+        working-directory: web
+        run: npm run e2e
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ui-screenshots
+          path: |
+            web/e2e/screenshots
+            web/e2e/report
+          if-no-files-found: ignore
+
+      - name: Post the screenshots on the PR
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        run: tools/pr-screenshots "${{ github.event.pull_request.number }}"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_SCREENSHOTS_SHA: ${{ github.event.pull_request.head.sha }}
+          GIT_AUTHOR_NAME: github-actions[bot]
+          GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+          GIT_COMMITTER_NAME: github-actions[bot]
+          GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com

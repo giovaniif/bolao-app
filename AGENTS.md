@@ -17,7 +17,7 @@ Claude Code and Codex load an `AGENTS.md` from each directory they work in. Here
 |---|---|
 | [api/](api/AGENTS.md) | layering, multi-tenancy, migrations, Go conventions, backend tests and lint |
 | [web/](web/AGENTS.md) | feature folders, the data path, TS/React conventions, PWA and push, frontend tests and lint |
-| [tools/](tools/AGENTS.md) | the repo lint tools (`lint-agents`, `lint-comments`) |
+| [tools/](tools/AGENTS.md) | the repo tools (`lint-agents`, `lint-comments`, `tdd-check`, `mutate`, `pr-screenshots`) |
 
 **Where guidance goes.** Put area-specific guidance in the `AGENTS.md` of the directory where most edits for it start, not here. Give a new scoped `AGENTS.md` a `CLAUDE.md` symlink beside it (`ln -s AGENTS.md CLAUDE.md`) and a row in the table above. Keep this file under 150 lines. `lint-agents` checks the line count, the symlinks and every relative link. See [ADR 0007](docs/adr/0007-scoped-agents-md.md).
 
@@ -29,7 +29,7 @@ Write prose docs, ADRs, issues and PR descriptions in the Simplified Technical E
 
 ```bash
 cd api && gofmt -l . && go vet ./... && golangci-lint run ./... && go test ./... -short
-cd web && npm run lint && npm run test:coverage && npm run build
+cd web && npm run lint && npm run test:coverage && npm run build && npm run e2e
 cd tools && go test ./... && go run ./lint-agents .. && go run ./lint-comments ..
 tools/mutate                      # mutation testing on api/internal/service; needs gremlins
 ```
@@ -56,7 +56,8 @@ tools/mutate                      # mutation testing on api/internal/service; ne
    - Only tool directives stay: `//go:`, a bare `//nolint:<linters>`, generated-code headers, `/// <reference ...>`, `// eslint-disable-next-line <rule>`, shebangs, `# yaml-language-server:` and Dockerfile `# syntax=`.
    - `tools/lint-comments` fails CI on all other comments.
 5. **Lint clean.** Zero errors and zero warnings in both projects. Do not silence a rule. A single-line disable names the rule, and the commit message gives the reason.
-6. **Scoring changes touch three files together:** `api/internal/service/scoring.go`, its tests and `SCORING.md`, in the same PR. If code and doc disagree, that is a bug.
+6. **UI changes show their screenshots** ([ADR 0013](docs/adr/0013-ui-screenshots-on-prs.md)). Run the Playwright check in [web/AGENTS.md](web/AGENTS.md#ui-check), look at the screens you changed, and post them on the PR.
+7. **Scoring changes touch three files together:** `api/internal/service/scoring.go`, its tests and `SCORING.md`, in the same PR. If code and doc disagree, that is a bug.
 
 ## Workflow
 
