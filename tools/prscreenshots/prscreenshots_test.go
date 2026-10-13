@@ -183,3 +183,14 @@ func TestNoScreenshotsFails(t *testing.T) {
 		t.Fatalf("gh calls:\n%s\nwant none", log)
 	}
 }
+
+func TestBranchTurnsOffVercelGitDeploys(t *testing.T) {
+	e := newEnv(t, "login.png")
+	if code, out := e.post("7"); code != 0 {
+		t.Fatalf("exit %d\n%s", code, out)
+	}
+	got := run(t, e.remote, "git", "show", "pr-screenshots:web/vercel.json")
+	if !strings.Contains(got, `"deploymentEnabled": false`) {
+		t.Fatalf("web/vercel.json on pr-screenshots is %q, want git.deploymentEnabled false so Vercel does not build the branch", got)
+	}
+}
