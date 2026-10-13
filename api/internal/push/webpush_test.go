@@ -5,6 +5,7 @@ import (
 	"crypto/ecdh"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -69,5 +70,53 @@ func TestWebPushSenderSendUnreachable(t *testing.T) {
 	sender := NewWebPushSender(pub, priv, "mailto:admin@example.com")
 	if _, err := sender.Send(context.Background(), browserSubscription(t, "http://127.0.0.1:1"), []byte("{}")); err == nil {
 		t.Error("want an error for an unreachable push service")
+	}
+}
+
+func vapidSubject(t *testing.T, authorization string) string {
+	t.Helper()
+	token := strings.TrimSuffix(strings.SplitN(strings.TrimPrefix(authorization, "vapid t="), ",", 2)[0], ",")
+	parts := strings.Split(token, ".")
+	if len(parts) != 3 {
+		t.Fatalf("authorization %q has no JWT", authorization)
+	}
+	raw, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+	var claims struct {
+		Sub string `json:"sub"`
+	}
+	if err := json.Unmarshal(raw, &claims); err != nil {
+		t.Fatal(err)
+	}
+	return claims.Sub
+}
+
+func TestWebPushSenderSubject(t *testing.T) {
+	priv, pub, _ := webpush.GenerateVAPIDKeys()
+	tests := []struct {
+		name    string
+		subject string
+		want    string
+	}{
+		{"configured with mailto is not doubled", "mailto:admin@example.com", "mailto:admin@example.com"},
+		{"bare address gets mailto", "admin@example.com", "mailto:admin@example.com"},
+		{"https subject is kept", "https://bolao.example", "https://bolao.example"},
+	}
+	for _, tt := range tests {
+		var auth string
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			auth = r.Header.Get("Authorization")
+			w.WriteHeader(http.StatusCreated)
+		}))
+		_, err := NewWebPushSender(pub, priv, tt.subject).Send(context.Background(), browserSubscription(t, srv.URL), []byte("{}"))
+		srv.Close()
+		if err != nil {
+			t.Fatalf("%s: %v", tt.name, err)
+		}
+		if got := vapidSubject(t, auth); got != tt.want {
+			t.Errorf("%s: sub = %q, want %q", tt.name, got, tt.want)
+		}
 	}
 }

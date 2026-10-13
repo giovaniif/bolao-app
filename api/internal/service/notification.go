@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
+	"net/url"
 	"sort"
 	"time"
 
@@ -159,9 +161,18 @@ func (s *NotificationService) Notify(ctx context.Context, bolaoID uuid.UUID, r R
 			}
 		case err == nil && status >= 200 && status < 300:
 			sent++
+		default:
+			log.Printf("push %s round %d to %s: status %d, err %v", r.Kind, r.Round, endpointHost(sub.Endpoint), status, err)
 		}
 	}
 	return sent, nil
+}
+
+func endpointHost(endpoint string) string {
+	if u, err := url.Parse(endpoint); err == nil && u.Host != "" {
+		return u.Host
+	}
+	return "unknown push service"
 }
 
 // Tick sends every reminder due at now for the given rounds.

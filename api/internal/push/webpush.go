@@ -2,6 +2,7 @@ package push
 
 import (
 	"context"
+	"strings"
 
 	"github.com/SherClockHolmes/webpush-go"
 	"github.com/bolao-app/api/internal/models"
@@ -17,8 +18,10 @@ type WebPushSender struct {
 	subject    string
 }
 
+// NewWebPushSender accepts the subject with or without "mailto:". webpush-go prefixes
+// it itself, and Apple rejects the resulting "mailto:mailto:" token with 403.
 func NewWebPushSender(publicKey, privateKey, subject string) *WebPushSender {
-	return &WebPushSender{publicKey: publicKey, privateKey: privateKey, subject: subject}
+	return &WebPushSender{publicKey: publicKey, privateKey: privateKey, subject: strings.TrimPrefix(subject, "mailto:")}
 }
 
 func (s *WebPushSender) Send(ctx context.Context, sub models.PushSubscription, payload []byte) (int, error) {
