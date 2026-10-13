@@ -12,3 +12,4 @@ One file per decision, numbered in order. A record does not change after it is a
 | [0006](0006-web-push-via-pg-cron.md) | Web Push reminders driven by pg_cron |
 | [0007](0007-scoped-agents-md.md) | Scoped AGENTS.md files |
 | [0008](0008-linear-and-graphite.md) | Linear issues and Graphite stacks |
+| [0009](0009-no-comments.md) | No comments |
