@@ -108,6 +108,7 @@ gt restack && gt submit --stack  # open or update the whole stack
 - PRs squash-merge, so the PR title is the line that stays in `main`. Make it specific.
 - The PR description gives the Linear issue, what changed and how you verified it.
 - Do not open a PR until the commands above pass.
+- CodeRabbit reviews each PR with the rules in `.coderabbit.yaml`. Fix or answer each finding before you merge.
 
 ### Deploys
 
