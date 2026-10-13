@@ -7,7 +7,7 @@ start_ref=$(git symbolic-ref --quiet --short HEAD || git rev-parse HEAD)
 is_test_path() {
   case "$1" in
     (*_test.go | testdata/* | */testdata/* | test/*) return 0 ;;
-    (web/*.test.ts | web/*.test.tsx | web/src/test/*) return 0 ;;
+    (web/*.test.ts | web/*.test.tsx | web/src/test/* | web/e2e/*) return 0 ;;
     (*) return 1 ;;
   esac
 }

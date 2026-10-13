@@ -10,6 +10,7 @@ npm test                # vitest run (jsdom)
 npm run test:coverage   # vitest run --coverage; enforces the coverage floor
 npm run build           # tsc -b && vite build; needs VITE_API_URL
 npm run dev             # proxies /api to VITE_API_URL or http://localhost:3333
+npm run e2e             # Playwright: build, open each screen, save e2e/screenshots/*.png
 ```
 
 - The dev server binds all interfaces and accepts `.ts.net` hosts (`vite.config.ts`).
@@ -33,6 +34,8 @@ src/shared/
 src/sw.ts             the service worker (push, notification click)
 src/serviceWorker/    the worker's pure logic, with tests
 src/test/setup.ts     Testing Library setup
+e2e/screens.spec.ts   one entry per screen and state, for the UI check
+e2e/fixtures/api.ts   the mocked API, the signed-in user and the fixed clock
 ```
 
 Features: `admin`, `auth`, `boloes`, `champions`, `classification`, `matches`, `notifications`, `parciais`, `predictions`, `profile`, `viewPredictions`.
@@ -91,6 +94,18 @@ See [ADR 0006](../docs/adr/0006-web-push-via-pg-cron.md).
 - `features/notifications` holds the opt-in: `pushApi.ts`, `usePushSubscription` and `PushToggle` on the profile page.
 - On iOS in a Safari tab, the toggle becomes a hint to add the app to the Home Screen, because iOS has Web Push only in the installed app.
 - `index.html` sets `apple-mobile-web-app-status-bar-style` to `black-translucent`. Thus top-anchored bars need the `safe-area-pt` utility.
+
+## UI check
+
+Every change that a user can see gets a Playwright check before you push ([ADR 0013](../docs/adr/0013-ui-screenshots-on-prs.md)).
+
+1. Add or update the entry in `e2e/screens.spec.ts` for each screen or state that you changed. Use `act` for a state that needs a click or a selection. Add the data it needs to `e2e/fixtures/api.ts`.
+2. Run `npm run e2e`. First time on a machine: `npx playwright install chromium`.
+3. Open each changed screenshot in `e2e/screenshots/` (the Read tool shows images) and look at it: layout, text, overflow, safe areas, empty and error states. Fix what is wrong and run again.
+4. Post them: `../tools/pr-screenshots <pr>`. CI's `UI screenshots` job does this again on each push, so the comment always shows the last commit.
+5. Say in the PR description which screenshots show the change.
+
+A spec fails on a browser error or an API call with no mock. Add the mock; do not filter the error.
 
 ## Tests
 

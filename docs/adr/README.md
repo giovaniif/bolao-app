@@ -16,3 +16,4 @@ One file per decision, numbered in order. A record does not change after it is a
 | [0010](0010-test-first.md) | Test first, enforced by CI |
 | [0011](0011-mutation-testing.md) | Mutation testing on the service rules |
 | [0012](0012-github-issues-and-gh-stack.md) | GitHub Issues and gh stack (supersedes 0008) |
+| [0013](0013-ui-screenshots-on-prs.md) | Playwright screenshots on every UI PR |

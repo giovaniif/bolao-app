@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+pr="${1:?usage: pr-screenshots <pr-number> [screenshots-dir]}"
+dir="${2:-web/e2e/screenshots}"
+branch=pr-screenshots
+marker='<!-- ui-screenshots -->'
+
+shopt -s nullglob
+shots=("$dir"/*.png)
+if [ ${#shots[@]} -eq 0 ]; then
+  echo "pr-screenshots: no screenshots in $dir; run npm run e2e in web first"
+  exit 1
+fi
+
+repo="${PR_SCREENSHOTS_REPO:-$(gh repo view --json nameWithOwner -q .nameWithOwner)}"
+sha="${PR_SCREENSHOTS_SHA:-$(git rev-parse HEAD)}"
+short="${sha:0:7}"
+prefix="pr-$pr/$short"
+
+index=$(mktemp)
+trap 'rm -f "$index"' EXIT
+
+publish() {
+  local parent="" tree commit
+  rm -f "$index"
+  if git fetch -q origin "+refs/heads/$branch:refs/remotes/origin/$branch" 2>/dev/null; then
+    parent=$(git rev-parse "refs/remotes/origin/$branch")
+    GIT_INDEX_FILE="$index" git read-tree "$parent"
+  fi
+  for f in "${shots[@]}"; do
+    GIT_INDEX_FILE="$index" git update-index --add --cacheinfo "100644,$(git hash-object -w "$f"),$prefix/$(basename "$f")"
+  done
+  tree=$(GIT_INDEX_FILE="$index" git write-tree)
+  if [ -n "$parent" ]; then
+    commit=$(git commit-tree "$tree" -p "$parent" -m "screenshots for #$pr at $short")
+  else
+    commit=$(git commit-tree "$tree" -m "screenshots for #$pr at $short")
+  fi
+  git push -q origin "$commit:refs/heads/$branch"
+}
+
+for attempt in 1 2 3; do
+  if publish; then
+    break
+  fi
+  if [ "$attempt" -eq 3 ]; then
+    echo "pr-screenshots: could not push to $branch"
+    exit 1
+  fi
+  sleep $((attempt * 2))
+done
+
+body="$marker
+**UI screenshots**
+
+Playwright captured these screens at 390×844 (phone) for $short, with a mocked API. Look at each changed screen before you merge.
+
+|   |   |
+|---|---|"
+row=""
+for f in "${shots[@]}"; do
+  name=$(basename "$f" .png)
+  cell="**$name**<br><img src=\"https://raw.githubusercontent.com/$repo/$branch/$prefix/$name.png\" width=\"260\">"
+  if [ -z "$row" ]; then
+    row="| $cell |"
+  else
+    body="$body
+$row $cell |"
+    row=""
+  fi
+done
+[ -z "$row" ] || body="$body
+$row   |"
+
+existing=$(gh api "repos/$repo/issues/$pr/comments" --paginate --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | head -n 1)
+if [ -n "$existing" ]; then
+  gh api -X PATCH "repos/$repo/issues/comments/$existing" -f body="$body" >/dev/null
+  echo "pr-screenshots: updated the screenshots comment on #$pr"
+else
+  gh api "repos/$repo/issues/$pr/comments" -f body="$body" >/dev/null
+  echo "pr-screenshots: posted the screenshots comment on #$pr"
+fi
