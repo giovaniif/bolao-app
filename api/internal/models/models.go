@@ -83,3 +83,11 @@ type UserWithStats struct {
 	CorrectResults int     `json:"correct_results"`
 	RoundsWon      int     `json:"rounds_won"`
 }
+
+type PushSubscription struct {
+	ID       uuid.UUID `json:"id"`
+	UserID   uuid.UUID `json:"user_id"`
+	Endpoint string    `json:"endpoint"`
+	P256dh   string    `json:"p256dh"`
+	Auth     string    `json:"auth"`
+}
