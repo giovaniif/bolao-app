@@ -25,8 +25,6 @@ const TONES: Record<Tone, string> = {
 export function Avatar({ name, size = 32, tone = 'default', className = '' }: AvatarProps) {
   return (
     <span
-      // The accessible name comes from the wrapping link or adjacent text; without this a
-      // screen reader announces "MS Maria Silva".
       aria-hidden="true"
       className={`inline-flex items-center justify-center rounded-full shrink-0 ${SIZES[size]} ${TONES[tone]} ${className}`}
     >

@@ -1,13 +1,8 @@
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 
-/**
- * Paths that light each tab. Rodada also covers the legacy Galera and Parciais routes,
- * which redirect to /rodada, so a direct link never leaves the bar with nothing active.
- */
 const BOLAO_PATHS = ['/', '/hall-dos-campeoes'];
 const RODADA_PATHS = ['/rodada', '/parciais', '/ver-palpites'];
 
-/** Two places to read, and one central action. */
 export function BottomNav() {
   const { pathname } = useLocation();
   const [searchParams] = useSearchParams();
@@ -42,7 +37,6 @@ function NavTab({ label, to, active }: { label: string; to: string; active: bool
       aria-current={active ? 'page' : undefined}
       className="flex flex-col items-center justify-center gap-1.5 w-[84px] min-h-[44px]"
     >
-      {/* The inactive indicator stays transparent so the label never shifts. */}
       <span
         className={`w-[18px] h-[3px] rounded-sm ${active ? 'bg-primary' : 'bg-transparent'}`}
       />

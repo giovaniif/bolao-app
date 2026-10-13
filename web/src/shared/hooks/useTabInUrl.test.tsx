@@ -33,9 +33,7 @@ describe('useTabInUrl', () => {
     expect(screen.getByTestId('tab').textContent).toBe('parciais')
   })
 
-  // The round is the only hook that corrects the URL on mount; a second writer in the
-  // same tick would clobber it.
-  it('does not write the fallback into the URL', async () => {
+  it('does not write the fallback into the URL, leaving the round as the only hook that corrects it on mount', async () => {
     renderAt('/rodada')
     await waitFor(() => expect(screen.getByTestId('param').textContent).toBe(''))
   })

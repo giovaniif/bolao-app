@@ -99,58 +99,9 @@ func TestRunExitCode(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			if got := run([]string{dir}, nil, os.Stderr); got != tt.want {
+			if got := run([]string{dir}, os.Stderr); got != tt.want {
 				t.Errorf("run exit = %d, want %d", got, tt.want)
 			}
 		})
-	}
-}
-
-func TestRunSkipsAllowlistedFiles(t *testing.T) {
-	dir := t.TempDir()
-	for name, body := range map[string]string{
-		"api/old.go": "package api\n\n// legacy\nfunc f() {}\n",
-		"api/new.go": "package api\n\n// fresh\nfunc g() {}\n",
-	} {
-		path := filepath.Join(dir, name)
-		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
-			t.Fatal(err)
-		}
-	}
-	tests := []struct {
-		name    string
-		allowed map[string]bool
-		want    int
-	}{
-		{"both files listed", map[string]bool{"api/old.go": true, "api/new.go": true}, 0},
-		{"a new file outside the list still fails", map[string]bool{"api/old.go": true}, 1},
-	}
-	for _, tt := range tests {
-		if got := run([]string{dir}, tt.allowed, os.Stderr); got != tt.want {
-			t.Errorf("%s: run exit = %d, want %d", tt.name, got, tt.want)
-		}
-	}
-}
-
-func TestReadAllowlist(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "allow")
-	if err := os.WriteFile(path, []byte("api/a.go\n\n  web/src/b.ts  \n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	got, err := readAllowlist(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(got) != 2 || !got["api/a.go"] || !got["web/src/b.ts"] {
-		t.Errorf("allowlist = %v, want api/a.go and web/src/b.ts", got)
-	}
-	if empty, err := readAllowlist(""); err != nil || len(empty) != 0 {
-		t.Errorf("no file: got %v, %v; want empty", empty, err)
-	}
-	if _, err := readAllowlist(filepath.Join(t.TempDir(), "missing")); err == nil {
-		t.Error("missing file: want an error")
 	}
 }

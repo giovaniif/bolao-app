@@ -10,16 +10,13 @@ import (
 
 func roundIntPtr(v int) *int { return &v }
 
-// Fixed clock for the cases that depend on market_closes_at.
 var roundNow = time.Date(2026, 5, 1, 12, 0, 0, 0, time.UTC)
 
-// closesAt is relative to roundNow: negative has already closed, positive is still open.
 func closesAt(d time.Duration) *time.Time {
 	t := roundNow.Add(d)
 	return &t
 }
 
-// played is a match with a result; scheduled is one still without.
 func played(round int) models.Match {
 	return models.Match{
 		ID:        uuid.New(),
@@ -59,8 +56,6 @@ func TestSummarizeRoundsActive(t *testing.T) {
 			wantActive: 2,
 		},
 		{
-			// The weekend case: round 2's market has closed and the games are being
-			// played, but no results are in, so round 2 stays active.
 			name:       "round partially filled in stays active",
 			matches:    []models.Match{played(1), played(2), scheduled(2)},
 			wantRounds: []int{1, 2},
@@ -73,8 +68,6 @@ func TestSummarizeRoundsActive(t *testing.T) {
 			wantActive: 3,
 		},
 		{
-			// Results filled out of order: round 2 is complete but round 1 is not. The
-			// bolão has moved on, so the active round is the one after the latest done.
 			name:       "results filled out of order",
 			matches:    []models.Match{scheduled(1), played(2), scheduled(3)},
 			wantRounds: []int{1, 2, 3},
@@ -118,7 +111,6 @@ func TestSummarizeRoundsActive(t *testing.T) {
 	}
 }
 
-// A round with a half-filled match (one goal column set, the other not) is not finished.
 func TestSummarizeRoundsHalfFilledResult(t *testing.T) {
 	half := models.Match{ID: uuid.New(), Round: 2, HomeGoals: roundIntPtr(1)}
 
@@ -128,7 +120,6 @@ func TestSummarizeRoundsHalfFilledResult(t *testing.T) {
 	}
 }
 
-// PendingResults is what the admin still owes: the market closed and no result was entered.
 func TestSummarizeRoundsPendingResults(t *testing.T) {
 	closed := func(round int) models.Match {
 		m := scheduled(round)
@@ -161,7 +152,6 @@ func TestSummarizeRoundsPendingResults(t *testing.T) {
 			}()},
 			0,
 		},
-		// With no market_closes_at, nothing says the match should have been played yet.
 		{"no market_closes_at", []models.Match{scheduled(1)}, 0},
 		{
 			"half-filled result counts as pending",
@@ -186,7 +176,6 @@ func TestSummarizeRoundsPendingResults(t *testing.T) {
 	}
 }
 
-// Rounds must come back sorted even when the matches do not.
 func TestSummarizeRoundsSortsRounds(t *testing.T) {
 	got := SummarizeRounds([]models.Match{scheduled(3), played(1), scheduled(2)}, roundNow)
 

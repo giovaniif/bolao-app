@@ -21,8 +21,6 @@ func openResult(homeGoals, awayGoals int) matchWithResult {
 
 func noPredictions(uuid.UUID) (int, int, bool) { return 0, 0, false }
 
-// predictions builds a lookup over a match-indexed table, where a missing entry means the
-// participant did not submit a prediction for that match.
 func predictions(matches []matchWithResult, preds map[int][2]int) func(uuid.UUID) (int, int, bool) {
 	byID := make(map[uuid.UUID][2]int, len(preds))
 	for i, p := range preds {
@@ -55,25 +53,20 @@ func TestScoreParticipantRoundNoShowOpenMarket(t *testing.T) {
 	}
 }
 
-// A partially filled round: the closed match the player skipped becomes 0×0 and scores,
-// the open one he skipped stays out.
-func TestScoreParticipantRoundMixed(t *testing.T) {
+func TestScoreParticipantRoundSkippedClosedMatchIs0x0AndSkippedOpenMatchIsIgnored(t *testing.T) {
 	matches := []matchWithResult{
-		closedResult(2, 1), // predicted exactly
-		closedResult(0, 0), // skipped, market closed  -> 0×0, scores 18
-		openResult(3, 0),   // skipped, market open    -> ignored
+		closedResult(2, 1),
+		closedResult(0, 0),
+		openResult(3, 0),
 	}
 	lookup := predictions(matches, map[int][2]int{0: {2, 1}})
 
 	got := scoreParticipantRound(matches, lookup, true, testNow)
-	// 18 exact + 18 from the synthesized 0×0, two exact-score types (2-1 and 0-0) = +10.
 	if got.points != 46 || got.exactScores != 2 || got.correctResults != 2 {
 		t.Errorf("partially filled round = %+v, want {46 2 2}", got)
 	}
 }
 
-// Parciais pass awardRoundTotalBonus=false, so the same input must not collect the
-// 10-point round-total bonus that the final classification would give.
 func TestScoreParticipantRoundPartialsSkipRoundTotalBonus(t *testing.T) {
 	matches := []matchWithResult{closedResult(1, 0)}
 	lookup := predictions(matches, map[int][2]int{0: {1, 0}})
@@ -103,7 +96,6 @@ func TestPickRoundWinnerHighestPoints(t *testing.T) {
 func TestPickRoundWinnerTiebreakers(t *testing.T) {
 	ana, bruno := uuid.New(), uuid.New()
 
-	// Same points: more exact scores wins.
 	winner, ok := pickRoundWinner(map[uuid.UUID]roundScore{
 		ana:   {points: 21, exactScores: 1, correctResults: 3},
 		bruno: {points: 21, exactScores: 2, correctResults: 1},
@@ -112,7 +104,6 @@ func TestPickRoundWinnerTiebreakers(t *testing.T) {
 		t.Errorf("winner = %v (ok=%v), want Bruno on exact scores", winner, ok)
 	}
 
-	// Same points and exact scores: more correct results wins.
 	winner, ok = pickRoundWinner(map[uuid.UUID]roundScore{
 		ana:   {points: 21, exactScores: 1, correctResults: 3},
 		bruno: {points: 21, exactScores: 1, correctResults: 1},
@@ -122,10 +113,7 @@ func TestPickRoundWinnerTiebreakers(t *testing.T) {
 	}
 }
 
-// Go randomizes map iteration, so a fully tied round used to pick a different winner on
-// every call. RoundsWon feeds the standings sort, which made the leaderboard flap between
-// page loads. No-shows in the same round always tie exactly, so this is now common.
-func TestPickRoundWinnerDeterministicOnFullTie(t *testing.T) {
+func TestPickRoundWinnerFullTieFallsBackToUserID(t *testing.T) {
 	tied := roundScore{points: 21, exactScores: 1, correctResults: 1}
 	scores := map[uuid.UUID]roundScore{}
 	for range 8 {
@@ -162,17 +150,14 @@ func TestPickRoundWinnerEmpty(t *testing.T) {
 	}
 }
 
-// The behavior change with the sharpest edge: a no-show used to score 0 and was skipped by
-// the zero-points guard, so he could never win a round. Now he scores, and RoundsWon is a
-// tiebreaker in the overall standings.
 func TestPickRoundWinnerNoShowCanWin(t *testing.T) {
 	matches := []matchWithResult{closedResult(0, 0), closedResult(1, 1)}
 	absent, present := uuid.New(), uuid.New()
 
 	absentScore := scoreParticipantRound(matches, noPredictions, true, testNow)
 	presentScore := scoreParticipantRound(matches, predictions(matches, map[int][2]int{
-		0: {3, 2}, // wrong
-		1: {4, 0}, // wrong
+		0: {3, 2},
+		1: {4, 0},
 	}), true, testNow)
 
 	if absentScore.points == 0 {

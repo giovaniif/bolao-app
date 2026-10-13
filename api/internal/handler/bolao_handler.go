@@ -88,7 +88,6 @@ func (h *BolaoHandler) Create(c *gin.Context) {
 
 func (h *BolaoHandler) FinishActive(c *gin.Context) {
 	var req FinishBolaoRequest
-	// Body is optional; ignore bind errors and default to force=false.
 	_ = c.ShouldBindJSON(&req)
 
 	bolao, err := h.bolaoSvc.FinishActive(c.Request.Context(), req.Force)

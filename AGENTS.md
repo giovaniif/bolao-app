@@ -30,7 +30,7 @@ Write prose docs, ADRs, Linear issues and PR descriptions in the Simplified Tech
 ```bash
 cd api && gofmt -l . && go vet ./... && golangci-lint run ./... && go test ./... -short
 cd web && npm run lint && npm run test:coverage && npm run build
-cd tools && go test ./... && go run ./lint-agents .. && go run ./lint-comments -allow lint-comments/allowlist.txt ..
+cd tools && go test ./... && go run ./lint-agents .. && go run ./lint-comments ..
 ```
 
 - `gofmt -l .` must print nothing. Its exit code is 0 even when it lists files.

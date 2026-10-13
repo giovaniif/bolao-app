@@ -3,7 +3,6 @@ import type { PushSubscriptionBody } from './api/pushApi';
 export type PushStatus = 'unsupported' | 'needs-install' | 'denied' | 'off' | 'on';
 
 export function isIOS(nav: Navigator = navigator): boolean {
-  // iPadOS reports itself as a Mac; touch support is what tells them apart.
   return /iPhone|iPad|iPod/.test(nav.userAgent) || (/Macintosh/.test(nav.userAgent) && nav.maxTouchPoints > 1);
 }
 
@@ -32,7 +31,6 @@ export function toSubscriptionBody(sub: PushSubscription): PushSubscriptionBody 
   };
 }
 
-// iOS only exposes Web Push to a Home Screen app, so a Safari tab must be told to install first.
 export async function readPushStatus(win: Window = window): Promise<PushStatus> {
   if (isIOS(win.navigator) && !isStandalone(win)) return 'needs-install';
   if (!isPushSupported(win)) return 'unsupported';

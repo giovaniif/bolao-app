@@ -47,8 +47,6 @@ jobs:
         run: |
           unformatted="$(gofmt -l .)"
           if [ -n "$unformatted" ]; then
-            # gofmt -l always exits 0, even when it lists files, so the
-            # non-empty check above is what actually fails the build.
             echo "The following files are not gofmt-formatted:"
             echo "$unformatted"
             exit 1
@@ -63,7 +61,5 @@ jobs:
           version: v2.12.2
           working-directory: api
 
-      # -short skips the DB-backed repository test (user_repository_test.go);
-      # CI doesn't run migrations against a live schema, only unit-level tests.
       - name: Test
         run: go test ./... -short

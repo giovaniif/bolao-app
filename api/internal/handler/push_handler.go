@@ -26,7 +26,6 @@ type bolaoMatchLister interface {
 	ListAllByBolao(ctx context.Context, bolaoID uuid.UUID) ([]models.Match, error)
 }
 
-// RoundNotifier is satisfied by service.NotificationService.
 type RoundNotifier interface {
 	Notify(ctx context.Context, bolaoID uuid.UUID, r service.Reminder) (int, error)
 	Tick(ctx context.Context, bolaoID uuid.UUID, rounds []service.RoundClose, now time.Time) (int, error)
@@ -44,8 +43,6 @@ type PushHandler struct {
 	now        func() time.Time
 }
 
-// NewPushHandler wires Web Push. A nil notifier means VAPID keys are not configured:
-// subscriptions are refused and the tick is a no-op, so the rest of the API still runs.
 func NewPushHandler(store pushSubscriptionStore, bolaos activeBolaoGetter, matches bolaoMatchLister, notifier RoundNotifier, publicKey, cronSecret string) *PushHandler {
 	return &PushHandler{
 		store:      store,
@@ -118,7 +115,6 @@ func (h *PushHandler) Unsubscribe(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-// Tick is called every minute by Supabase pg_cron; see README.
 func (h *PushHandler) Tick(c *gin.Context) {
 	given := c.GetHeader("X-Cron-Secret")
 	if h.cronSecret == "" || subtle.ConstantTimeCompare([]byte(given), []byte(h.cronSecret)) != 1 {
@@ -148,8 +144,6 @@ func (h *PushHandler) Tick(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"sent": sent})
 }
 
-// AnnounceRound sends the new-round notice in the background so the admin's request
-// does not wait on push services. It is a no-op until the round has a deadline.
 func (h *PushHandler) AnnounceRound(bolaoID uuid.UUID, round int, closesAt *time.Time) {
 	if !h.enabled() || closesAt == nil || !closesAt.After(h.now()) {
 		return

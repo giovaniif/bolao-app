@@ -6,7 +6,6 @@ import (
 	"time"
 )
 
-// FlexibleTime aceita RFC3339/ISO8601 com timezone. Armazena sempre em UTC.
 type FlexibleTime struct {
 	Time *time.Time
 }

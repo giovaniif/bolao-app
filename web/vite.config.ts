@@ -25,7 +25,6 @@ export default defineConfig(({ command, mode }) => {
         filename: 'sw.ts',
         registerType: 'autoUpdate',
         injectRegister: 'script-defer',
-        // The worker only handles push; nothing is precached, so the app never serves a stale bundle.
         injectManifest: { injectionPoint: undefined },
         manifest: {
           name: 'Bolão Brasileirão',
@@ -49,11 +48,7 @@ export default defineConfig(({ command, mode }) => {
       alias: { '@': path.resolve(__dirname, './src') },
     },
     server: {
-      // Bind all interfaces (not just loopback) so the dev server is reachable
-      // over Tailscale from other devices on the tailnet.
       host: true,
-      // Allows access via Tailscale MagicDNS hostnames (e.g. host.tail914724.ts.net)
-      // for testing the dev server from other devices on the tailnet.
       allowedHosts: ['.ts.net'],
       proxy: {
         '/api': {

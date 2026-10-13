@@ -8,8 +8,6 @@ import (
 	"github.com/bolao-app/api/internal/models"
 )
 
-// TTL keeps an undelivered reminder queued no longer than the shortest reminder lead,
-// so a phone that comes online late does not get a "closes in 10 minutes" after closing.
 const ttlSeconds = 10 * 60
 
 type WebPushSender struct {
@@ -18,8 +16,6 @@ type WebPushSender struct {
 	subject    string
 }
 
-// NewWebPushSender accepts the subject with or without "mailto:". webpush-go prefixes
-// it itself, and Apple rejects the resulting "mailto:mailto:" token with 403.
 func NewWebPushSender(publicKey, privateKey, subject string) *WebPushSender {
 	return &WebPushSender{publicKey: publicKey, privateKey: privateKey, subject: strings.TrimPrefix(subject, "mailto:")}
 }

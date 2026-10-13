@@ -25,8 +25,6 @@ const (
 const (
 	dayBeforeLead  = 24 * time.Hour
 	tenMinutesLead = 10 * time.Minute
-	// A day-before reminder arriving later than this is no longer "a day before"; it would
-	// only duplicate the new-round notice for rounds created close to their deadline.
 	dayBeforeGrace = time.Hour
 )
 
@@ -41,8 +39,6 @@ type Reminder struct {
 	ClosesAt time.Time
 }
 
-// RoundCloses returns each round's deadline: the earliest market close among its matches.
-// Rounds without any close time are omitted, since there is nothing to remind about.
 func RoundCloses(matches []models.Match) []RoundClose {
 	earliest := map[int]time.Time{}
 	for _, m := range matches {
@@ -61,8 +57,6 @@ func RoundCloses(matches []models.Match) []RoundClose {
 	return closes
 }
 
-// DueReminders returns the reminders whose window contains now. Delivery is deduplicated
-// by the caller, so a reminder stays due for its whole window and survives missed ticks.
 func DueReminders(rounds []RoundClose, now time.Time) []Reminder {
 	var due []Reminder
 	for _, r := range rounds {
@@ -121,7 +115,6 @@ type PushStore interface {
 	ClaimNotification(ctx context.Context, bolaoID uuid.UUID, round int, kind string, closesAt time.Time) (bool, error)
 }
 
-// PushSender delivers one payload and returns the push service's HTTP status.
 type PushSender interface {
 	Send(ctx context.Context, sub models.PushSubscription, payload []byte) (int, error)
 }
@@ -135,8 +128,6 @@ func NewNotificationService(store PushStore, sender PushSender) *NotificationSer
 	return &NotificationService{store: store, sender: sender}
 }
 
-// Notify sends the reminder to every subscribed participant, at most once per
-// (bolão, round, kind, deadline). It returns how many deliveries succeeded.
 func (s *NotificationService) Notify(ctx context.Context, bolaoID uuid.UUID, r Reminder) (int, error) {
 	claimed, err := s.store.ClaimNotification(ctx, bolaoID, r.Round, string(r.Kind), claimDeadline(r))
 	if err != nil || !claimed {
@@ -175,8 +166,6 @@ func endpointHost(endpoint string) string {
 	return "unknown push service"
 }
 
-// claimDeadline keys the dedup log. Reminders re-arm when a deadline moves, but a round
-// is announced only once: an admin fixing its close time must not re-announce it.
 func claimDeadline(r Reminder) time.Time {
 	if r.Kind == ReminderNewRound {
 		return time.Unix(0, 0).UTC()
@@ -184,7 +173,6 @@ func claimDeadline(r Reminder) time.Time {
 	return r.ClosesAt
 }
 
-// Tick sends every reminder due at now for the given rounds.
 func (s *NotificationService) Tick(ctx context.Context, bolaoID uuid.UUID, rounds []RoundClose, now time.Time) (int, error) {
 	total := 0
 	for _, r := range DueReminders(rounds, now) {

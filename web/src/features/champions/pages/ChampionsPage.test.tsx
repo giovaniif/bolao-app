@@ -55,8 +55,6 @@ function mockFetch(boloes: unknown[]) {
     calls.push(url)
     const body = (() => {
       if (url.includes('/boloes')) return boloes
-      // Without this branch the summary would fall through to the rankings lookup and
-      // resolve to [], making select: s => s.rounds silently undefined.
       if (url.includes('/matches/rounds/summary')) {
         return { rounds: [1, 2, 3, 4, 5, 6, 7], active: 7, pending_results: 0 }
       }
@@ -87,7 +85,6 @@ describe('ChampionsPage', () => {
     renderPage()
 
     expect(await screen.findByText('CAMPEÃO 2025')).toBeTruthy()
-    // The champion appears in the hero only; the final table starts at 4th.
     expect(await screen.findAllByText('Maria Silva')).toHaveLength(1)
     expect(screen.getByText('1240')).toBeTruthy()
     expect(await screen.findByText('7 rodadas')).toBeTruthy()
@@ -110,7 +107,6 @@ describe('ChampionsPage', () => {
     expect(await screen.findByText('CLASSIFICAÇÃO FINAL')).toBeTruthy()
     expect(screen.getByText('Carlos Dias')).toBeTruthy()
     expect(screen.getByText('4º')).toBeTruthy()
-    // 1st to 3rd are already in the hero and the pair; repeating them is noise.
     expect(screen.queryByText('1º')).toBeNull()
     expect(screen.queryByText('2º')).toBeNull()
   })
@@ -142,7 +138,6 @@ describe('ChampionsPage', () => {
   it('shows the winning margin', async () => {
     vi.stubGlobal('fetch', mockFetch([BOLAO_2025]))
     renderPage()
-    // 1240 - 1180
     expect(await screen.findByText(/venceu por 60 pontos/)).toBeTruthy()
   })
 
@@ -174,10 +169,7 @@ describe('ChampionsPage', () => {
 
     expect(await screen.findByText('MAIORES VENCEDORES')).toBeTruthy()
 
-    // Each gallery row is a button; the champion also appears under MAIORES VENCEDORES,
-    // so querying by role avoids matching both occurrences.
     const rows = await screen.findAllByRole('button', { name: /Brasileirão/ })
-    // The bolão name becomes the eyebrow, uppercased by CSS, hence the original casing.
     expect(rows.map((b) => b.textContent)).toEqual([
       expect.stringContaining('Brasileirão 2025'),
       expect.stringContaining('Brasileirão 2024'),
@@ -206,7 +198,6 @@ describe('ChampionsPage', () => {
     expect(await screen.findByText('1 título')).toBeTruthy()
   })
 
-  // With one season there are no chips, but the gallery must still be reachable.
   it('shows the view switcher even with a single season', async () => {
     vi.stubGlobal('fetch', mockFetch([BOLAO_2025, BOLAO_ATIVO]))
     renderPage()

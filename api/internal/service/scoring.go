@@ -2,20 +2,17 @@ package service
 
 import "fmt"
 
-// Scoring implements the rules from SCORING.md
 const (
-	PointsCorrectResult    = 9  // Indicação correta do time vencedor
-	PointsCorrectDraw      = 12 // Indicação de empate sem acerto do placar
-	PointsCorrectHomeGoals = 3  // Acerto gols time mandante
-	PointsCorrectAwayGoals = 3  // Acerto gols time visitante
-	PointsExactScore       = 3  // Acerto do placar (jogos normais)
-	PointsExactScoreHigh   = 10 // Acerto placar em jogos com 4+ gols
-	PointsTotalGoalsHigh   = 3  // Acerto número de gols em jogos com 4+ gols
-	PointsRoundTotalGoals  = 10 // Acerto número de gols da rodada
+	PointsCorrectResult    = 9
+	PointsCorrectDraw      = 12
+	PointsCorrectHomeGoals = 3
+	PointsCorrectAwayGoals = 3
+	PointsExactScore       = 3
+	PointsExactScoreHigh   = 10
+	PointsTotalGoalsHigh   = 3
+	PointsRoundTotalGoals  = 10
 )
 
-// Bonus por quantidade diferente de placares acertados (tipos de resultado)
-// 1 tipo=0, 2 tipos=10, 3 tipos=20, 4+=30
 var bonusByScoreTypes = map[int]int{
 	1: 0,
 	2: 10,
@@ -26,41 +23,34 @@ var bonusByScoreTypes = map[int]int{
 func CalculateMatchPoints(predHome, predAway, realHome, realAway int) int {
 	points := 0
 
-	// Correct result: 9 pts (winner) ou 12 pts (empate sem acerto do placar)
 	predResult := matchResult(predHome, predAway)
 	realResult := matchResult(realHome, realAway)
 	if predResult == realResult {
 		exactScore := predHome == realHome && predAway == realAway
 		if realResult == "draw" && !exactScore {
-			points += PointsCorrectDraw // 12: empate sem acertar o placar
+			points += PointsCorrectDraw
 		} else {
-			points += PointsCorrectResult // 9: vencedor ou empate exato
+			points += PointsCorrectResult
 		}
 	}
 
-	// Correct home goals: 3 points
 	if predHome == realHome {
 		points += PointsCorrectHomeGoals
 	}
 
-	// Correct away goals: 3 points
 	if predAway == realAway {
 		points += PointsCorrectAwayGoals
 	}
 
-	// Exact score bonus
 	realTotal := realHome + realAway
 	if predHome == realHome && predAway == realAway {
 		if realTotal >= 4 {
-			points += PointsExactScoreHigh // 10 em jogos com 4+ gols
+			points += PointsExactScoreHigh
 		} else {
-			points += PointsExactScore // 3 em jogos normais
+			points += PointsExactScore
 		}
 	}
 
-	// Bônus em jogos com 4+ gols (planilha: coluna P = P4:P13).
-	// Placar exato: +10 (já somado acima). Total de gols certo (com ou sem exato): +3.
-	// Na planilha exact em 4+ = 18(O)+10(P)=28; nós damos 9+3+3+10+3=28.
 	if realTotal >= 4 {
 		predTotal := predHome + predAway
 		if predTotal == realTotal {
@@ -81,26 +71,22 @@ func matchResult(home, away int) string {
 	return "draw"
 }
 
-// awardRoundTotalBonus: true = rodada completa (classificação final/export); false = parciais (não dar bônus, pois a soma dos palpites é da rodada inteira).
 func CalculateRoundPoints(predictions []PredEntry, matches []MatchScore, awardRoundTotalBonus bool) (int, int, int) {
 	totalPoints := 0
 	exactScores := 0
 	correctResults := 0
 
-	// Build prediction map by match index
 	predMap := make(map[int]PredEntry)
 	for i, p := range predictions {
 		predMap[i] = p
 	}
 
-	// Track exact score types for bonus
 	exactScoreTypes := make(map[string]bool)
 	roundPredTotal := 0
 	counted := 0
 
 	for i, m := range matches {
 		p := predMap[i]
-		// Sentinel: missing prediction, market still open (see EffectivePredEntry).
 		if p.PredHome < 0 || p.PredAway < 0 {
 			continue
 		}
@@ -120,18 +106,14 @@ func CalculateRoundPoints(predictions []PredEntry, matches []MatchScore, awardRo
 		}
 	}
 
-	// Round total goals: 10 points — só quando rodada completa (parciais não: os palpites são da rodada inteira).
 	actualRoundTotal := 0
 	for _, m := range matches {
 		actualRoundTotal += m.HomeGoals + m.AwayGoals
 	}
-	// counted > 0: with nothing counted, roundPredTotal is 0 vacuously and would match an
-	// all-0-0 round, rewarding a player who predicted nothing.
 	if awardRoundTotalBonus && counted > 0 && roundPredTotal == actualRoundTotal {
 		totalPoints += PointsRoundTotalGoals
 	}
 
-	// Bonus by different exact score types
 	scoreTypes := len(exactScoreTypes)
 	if scoreTypes >= 4 {
 		scoreTypes = 4

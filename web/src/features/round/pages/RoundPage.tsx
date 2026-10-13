@@ -9,7 +9,6 @@ import { useActiveBolao, useBolaoParticipants } from '../../boloes/hooks/useBolo
 import { PartialsPanel } from '../../parciais/components/PartialsPanel';
 import { PlayerPredictionsPanel } from '../../viewPredictions/components/PlayerPredictionsPanel';
 
-/** Values stay Portuguese: they are user-facing and appear in shared links. */
 const TABS = ['parciais', 'galera'] as const;
 export type RoundTab = (typeof TABS)[number];
 
@@ -27,8 +26,6 @@ export function RoundPage() {
   const { data: activeBolao } = useActiveBolao();
   const { data: participants } = useBolaoParticipants(activeBolao?.id);
 
-  // Panels mount on demand and are never unmounted: swapping them with a ternary would
-  // discard unsaved partial scores and the player selected on the other tab.
   const [visited, setVisited] = useState<ReadonlySet<RoundTab>>(() => new Set([tab]));
   if (!visited.has(tab)) {
     setVisited(new Set(visited).add(tab));
@@ -41,7 +38,6 @@ export function RoundPage() {
           <h1 className="text-2xl font-extrabold tracking-tight">
             {round > 0 ? `Rodada ${round}` : 'Rodada'}
           </h1>
-          {/* min-h keeps the row from reflowing when the count arrives. */}
           <span className="text-[13px] font-semibold text-[var(--color-text-muted)] min-h-5">
             {participants ? `${participants.length} jogadores` : ''}
           </span>

@@ -9,7 +9,6 @@ CREATE TABLE IF NOT EXISTS push_subscriptions (
 
 CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions (user_id);
 
--- closes_at is part of the key so that moving a round's deadline re-arms its reminders.
 CREATE TABLE IF NOT EXISTS notification_log (
     bolao_id UUID NOT NULL REFERENCES boloes(id) ON DELETE CASCADE,
     round INT NOT NULL,

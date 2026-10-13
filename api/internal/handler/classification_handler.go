@@ -32,7 +32,6 @@ func (h *ClassificationHandler) Get(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	// Specific round (1..998): classification for that round only. 0 or 999: cumulative up to last round.
 	if round >= 1 && round <= 998 {
 		classification, err := h.classificationSvc.GetClassificationForRound(ctx, bolaoID, round)
 		if err != nil {

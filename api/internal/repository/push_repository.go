@@ -17,8 +17,6 @@ func NewPushRepository(pool *pgxpool.Pool) *PushRepository {
 	return &PushRepository{pool: pool}
 }
 
-// Upsert stores a subscription; an endpoint already known is reassigned to userID,
-// since a browser that logs in as someone else must stop notifying the previous user.
 func (r *PushRepository) Upsert(ctx context.Context, s *models.PushSubscription) error {
 	query := `INSERT INTO push_subscriptions (id, user_id, endpoint, p256dh, auth)
 		VALUES ($1, $2, $3, $4, $5)
@@ -38,7 +36,6 @@ func (r *PushRepository) DeleteByEndpoint(ctx context.Context, endpoint string) 
 	return err
 }
 
-// ListForBolao returns the subscriptions of users participating in the bolão.
 func (r *PushRepository) ListForBolao(ctx context.Context, bolaoID uuid.UUID) ([]models.PushSubscription, error) {
 	query := `SELECT s.id, s.user_id, s.endpoint, s.p256dh, s.auth
 		FROM push_subscriptions s
@@ -60,8 +57,6 @@ func (r *PushRepository) ListForBolao(ctx context.Context, bolaoID uuid.UUID) ([
 	return subs, rows.Err()
 }
 
-// ClaimNotification records that a notification is being sent and reports whether this
-// caller won the claim. Concurrent ticks race on the primary key, so exactly one sends.
 func (r *PushRepository) ClaimNotification(ctx context.Context, bolaoID uuid.UUID, round int, kind string, closesAt time.Time) (bool, error) {
 	tag, err := r.pool.Exec(ctx, `INSERT INTO notification_log (bolao_id, round, kind, closes_at)
 		VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING`, bolaoID, round, kind, closesAt)

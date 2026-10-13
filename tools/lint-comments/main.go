@@ -25,38 +25,15 @@ const bannedMsg = "comments are banned; delete it (ADR 0009)"
 func (f finding) String() string { return fmt.Sprintf("%s:%d: %s", f.file, f.line, bannedMsg) }
 
 func main() {
-	allowFile := flag.String("allow", "", "file listing paths, relative to each root, to skip")
 	flag.Parse()
 	roots := flag.Args()
 	if len(roots) == 0 {
 		roots = []string{"."}
 	}
-	allowed, err := readAllowlist(*allowFile)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(2)
-	}
-	os.Exit(run(roots, allowed, os.Stderr))
+	os.Exit(run(roots, os.Stderr))
 }
 
-func readAllowlist(path string) (map[string]bool, error) {
-	allowed := map[string]bool{}
-	if path == "" {
-		return allowed, nil
-	}
-	src, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-	for _, line := range strings.Split(string(src), "\n") {
-		if line = strings.TrimSpace(line); line != "" {
-			allowed[filepath.ToSlash(line)] = true
-		}
-	}
-	return allowed, nil
-}
-
-func run(roots []string, allowed map[string]bool, out io.Writer) int {
+func run(roots []string, out io.Writer) int {
 	failed := false
 	for _, root := range roots {
 		err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
@@ -73,7 +50,7 @@ func run(roots []string, allowed map[string]bool, out io.Writer) int {
 				}
 				return nil
 			}
-			if allowed[filepath.ToSlash(rel)] || (strings.HasSuffix(path, ".go") && inTestdata(rel)) {
+			if strings.HasSuffix(path, ".go") && inTestdata(rel) {
 				return nil
 			}
 			src, err := os.ReadFile(path)

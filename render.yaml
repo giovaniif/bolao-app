@@ -1,5 +1,4 @@
 services:
-  # Production — deploy triggered only by release tags (see .github/workflows/deploy.yml).
   - type: web
     name: bolao-api
     runtime: docker
@@ -23,9 +22,6 @@ services:
       - key: CRON_SECRET
         sync: false
 
-  # Dev/staging — deploy triggered by push to main (see .github/workflows/deploy.yml).
-  # Same Dockerfile/build as production; only the envs differ (DATABASE_URL points at the
-  # development Supabase project).
   - type: web
     name: bolao-api-dev
     runtime: docker

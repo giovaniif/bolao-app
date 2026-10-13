@@ -12,8 +12,6 @@ import (
 var ErrNoActiveBolao = errors.New("nenhum bolão ativo encontrado")
 var ErrActiveBolaoExists = repository.ErrActiveBolaoExists
 
-// ErrUnresolvedMatches is returned by FinishActive when matches without a final
-// result exist and force wasn't requested.
 type ErrUnresolvedMatches struct {
 	Rounds []int
 	Count  int

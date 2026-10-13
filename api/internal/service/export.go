@@ -83,8 +83,6 @@ func participantUsers(participants []models.ParticipantView) []models.User {
 	return users
 }
 
-// indexPredictions groups predictions by user then match for O(1) lookup, avoiding a
-// query per match/round per user (see buildCSV and getRoundClassification below).
 func indexPredictions(predictions []models.Prediction) map[uuid.UUID]map[uuid.UUID]struct{ Home, Away int } {
 	index := make(map[uuid.UUID]map[uuid.UUID]struct{ Home, Away int })
 	for _, p := range predictions {
@@ -103,7 +101,6 @@ func buildCSV(rounds []int, matches []models.Match, users []models.User, predict
 	w := csv.NewWriter(&buf)
 	w.Comma = ';'
 
-	// JOGOS
 	_ = w.Write([]string{"Rodada", "Mandante", "Visitante", "Gols_Mandante", "Gols_Visitante"})
 	for _, m := range matches {
 		hg, ag := "-", "-"
@@ -123,7 +120,6 @@ func buildCSV(rounds []int, matches []models.Match, users []models.User, predict
 	}
 	_ = w.Write(nil)
 
-	// PALPITES (apenas jogos com resultado)
 	_ = w.Write([]string{"Rodada", "Jogo", "Usuario", "Palpite_Mandante", "Palpite_Visitante", "Pontos"})
 	for _, m := range matches {
 		if m.HomeGoals == nil || m.AwayGoals == nil {
@@ -133,9 +129,6 @@ func buildCSV(rounds []int, matches []models.Match, users []models.User, predict
 		jogo := m.HomeTeam + " x " + m.AwayTeam
 
 		for _, u := range users {
-			// Two-value read: without it a real 0-0 prediction is indistinguishable from
-			// a missing one, which is what made this section disagree with the
-			// classification section below.
 			stored, has := predIndex[u.ID][m.ID]
 			ph, pa, counts := EffectivePrediction(m, stored.Home, stored.Away, has, now)
 
@@ -156,7 +149,6 @@ func buildCSV(rounds []int, matches []models.Match, users []models.User, predict
 	}
 	_ = w.Write(nil)
 
-	// CLASSIFICAÇÃO por rodada
 	_ = w.Write([]string{"Rodada", "Posicao", "Usuario", "Pontos", "Placares_Exatos", "Resultados_Corretos"})
 	matchesByRound := make(map[int][]models.Match)
 	for _, m := range matches {
@@ -184,7 +176,6 @@ func buildCSV(rounds []int, matches []models.Match, users []models.User, predict
 		return nil, err
 	}
 
-	// BOM for Excel UTF-8
 	result := append([]byte{0xEF, 0xBB, 0xBF}, buf.Bytes()...)
 	return result, nil
 }
@@ -242,7 +233,6 @@ func getRoundClassification(
 		scores = append(scores, userScore{user, pts, exact, correct})
 	}
 
-	// Sort by points desc, then exact, then correct
 	for i := 0; i < len(scores); i++ {
 		for j := i + 1; j < len(scores); j++ {
 			a, b := scores[i], scores[j]

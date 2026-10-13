@@ -9,7 +9,6 @@ interface LayoutProps {
 }
 
 export function Layout({ children, title }: LayoutProps) {
-  // pb-28 clears the new bar, which is about 96px tall with the centre pill.
   return (
     <div className="min-h-screen pb-28">
       <AppHeader title={title} />

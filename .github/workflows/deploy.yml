@@ -27,10 +27,6 @@ jobs:
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
 
-      # Run from the repo root, not web/: the Vercel project has Root Directory
-      # set to "web" already, so cd-ing into web/ ourselves first causes the CLI
-      # to descend into web/web (doesn't exist) and fail with "spawn sh ENOENT"
-      # when it tries to run the install command there.
       - name: Pull Vercel environment (preview)
         run: vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
         env:
@@ -49,9 +45,6 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
 
-      # vercel deploy creates a fresh, unique preview URL every run; without this,
-      # the stable bolao-app-dev.vercel.app alias goes stale after the very first
-      # deploy and silently keeps serving an old build on every push after that.
       - name: Point stable dev alias at this deployment
         run: vercel alias set "${{ steps.deploy.outputs.url }}" bolao-app-dev.vercel.app --token="$VERCEL_TOKEN"
         env:
@@ -78,8 +71,6 @@ jobs:
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
 
-      # See comment in deploy-dev: run from repo root so the CLI's own
-      # Root Directory (web) handles the descent, not our working-directory.
       - name: Pull Vercel environment (production)
         run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
         env:

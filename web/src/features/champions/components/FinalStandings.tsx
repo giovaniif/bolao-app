@@ -3,7 +3,6 @@ import { ClassificationRow } from '../../classification/components/Classificatio
 import type { UserWithStats } from '../../classification/api/classificationApi';
 
 const COLLAPSED = 5;
-/** The hero and the pair already cover 1st to 3rd, so the list starts at 4th. */
 const FIRST_RANK = 4;
 
 export function FinalStandings({ ranking }: { ranking: UserWithStats[] }) {

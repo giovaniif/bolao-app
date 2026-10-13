@@ -78,8 +78,6 @@ func (r *PredictionRepository) GetByMatch(ctx context.Context, matchID uuid.UUID
 	return predictions, rows.Err()
 }
 
-// GetAllForBolao returns every prediction across every round of a bolão in one query,
-// for callers that need to group by round/user in memory (see ClassificationService).
 func (r *PredictionRepository) GetAllForBolao(ctx context.Context, bolaoID uuid.UUID) ([]models.Prediction, error) {
 	query := `SELECT p.id, p.user_id, p.match_id, p.home_goals, p.away_goals, p.created_at, p.updated_at
 		FROM predictions p

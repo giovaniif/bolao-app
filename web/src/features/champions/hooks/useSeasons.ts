@@ -10,13 +10,11 @@ import { byRecencyDesc, seasonYear } from '../utils/season';
 export interface Season {
   bolao: Bolao;
   year: number;
-  /** Empty while loading. */
   ranking: UserWithStats[];
   champion?: UserWithStats;
   runnerUp?: UserWithStats;
   third?: UserWithStats;
   players: number;
-  /** Points between the champion and the runner-up; 0 when there is no runner-up. */
   margin: number;
   tiedForFirst: boolean;
 }
@@ -30,14 +28,6 @@ function isTie(a: UserWithStats, b: UserWithStats): boolean {
   );
 }
 
-/**
- * Finished bolões, newest first, each with its ranking.
- *
- * The key is identical to the one useClassification(undefined, bolaoId) produces, so the
- * Classificação card, the champion hero and the gallery share one cache entry per season.
- * staleTime is infinite because a finished bolão's ranking is immutable; without it,
- * switching between the Hall views would refetch every season.
- */
 export function useSeasons() {
   const { data: boloes = [], isLoading: loadingBoloes } = useBoloes();
 

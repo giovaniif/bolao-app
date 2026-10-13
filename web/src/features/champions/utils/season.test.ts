@@ -16,8 +16,7 @@ describe('seasonYear', () => {
     expect(seasonYear(bolao({ name: 'Brasileirão 2024' }))).toBe(2024)
   })
 
-  // A bolão spanning new year would show the wrong year from the date alone.
-  it('prefers the name over the finish date', () => {
+  it('reads the year from the name, so a season spanning new year keeps its start year', () => {
     const b = bolao({
       name: 'Brasileirão 2025',
       started_at: '2025-03-01T00:00:00Z',

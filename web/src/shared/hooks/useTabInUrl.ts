@@ -1,13 +1,6 @@
 import { useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
-/**
- * Keeps a tab selection in the URL so links and the back button work.
- *
- * Unlike useRoundInUrl this never writes on mount: setSearchParams calls navigate
- * synchronously against the current render's params, so two hooks writing in the same tick
- * overwrite each other. The round stays the only hook that corrects the URL by itself.
- */
 export function useTabInUrl<T extends string>(
   key: string,
   tabs: readonly T[],

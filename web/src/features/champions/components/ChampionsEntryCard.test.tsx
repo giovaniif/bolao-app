@@ -73,12 +73,11 @@ describe('ChampionsEntryCard', () => {
     )
   })
 
-  // The subtitle line exists from the first render so the card keeps its height.
-  it('shows neutral subtitle copy until the ranking lands', async () => {
+  it('shows neutral subtitle copy until the ranking lands, so the card keeps its height', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (url: string) => {
-        if (url.includes('/classification')) return new Promise(() => {}) // never resolves
+        if (url.includes('/classification')) return new Promise(() => {})
         const body = url.includes('/boloes')
           ? [FINISHED]
           : url.includes('/matches/rounds/summary')

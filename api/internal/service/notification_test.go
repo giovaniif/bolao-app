@@ -204,3 +204,19 @@ func TestNotificationServiceRemindersRearmWhenDeadlineMoves(t *testing.T) {
 		t.Errorf("deliveries = %d, want 2: once per distinct deadline", len(sender.payloads))
 	}
 }
+
+func TestNotificationServiceAnnouncesARoundOnceEvenWhenItsDeadlineMoves(t *testing.T) {
+	store := &fakeStore{claimed: map[string]bool{}, subs: []models.PushSubscription{{Endpoint: "ok"}}}
+	sender := &fakeSender{status: map[string]int{"ok": 201}}
+	svc := NewNotificationService(store, sender)
+	bolao := uuid.New()
+
+	for _, at := range []time.Time{closeTime, closeTime.Add(time.Hour)} {
+		if _, err := svc.Notify(context.Background(), bolao, Reminder{Kind: ReminderNewRound, Round: 7, ClosesAt: at}); err != nil {
+			t.Fatalf("Notify: %v", err)
+		}
+	}
+	if len(sender.payloads) != 1 {
+		t.Errorf("deliveries = %d, want 1: an admin fixing the close time must not re-announce the round", len(sender.payloads))
+	}
+}

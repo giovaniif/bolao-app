@@ -72,8 +72,6 @@ func (h *PredictionHandler) GetMyPredictions(c *gin.Context) {
 	c.JSON(http.StatusOK, predictions)
 }
 
-// GetByUserAndRound returns another user's predictions for a round.
-// Allowed only after the round's market has closed (all matches).
 func (h *PredictionHandler) GetByUserAndRound(c *gin.Context) {
 	roundStr := c.Param("round")
 	round, err := strconv.Atoi(roundStr)
@@ -113,7 +111,6 @@ func (h *PredictionHandler) GetByUserAndRound(c *gin.Context) {
 		return
 	}
 
-	// Reuses the gate's `now`, which already proved every match in the round is closed.
 	predictions = service.FillMissingPredictions(matches, userID, predictions, now)
 
 	c.JSON(http.StatusOK, predictions)

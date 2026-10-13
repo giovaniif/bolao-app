@@ -50,6 +50,8 @@ change (`api/**` or `web/**`):
   no migrations — the DB-backed integration test already skips itself in `-short` mode).
 - **`.github/workflows/frontend-ci.yml`**: `build` job (`npm run build`) and `test` job (`npm test`).
 
+`gofmt -l` exits 0 even when it lists files. CI fails the build on a non-empty output, not on the exit code.
+
 ## CD — dev (staging) and production environments
 
 Same Dockerfile/build used in production; what changes between environments is environment
@@ -60,7 +62,11 @@ variables and the deploy trigger — there's no separate Dockerfile or docker-co
 - **Release tag** (`v*`) → deploy to **production**: `bolao-api` on Render + production
   deployment on Vercel, pointing at production Supabase.
 
-See `.github/workflows/deploy.yml`.
+See `.github/workflows/deploy.yml`. Two details in it:
+
+- Run the Vercel CLI from the repo root, not from `web/`. The Vercel project sets Root Directory to `web`. A CLI started in `web/` looks for `web/web` and fails with `spawn sh ENOENT`.
+- After each dev deploy, the workflow points the `bolao-app-dev.vercel.app` alias at the new deployment. `vercel deploy` makes a new preview URL each run. Without the alias step, the stable URL keeps an old build.
+- In `render.yaml`, prod and dev use the same Dockerfile and build. Only the env vars differ: dev's `DATABASE_URL` points at the dev Supabase project.
 
 ## Production deploy
 

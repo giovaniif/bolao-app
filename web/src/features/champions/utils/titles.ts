@@ -6,7 +6,6 @@ export interface Winner {
   titles: number;
 }
 
-/** Counts titles per champion, aggregated client-side; there is no endpoint for it. */
 export function tallyTitles(seasons: Season[]): Winner[] {
   const byUser = new Map<string, Winner>();
   for (const season of seasons) {
