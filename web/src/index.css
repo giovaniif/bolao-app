@@ -19,6 +19,12 @@
   --color-on-primary: #04140b; /* label on the green pill */
 }
 
+/* Installed on iOS, the page draws under the status bar (black-translucent), so the
+   header has to clear it. Resolves to 0 in a browser tab. */
+@utility safe-area-pt {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
 /* The bar wants 22px of breathing room, or the home indicator inset when that is larger. */
 @utility safe-area-pb {
   padding-bottom: max(22px, env(safe-area-inset-bottom, 0px));
