@@ -5,6 +5,8 @@ A prediction pool for the Brazilian football championship. Players predict the s
 - How to run it locally and deploy it: [README.md](README.md)
 - The stack, the domain and the data flow: [ARCHITECTURE.md](ARCHITECTURE.md)
 - The scoring rules (the specification): [SCORING.md](SCORING.md)
+- Decisions: [docs/adr/](docs/adr/README.md)
+- Terms and writing style: [docs/style.md](docs/style.md)
 - Work items: Linear, team **Bolão**, prefix `BOL-`
 
 ## Scoped guidance
@@ -17,7 +19,11 @@ Claude Code and Codex load an `AGENTS.md` from each directory they work in. Here
 | [web/](web/AGENTS.md) | feature folders, the data path, TS/React conventions, PWA and push, frontend tests and lint |
 | [tools/](tools/AGENTS.md) | the repo lint tools (`lint-agents`) |
 
-**Where guidance goes.** Put area-specific guidance in the `AGENTS.md` of the directory where most edits for it start, not here. Give a new scoped `AGENTS.md` a `CLAUDE.md` symlink beside it (`ln -s AGENTS.md CLAUDE.md`) and a row in the table above. Keep this file under 150 lines. `lint-agents` checks the line count, the symlinks and every relative link.
+**Where guidance goes.** Put area-specific guidance in the `AGENTS.md` of the directory where most edits for it start, not here. Give a new scoped `AGENTS.md` a `CLAUDE.md` symlink beside it (`ln -s AGENTS.md CLAUDE.md`) and a row in the table above. Keep this file under 150 lines. `lint-agents` checks the line count, the symlinks and every relative link. See [ADR 0007](docs/adr/0007-scoped-agents-md.md).
+
+## Writing docs
+
+Write prose docs, ADRs, Linear issues and PR descriptions in the Simplified Technical English of [docs/style.md](docs/style.md). Use its glossary terms. When you edit prose, do not change code, commands, paths or identifiers.
 
 ## Commands
 
@@ -34,7 +40,7 @@ cd tools && go test ./... && go run ./lint-agents ..
 ## Rules
 
 1. **Tests always.** Every change in behavior adds or updates tests. Coverage never goes down in the package or file you touch. If you cannot test something, say so in the PR and explain why.
-2. **English everywhere.** Identifiers, comments, test names, commits, branches, docs, Linear issues, PR titles and PR descriptions are English. Portuguese is only for product copy that users read:
+2. **English everywhere** ([ADR 0008](docs/adr/0008-linear-and-graphite.md)). Identifiers, comments, test names, commits, branches, docs, Linear issues, PR titles and PR descriptions are English. Portuguese is only for product copy that users read:
    - UI strings in `web/`
    - API error messages (the web shows `data.error` as is)
    - route paths and query-param values (`/palpites`, `?rodada=7`), because people share the links
@@ -46,6 +52,9 @@ cd tools && go test ./... && go run ./lint-agents ..
 ## Workflow
 
 ### Linear
+
+See [ADR 0008](docs/adr/0008-linear-and-graphite.md).
+
 
 1. Find or create the issue before you write code. A fix found mid-task gets its own issue.
 2. Give every issue an estimate before work starts (Fibonacci):
@@ -94,5 +103,5 @@ gt restack && gt submit --stack  # open or update the whole stack
 ### Deploys
 
 - A merge to `main` deploys **dev**: Render `bolao-app-dev`, the Vercel dev alias and the Supabase dev project.
-- A `v*` tag deploys **production**. Release with `gh release create v<version> --target main --generate-notes`.
+- A `v*` tag deploys **production** ([ADR 0005](docs/adr/0005-hosting.md)). Release with `gh release create v<version> --target main --generate-notes`.
 - `main` is a live environment. Order merges so that each state of `main` works: do not leave the API waiting for a UI that is not merged.
