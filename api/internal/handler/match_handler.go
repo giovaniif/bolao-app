@@ -14,13 +14,18 @@ import (
 	"github.com/google/uuid"
 )
 
+type roundAnnouncer interface {
+	AnnounceRound(bolaoID uuid.UUID, round int, closesAt *time.Time)
+}
+
 type MatchHandler struct {
 	matchRepo *repository.MatchRepository
 	bolaoRepo *repository.BolaoRepository
+	announcer roundAnnouncer
 }
 
-func NewMatchHandler(matchRepo *repository.MatchRepository, bolaoRepo *repository.BolaoRepository) *MatchHandler {
-	return &MatchHandler{matchRepo: matchRepo, bolaoRepo: bolaoRepo}
+func NewMatchHandler(matchRepo *repository.MatchRepository, bolaoRepo *repository.BolaoRepository, announcer roundAnnouncer) *MatchHandler {
+	return &MatchHandler{matchRepo: matchRepo, bolaoRepo: bolaoRepo, announcer: announcer}
 }
 
 type CreateMatchRequest struct {
@@ -154,6 +159,7 @@ func (h *MatchHandler) CreateMatches(c *gin.Context) {
 		created = append(created, *match)
 	}
 
+	h.announcer.AnnounceRound(active.ID, req.Round, closesAt)
 	c.JSON(http.StatusCreated, created)
 }
 
@@ -211,6 +217,7 @@ func (h *MatchHandler) UpdateRoundCloses(c *gin.Context) {
 		return
 	}
 
+	h.announcer.AnnounceRound(active.ID, round, closesAt)
 	matches, _ := h.matchRepo.ListByRound(c.Request.Context(), active.ID, round)
 	c.JSON(http.StatusOK, matches)
 }

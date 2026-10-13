@@ -138,7 +138,7 @@ func NewNotificationService(store PushStore, sender PushSender) *NotificationSer
 // Notify sends the reminder to every subscribed participant, at most once per
 // (bolão, round, kind, deadline). It returns how many deliveries succeeded.
 func (s *NotificationService) Notify(ctx context.Context, bolaoID uuid.UUID, r Reminder) (int, error) {
-	claimed, err := s.store.ClaimNotification(ctx, bolaoID, r.Round, string(r.Kind), r.ClosesAt)
+	claimed, err := s.store.ClaimNotification(ctx, bolaoID, r.Round, string(r.Kind), claimDeadline(r))
 	if err != nil || !claimed {
 		return 0, err
 	}
@@ -173,6 +173,15 @@ func endpointHost(endpoint string) string {
 		return u.Host
 	}
 	return "unknown push service"
+}
+
+// claimDeadline keys the dedup log. Reminders re-arm when a deadline moves, but a round
+// is announced only once: an admin fixing its close time must not re-announce it.
+func claimDeadline(r Reminder) time.Time {
+	if r.Kind == ReminderNewRound {
+		return time.Unix(0, 0).UTC()
+	}
+	return r.ClosesAt
 }
 
 // Tick sends every reminder due at now for the given rounds.
