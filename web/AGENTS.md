@@ -73,7 +73,7 @@ Features: `admin`, `auth`, `boloes`, `champions`, `classification`, `matches`, `
 - The old Galera and Parciais routes redirect to the matching `/rodada` tab. `BottomNav` lights Rodada for them, so a direct link never leaves the bar with nothing active.
 - `useRoundInUrl` defaults to the active round from the rounds summary. It merges into the query string, so `?aba=` survives a round change.
 - `useTabInUrl` never writes on mount. Two hooks that write in the same tick overwrite each other, so only the round corrects the URL.
-- `useRounds`, `useActiveRound` and `usePendingResults` share one query key. One request feeds all three, so the default round does not jump and `AdminBanner` costs no request. `useAdmin` re-exports them.
+- `useRounds`, `useActiveRound` and `usePendingResults` share one query key. One request feeds all three, so the default round does not jump and the pending count in `ProfileMenu` costs no request. `useAdmin` re-exports them.
 - `useSeasons` uses the same key as `useClassification(undefined, bolaoId)`. Its `staleTime` is infinite, because a finished bolão's ranking never changes.
 - `RoundPage` mounts each panel on first use and then only hides it. Unmounting would discard unsaved partials and the selected player.
 - In `PartialsPanel`, both sides `null` means nothing was entered. One `null` side is a team the user never tapped, which is a real 0.

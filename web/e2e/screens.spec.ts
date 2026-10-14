@@ -21,6 +21,15 @@ const screens: Screen[] = [
     act: (page) => page.getByRole('combobox').selectOption({ label: 'Bruno Lima' }).then(() => undefined),
   },
   { name: 'perfil', path: '/perfil', shows: 'Avisos de rodada' },
+  {
+    name: 'menu-perfil',
+    path: '/',
+    shows: 'Bruno Lima',
+    act: async (page) => {
+      await page.getByRole('button', { name: 'Meu perfil' }).click();
+      await expect(page.getByRole('menuitem', { name: 'Admin' })).toBeVisible();
+    },
+  },
   { name: 'admin', path: '/admin', shows: 'Flamengo' },
   { name: 'hall-dos-campeoes', path: '/hall-dos-campeoes', shows: 'Ana Souza' },
 ];
