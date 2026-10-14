@@ -28,6 +28,7 @@ publish() {
     parent=$(git rev-parse "refs/remotes/origin/$branch")
     GIT_INDEX_FILE="$index" git read-tree "$parent"
   fi
+  GIT_INDEX_FILE="$index" git update-index --add --cacheinfo "100644,$(printf '{\n  "git": { "deploymentEnabled": false }\n}\n' | git hash-object -w --stdin),web/vercel.json"
   for f in "${shots[@]}"; do
     GIT_INDEX_FILE="$index" git update-index --add --cacheinfo "100644,$(git hash-object -w "$f"),$prefix/$(basename "$f")"
   done
