@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useProfile } from '../../features/profile/hooks/useProfile';
 import { useAuth } from '../hooks/useAuth';
-import { Avatar } from './Avatar';
+import { ProfileMenu } from './ProfileMenu';
 
 export function AppHeader({ title }: { title?: string }) {
   const { data: profile } = useProfile();
@@ -14,9 +14,7 @@ export function AppHeader({ title }: { title?: string }) {
         <Link to="/" className="font-extrabold text-lg text-primary">
           Bolão
         </Link>
-        <Link to="/perfil" aria-label="Meu perfil">
-          <Avatar name={name} size={32} />
-        </Link>
+        <ProfileMenu name={name} />
       </div>
       {title && (
         <div className="px-4 pb-2">
