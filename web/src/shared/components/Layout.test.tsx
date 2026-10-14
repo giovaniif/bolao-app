@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { screen, within, waitFor } from '@testing-library/react'
+import { screen, within, waitFor, fireEvent } from '@testing-library/react'
 import { renderWithProviders } from '../../test/renderWithProviders'
 import { Layout } from './Layout'
 
@@ -102,21 +102,58 @@ describe('AppHeader', () => {
     return within(screen.getByRole('banner'))
   }
 
-  it('has only the wordmark and the profile avatar', () => {
+  function openMenu() {
+    fireEvent.click(header().getByRole('button', { name: 'Meu perfil' }))
+    return within(screen.getByRole('menu'))
+  }
+
+  it('has only the wordmark and the profile menu button', () => {
     renderAt('/')
     const interactive = [...header().getAllByRole('link'), ...header().queryAllByRole('button')]
     expect(interactive).toHaveLength(2)
   })
 
-  it('links to the profile from the avatar', () => {
+  it('keeps the menu closed until the avatar is clicked', () => {
     renderAt('/')
-    expect(header().getByRole('link', { name: 'Meu perfil' }).getAttribute('href')).toBe('/perfil')
+    expect(screen.queryByRole('menu')).toBeNull()
+    expect(header().getByRole('button', { name: 'Meu perfil' }).getAttribute('aria-expanded')).toBe('false')
   })
 
-  it('no longer has the Sair button or the trophy link', () => {
+  it('offers Perfil and Sair to a player, without Admin', () => {
     renderAt('/')
-    expect(header().queryByRole('button', { name: 'Sair' })).toBeNull()
-    expect(header().queryByRole('link', { name: 'Hall dos Campeões' })).toBeNull()
+    const menu = openMenu()
+    expect(menu.getAllByRole('menuitem').map((i) => i.textContent)).toEqual(['Perfil', 'Sair'])
+    expect(menu.getByRole('menuitem', { name: 'Perfil' }).getAttribute('href')).toBe('/perfil')
+  })
+
+  it('offers Perfil, Admin and Sair to an admin', () => {
+    setUser(true)
+    renderAt('/')
+    const menu = openMenu()
+    expect(menu.getAllByRole('menuitem').map((i) => i.textContent)).toEqual(['Perfil', 'Admin', 'Sair'])
+    expect(menu.getByRole('menuitem', { name: 'Admin' }).getAttribute('href')).toBe('/admin')
+  })
+
+  it('shows the pending result count next to Admin', async () => {
+    setUser(true)
+    stubFetch({ rounds: [1], active: 1, pending_results: 3 })
+    renderAt('/')
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith(expect.stringContaining('rounds/summary'), expect.anything()))
+    const menu = openMenu()
+    expect(await menu.findByText('3')).toBeTruthy()
+  })
+
+  it('signs out from the menu', () => {
+    renderAt('/')
+    fireEvent.click(openMenu().getByRole('menuitem', { name: 'Sair' }))
+    expect(localStorage.getItem('token')).toBeNull()
+  })
+
+  it('closes the menu on Escape', () => {
+    renderAt('/')
+    openMenu()
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByRole('menu')).toBeNull()
   })
 
   it('falls back to the username until /me responds', () => {
@@ -125,60 +162,13 @@ describe('AppHeader', () => {
   })
 })
 
-describe('AdminBanner', () => {
-  async function summaryLoaded() {
-    await waitFor(() =>
-      expect(fetch).toHaveBeenCalledWith(
-        expect.stringContaining('rounds/summary'),
-        expect.anything()
-      )
-    )
-    await waitFor(() => expect(screen.getByText(/Modo admin/)).toBeTruthy())
-  }
-
-  it('renders nothing for a non-admin', async () => {
+describe('Admin mode banner', () => {
+  it('is gone, even for an admin with pending results', async () => {
+    setUser(true)
     stubFetch({ rounds: [1], active: 1, pending_results: 3 })
     renderAt('/')
-    await waitFor(() => expect(screen.queryByText(/Modo admin/)).toBeNull())
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith(expect.stringContaining('rounds/summary'), expect.anything()))
+    expect(screen.queryByText(/Modo admin/)).toBeNull()
     expect(screen.queryByRole('link', { name: 'Abrir' })).toBeNull()
-  })
-
-  it('shows the pending result count for an admin', async () => {
-    setUser(true)
-    stubFetch({ rounds: [1], active: 1, pending_results: 3 })
-    renderAt('/')
-
-    expect(await screen.findByText('Modo admin · 3 resultados por lançar')).toBeTruthy()
-    expect(screen.getByRole('link', { name: 'Abrir' }).getAttribute('href')).toBe('/admin')
-  })
-
-  it('uses the singular for a single result', async () => {
-    setUser(true)
-    stubFetch({ rounds: [1], active: 1, pending_results: 1 })
-    renderAt('/')
-    expect(await screen.findByText('Modo admin · 1 resultado por lançar')).toBeTruthy()
-  })
-
-  it('omits the count when nothing is pending', async () => {
-    setUser(true)
-    stubFetch({ rounds: [1], active: 1, pending_results: 0 })
-    renderAt('/')
-    await summaryLoaded()
-    expect(screen.getByText('Modo admin')).toBeTruthy()
-  })
-
-  it('omits the count when the API sends no pending_results', async () => {
-    setUser(true)
-    stubFetch({ rounds: [1], active: 1 })
-    renderAt('/')
-    await summaryLoaded()
-    expect(screen.getByText('Modo admin')).toBeTruthy()
-  })
-
-  it('does not appear inside /admin', async () => {
-    setUser(true)
-    stubFetch({ rounds: [1], active: 1, pending_results: 3 })
-    renderAt('/admin')
-    await waitFor(() => expect(screen.queryByText(/Modo admin/)).toBeNull())
   })
 })
