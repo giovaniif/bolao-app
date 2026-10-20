@@ -1,3 +1,4 @@
+import { useCurrentBolao } from '../../../shared/hooks/useCurrentBolao';
 import { useState } from 'react';
 import { Layout } from '../../../shared/components/Layout';
 import { useClassification } from '../hooks/useClassification';
@@ -16,6 +17,7 @@ export function ClassificationPage() {
   const { data: boloes = [] } = useBoloes();
   const bolaoId = selectedBolaoId || undefined;
   const { seasons } = useSeasons();
+  const { bolaoId: scope } = useCurrentBolao();
 
   const { data: rounds = [] } = useRounds(bolaoId);
   const maxRound = rounds.length > 0 ? Math.max(...rounds) : 0;
@@ -80,7 +82,7 @@ export function ClassificationPage() {
             onClick={async () => {
               setExporting('round');
               try {
-                await downloadExportRound(Number(displayRound) || 1, bolaoId);
+                await downloadExportRound(Number(displayRound) || 1, bolaoId, scope);
               } catch (e) {
                 alert(e instanceof Error ? e.message : 'Erro ao exportar');
               } finally {
@@ -96,7 +98,7 @@ export function ClassificationPage() {
             onClick={async () => {
               setExporting('all');
               try {
-                await downloadExportAll(bolaoId);
+                await downloadExportAll(bolaoId, scope);
               } catch (e) {
                 alert(e instanceof Error ? e.message : 'Erro ao exportar');
               } finally {

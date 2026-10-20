@@ -21,7 +21,7 @@ import { queryKeys } from '../../../shared/query/queryKeys';
 
 export function useUsers() {
   return useQuery({
-    queryKey: queryKeys.users,
+    queryKey: queryKeys.users(),
     queryFn: getUsers,
   });
 }
@@ -141,7 +141,7 @@ export function useCreateUser() {
   return useMutation({
     mutationFn: createUser,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.users });
+      queryClient.invalidateQueries({ queryKey: queryKeys.users() });
       queryClient.invalidateQueries({ queryKey: queryKeys.boloes });
     },
   });
@@ -158,7 +158,7 @@ export function useUpdateUser() {
       data: { display_name?: string; favorite_team?: string };
     }) => updateUser(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.users });
+      queryClient.invalidateQueries({ queryKey: queryKeys.users() });
     },
   });
 }

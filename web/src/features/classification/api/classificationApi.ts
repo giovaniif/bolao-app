@@ -1,3 +1,4 @@
+import { scopedPath } from '../../../shared/api/scopedPath';
 import { api } from '../../../shared/api/client';
 
 export interface UserWithStats {
@@ -13,9 +14,10 @@ export interface UserWithStats {
   rounds_won: number;
 }
 
-export async function getClassification(round?: number, bolaoId?: string): Promise<UserWithStats[]> {
+export async function getClassification(round?: number, bolaoId?: string, scope?: string): Promise<UserWithStats[]> {
   const params = new URLSearchParams();
   params.set('round', String(round ?? 0));
   if (bolaoId) params.set('bolao_id', bolaoId);
-  return api<UserWithStats[]>(`/classification?${params.toString()}`);
+  const path = bolaoId ? '/classification' : scopedPath('/classification', scope);
+  return api<UserWithStats[]>(`${path}?${params.toString()}`);
 }

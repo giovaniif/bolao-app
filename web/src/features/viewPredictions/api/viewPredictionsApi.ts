@@ -1,3 +1,4 @@
+import { scopedPath } from '../../../shared/api/scopedPath';
 import { api } from '../../../shared/api/client';
 
 export interface UserOption {
@@ -14,14 +15,16 @@ export interface Prediction {
   away_goals: number;
 }
 
-export async function getUsers(): Promise<UserOption[]> {
-  const list = await api<{ id: string; username: string; display_name: string }[]>('/users');
+export async function getUsers(scope?: string): Promise<UserOption[]> {
+  const path = scope ? `/boloes/${scope}/members` : '/users';
+  const list = await api<{ id: string; username: string; display_name: string }[]>(path);
   return list.map((u) => ({ id: u.id, username: u.username, display_name: u.display_name }));
 }
 
 export async function getPredictionsByUser(
   round: number,
-  userId: string
+  userId: string,
+  scope?: string
 ): Promise<Prediction[]> {
-  return api<Prediction[]>(`/predictions/round/${round}/user/${userId}`);
+  return api<Prediction[]>(scopedPath(`/predictions/round/${round}/user/${userId}`, scope));
 }
