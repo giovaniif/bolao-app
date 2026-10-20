@@ -17,3 +17,5 @@ One file per decision, numbered in order. A record does not change after it is a
 | [0011](0011-mutation-testing.md) | Mutation testing on the service rules |
 | [0012](0012-github-issues-and-gh-stack.md) | GitHub Issues and gh stack (supersedes 0008) |
 | [0013](0013-ui-screenshots-on-prs.md) | Playwright screenshots on every UI PR |
+| [0014](0014-bolao-as-a-group.md) | A bolão is a group with roles per bolão (supersedes 0003) |
+| [0015](0015-matches-from-football-data.md) | Matches come from football-data.org |

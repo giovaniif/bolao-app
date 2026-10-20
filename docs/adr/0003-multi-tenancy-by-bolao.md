@@ -1,6 +1,6 @@
 # ADR 0003: Multi-tenancy by bolão
 
-Status: accepted, 2026-07-23.
+Status: superseded by [ADR 0014](0014-bolao-as-a-group.md). Accepted 2026-07-23.
 
 ## Decision
 
