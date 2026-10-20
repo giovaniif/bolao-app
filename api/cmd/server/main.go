@@ -40,6 +40,7 @@ func main() {
 	partialRepo := repository.NewPartialRepository(pool)
 	bolaoRepo := repository.NewBolaoRepository(pool)
 	pushRepo := repository.NewPushRepository(pool)
+	membershipRepo := repository.NewMembershipRepository(pool)
 
 	classificationSvc := service.NewClassificationService(bolaoRepo, matchRepo, predictionRepo, partialRepo)
 	exportSvc := service.NewExportService(bolaoRepo, matchRepo, predictionRepo)
@@ -107,6 +108,21 @@ func main() {
 		api.GET("/boloes", bolaoHandler.List)
 		api.GET("/boloes/active", bolaoHandler.GetActive)
 		api.GET("/boloes/:id/participants", bolaoHandler.ListParticipants)
+
+		scoped := api.Group("/boloes/:id", handler.RequireMember(membershipRepo))
+		{
+			scoped.GET("/classification", classificationHandler.Get)
+			scoped.GET("/matches/rounds", matchHandler.ListRounds)
+			scoped.GET("/matches/rounds/summary", matchHandler.ListRoundsSummary)
+			scoped.GET("/matches/round/:round", matchHandler.ListByRound)
+			scoped.GET("/predictions", predictionHandler.GetMyPredictions)
+			scoped.GET("/predictions/round/:round/user/:user_id", predictionHandler.GetByUserAndRound)
+			scoped.POST("/predictions", predictionHandler.UpsertPredictions)
+			scoped.GET("/parciais/round/:round", partialHandler.ListByRound)
+			scoped.GET("/parciais/round/:round/classification", classificationHandler.GetByPartials)
+			scoped.GET("/export/round/:round", exportHandler.ExportRound)
+			scoped.GET("/export/all", exportHandler.ExportAll)
+		}
 
 		admin := api.Group("")
 		admin.Use(handler.AdminMiddleware())

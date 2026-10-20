@@ -125,7 +125,7 @@ func (h *PredictionHandler) UpsertPredictions(c *gin.Context) {
 		return
 	}
 
-	active, err := h.bolaoRepo.GetActive(c.Request.Context())
+	active, err := writableBolao(c, h.bolaoRepo)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "nenhum bolão ativo encontrado"})
 		return

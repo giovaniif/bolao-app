@@ -130,7 +130,7 @@ func (h *MatchHandler) CreateMatches(c *gin.Context) {
 		}
 	}
 
-	active, err := h.bolaoRepo.GetActive(c.Request.Context())
+	active, err := writableBolao(c, h.bolaoRepo)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "nenhum bolão ativo encontrado"})
 		return
@@ -200,7 +200,7 @@ func (h *MatchHandler) UpdateRoundCloses(c *gin.Context) {
 		return
 	}
 
-	active, err := h.bolaoRepo.GetActive(c.Request.Context())
+	active, err := writableBolao(c, h.bolaoRepo)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "nenhum bolão ativo encontrado"})
 		return
@@ -297,7 +297,7 @@ func (h *MatchHandler) DeleteRound(c *gin.Context) {
 		return
 	}
 
-	active, err := h.bolaoRepo.GetActive(c.Request.Context())
+	active, err := writableBolao(c, h.bolaoRepo)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "nenhum bolão ativo encontrado"})
 		return
@@ -317,7 +317,7 @@ func (h *MatchHandler) assertMatchInActiveBolao(c *gin.Context, matchID uuid.UUI
 		c.JSON(http.StatusNotFound, gin.H{"error": "jogo não encontrado"})
 		return err
 	}
-	active, err := h.bolaoRepo.GetActive(c.Request.Context())
+	active, err := writableBolao(c, h.bolaoRepo)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "nenhum bolão ativo encontrado"})
 		return err
