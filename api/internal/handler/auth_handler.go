@@ -1,21 +1,28 @@
 package handler
 
 import (
+	"context"
 	"net/http"
 	"strings"
 
 	"github.com/bolao-app/api/internal/auth"
-	"github.com/bolao-app/api/internal/repository"
+	"github.com/bolao-app/api/internal/models"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
 
+type userAccountStore interface {
+	GetByID(ctx context.Context, id uuid.UUID) (*models.User, error)
+	GetByUsername(ctx context.Context, username string) (*models.User, error)
+	UpdatePassword(ctx context.Context, userID uuid.UUID, passwordHash string) error
+}
+
 type AuthHandler struct {
-	userRepo  *repository.UserRepository
+	userRepo  userAccountStore
 	jwtSecret string
 }
 
-func NewAuthHandler(userRepo *repository.UserRepository, jwtSecret string) *AuthHandler {
+func NewAuthHandler(userRepo userAccountStore, jwtSecret string) *AuthHandler {
 	return &AuthHandler{userRepo: userRepo, jwtSecret: jwtSecret}
 }
 
