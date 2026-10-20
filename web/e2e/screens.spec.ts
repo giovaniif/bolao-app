@@ -39,6 +39,18 @@ const screens: Screen[] = [
       await expect(page.getByRole('menuitem', { name: /Bolão da Firma/ })).toBeVisible();
     },
   },
+  { name: 'meus-boloes', path: '/meus-boloes', shows: 'Bolão da Firma' },
+  {
+    name: 'criar-bolao-regras',
+    path: '/criar-bolao',
+    shows: 'Nome do bolão',
+    act: async (page) => {
+      await page.getByLabel('Nome do bolão').fill('Bolão da Firma');
+      await page.getByRole('button', { name: 'Continuar' }).click();
+      await page.getByRole('button', { name: 'Continuar' }).click();
+      await expect(page.getByText('Acertar o total de gols da rodada inteira')).toBeVisible();
+    },
+  },
   { name: 'admin', path: '/admin', shows: 'Flamengo' },
   {
     name: 'admin-jogos',

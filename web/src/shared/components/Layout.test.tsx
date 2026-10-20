@@ -122,7 +122,7 @@ describe('AppHeader', () => {
   it('offers Perfil and Sair to a player, without Admin', () => {
     renderAt('/')
     const menu = openMenu()
-    expect(menu.getAllByRole('menuitem').map((i) => i.textContent)).toEqual(['Perfil', 'Sair'])
+    expect(menu.getAllByRole('menuitem').map((i) => i.textContent)).toEqual(['Meus bolões', 'Perfil', 'Sair'])
     expect(menu.getByRole('menuitem', { name: 'Perfil' }).getAttribute('href')).toBe('/perfil')
   })
 
@@ -130,7 +130,7 @@ describe('AppHeader', () => {
     setUser(true)
     renderAt('/')
     const menu = openMenu()
-    expect(menu.getAllByRole('menuitem').map((i) => i.textContent)).toEqual(['Perfil', 'Admin', 'Sair'])
+    expect(menu.getAllByRole('menuitem').map((i) => i.textContent)).toEqual(['Meus bolões', 'Perfil', 'Admin', 'Sair'])
     expect(menu.getByRole('menuitem', { name: 'Admin' }).getAttribute('href')).toBe('/admin')
   })
 

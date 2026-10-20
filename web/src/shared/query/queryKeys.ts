@@ -15,6 +15,8 @@ export const queryKeys = {
   predictionsByUser: (round: number, userId: string | null, scope?: string) =>
     scoped(['predictionsByUser', round, userId] as const, scope),
   myBoloes: ['me', 'boloes'] as const,
+  competitions: ['competitions'] as const,
+  rules: ['rules'] as const,
   boloes: ['boloes'] as const,
   activeBolao: ['boloes', 'active'] as const,
   bolaoParticipants: (bolaoId: string) => ['boloes', bolaoId, 'participants'] as const,

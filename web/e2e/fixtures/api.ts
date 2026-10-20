@@ -71,6 +71,30 @@ const myBoloes = [
 
 const routes: [string, RegExp, Handler][] = [
   ['GET', /^\/me\/boloes$/, () => myBoloes],
+  ['GET', /^\/competitions$/, () => [{ id: 'c-bsa', name: 'Brasileirão Série A 2026', provider_code: 'BSA', season: 2026, status: 'active' }]],
+  ['GET', /^\/rules$/, () => ({
+    match: [
+      { key: 'correct_result', points: 9, text: 'Acertar o vencedor, ou o empate com o placar exato' },
+      { key: 'correct_draw', points: 12, text: 'Acertar que vai dar empate, sem acertar o placar' },
+      { key: 'correct_home_goals', points: 3, text: 'Acertar os gols do mandante' },
+      { key: 'correct_away_goals', points: 3, text: 'Acertar os gols do visitante' },
+      { key: 'exact_score', points: 3, text: 'Placar exato em jogo com até 3 gols' },
+      { key: 'exact_score_high', points: 10, text: 'Placar exato em jogo com 4 gols ou mais (no lugar dos 3)' },
+      { key: 'total_goals_high', points: 3, text: 'Acertar o total de gols em jogo com 4 gols ou mais' },
+    ],
+    round: [{ key: 'round_total_goals', points: 10, text: 'Acertar o total de gols da rodada inteira' }],
+    exact_score_variety_bonus: [
+      { score_types: 1, points: 0, text: '1 placares exatos diferentes na rodada' },
+      { score_types: 2, points: 10, text: '2 placares exatos diferentes na rodada' },
+      { score_types: 3, points: 20, text: '3 placares exatos diferentes na rodada' },
+      { score_types: 4, points: 30, text: '4 ou mais placares exatos diferentes na rodada' },
+    ],
+    notes: [
+      'Os palpites de cada jogo fecham no horário de fechamento do mercado, que é o início do jogo nos bolões automáticos.',
+      'Quem não palpitar um jogo fica com 0 x 0 nele quando o jogo começa.',
+      'O bônus de gols da rodada só vale com a rodada completa.',
+    ],
+  })],
   ['GET', /^\/members$/, () => people.map((p) => ({ ...p, role: 'participant', status: 'active', amount_paid: 50 }))],
   ['GET', /^\/boloes\/active$/, () => activeBolao],
   ['GET', /^\/boloes$/, () => [activeBolao, finishedBolao]],

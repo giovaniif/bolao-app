@@ -49,6 +49,9 @@ export function ProfileMenu({ name }: { name: string }) {
           role="menu"
           className="absolute right-0 mt-2 w-44 py-1 rounded-xl bg-card border border-primary/20 shadow-lg z-20"
         >
+          <Link role="menuitem" to="/meus-boloes" onClick={close} className={itemClass}>
+            Meus bolões
+          </Link>
           <Link role="menuitem" to="/perfil" onClick={close} className={itemClass}>
             Perfil
           </Link>
