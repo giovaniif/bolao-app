@@ -30,3 +30,7 @@ export async function updateProfile(data: {
     }),
   });
 }
+
+export async function deleteAccount(): Promise<void> {
+  await api('/me', { method: 'DELETE' });
+}
