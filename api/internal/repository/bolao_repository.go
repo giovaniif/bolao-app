@@ -235,3 +235,30 @@ func (r *BolaoRepository) ListPublic(ctx context.Context, search string, limit i
 	}
 	return boloes, rows.Err()
 }
+
+const readableBy = `(b.owner_id IS NULL
+	OR EXISTS (SELECT 1 FROM users ou WHERE ou.id = b.owner_id AND ou.is_admin)
+	OR EXISTS (SELECT 1 FROM bolao_participants rp WHERE rp.bolao_id = b.id AND rp.user_id = $1 AND rp.status = 'active'))`
+
+func (r *BolaoRepository) IsReadableBy(ctx context.Context, bolaoID, userID uuid.UUID) (bool, error) {
+	var readable bool
+	err := r.pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM boloes b WHERE b.id = $2 AND `+readableBy+`)`, userID, bolaoID).Scan(&readable)
+	return readable, err
+}
+
+func (r *BolaoRepository) ListReadableBy(ctx context.Context, userID uuid.UUID) ([]models.Bolao, error) {
+	rows, err := r.pool.Query(ctx, `SELECT `+bolaoColumns+` FROM boloes b WHERE `+readableBy+` ORDER BY b.started_at DESC`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var boloes []models.Bolao
+	for rows.Next() {
+		var b models.Bolao
+		if err := rows.Scan(bolaoFields(&b)...); err != nil {
+			return nil, err
+		}
+		boloes = append(boloes, b)
+	}
+	return boloes, rows.Err()
+}

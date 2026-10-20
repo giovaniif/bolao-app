@@ -17,7 +17,24 @@ const (
 	ctxMemberRole = "member_role"
 )
 
-var errBolaoFinished = errors.New("bolão encerrado")
+var (
+	errBolaoFinished    = errors.New("bolão encerrado")
+	errBolaoNotReadable = errors.New("bolão não encontrado")
+)
+
+func assertReadable(c *gin.Context, bolaoRepo *repository.BolaoRepository, bolaoID uuid.UUID) error {
+	if isAdmin, _ := c.Get("is_admin"); isAdmin == true {
+		return nil
+	}
+	readable, err := bolaoRepo.IsReadableBy(c.Request.Context(), bolaoID, c.MustGet("user_id").(uuid.UUID))
+	if err != nil {
+		return err
+	}
+	if !readable {
+		return errBolaoNotReadable
+	}
+	return nil
+}
 
 type membershipGetter interface {
 	Get(ctx context.Context, bolaoID, userID uuid.UUID) (*models.Membership, error)
@@ -74,7 +91,14 @@ func resolveBolaoID(c *gin.Context, bolaoRepo *repository.BolaoRepository) (uuid
 		return id, nil
 	}
 	if raw := c.Query("bolao_id"); raw != "" {
-		return uuid.Parse(raw)
+		id, err := uuid.Parse(raw)
+		if err != nil {
+			return uuid.UUID{}, err
+		}
+		if err := assertReadable(c, bolaoRepo, id); err != nil {
+			return uuid.UUID{}, err
+		}
+		return id, nil
 	}
 	active, err := bolaoRepo.GetActive(c.Request.Context())
 	if err != nil {
