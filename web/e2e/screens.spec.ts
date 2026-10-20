@@ -30,6 +30,15 @@ const screens: Screen[] = [
       await expect(page.getByRole('menuitem', { name: 'Admin' })).toBeVisible();
     },
   },
+  {
+    name: 'troca-de-bolao',
+    path: '/palpites',
+    shows: 'Salvar palpites',
+    act: async (page) => {
+      await page.getByRole('button', { name: /Bolão 2026/ }).click();
+      await expect(page.getByRole('menuitem', { name: /Bolão da Firma/ })).toBeVisible();
+    },
+  },
   { name: 'admin', path: '/admin', shows: 'Flamengo' },
   {
     name: 'admin-jogos',

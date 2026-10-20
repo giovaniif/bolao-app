@@ -64,7 +64,14 @@ function predictionsOf(round: number, userId: string) {
 
 type Handler = (url: URL, match: RegExpMatchArray) => unknown;
 
+const myBoloes = [
+  { ...activeBolao, role: 'admin', member_status: 'active', member_count: people.length },
+  { id: 'b-firma', name: 'Bolão da Firma', status: 'active', started_at: '2026-09-01T00:00:00Z', role: 'owner', member_status: 'active', member_count: 7 },
+];
+
 const routes: [string, RegExp, Handler][] = [
+  ['GET', /^\/me\/boloes$/, () => myBoloes],
+  ['GET', /^\/members$/, () => people.map((p) => ({ ...p, role: 'participant', status: 'active', amount_paid: 50 }))],
   ['GET', /^\/boloes\/active$/, () => activeBolao],
   ['GET', /^\/boloes$/, () => [activeBolao, finishedBolao]],
   ['GET', /^\/boloes\/[^/]+\/participants$/, () => people.map((p) => ({ ...p, amount_paid: 50, joined_at: '2026-04-01T00:00:00Z' }))],
@@ -89,7 +96,7 @@ export async function mockApi(page: Page): Promise<string[]> {
   await page.route('**/api/**', async (route: Route) => {
     const request = route.request();
     const url = new URL(request.url());
-    const path = url.pathname.replace(/^\/api/, '');
+    const path = url.pathname.replace(/^\/api/, '').replace(/^\/boloes\/[^/]+(?=\/(matches|classification|parciais|predictions|export|members)(\/|$))/, '');
     for (const [method, pattern, handler] of routes) {
       const match = path.match(pattern);
       if (request.method() === method && match) {
