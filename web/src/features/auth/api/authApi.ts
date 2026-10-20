@@ -42,3 +42,21 @@ export async function changePassword(
     }),
   });
 }
+
+export interface SignupInput {
+  username: string;
+  display_name: string;
+  email: string;
+  password: string;
+}
+
+export async function signup(input: SignupInput): Promise<LoginResponse> {
+  const res = await api<LoginResponse>('/auth/signup', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+  if (!isLoginResponse(res)) {
+    throw new Error('Resposta de cadastro inválida. Tente novamente.');
+  }
+  return res;
+}

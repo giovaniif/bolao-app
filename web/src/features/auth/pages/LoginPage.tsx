@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../../shared/hooks/useAuth';
 import { login } from '../api/authApi';
 import { Button } from '../../../shared/components/Button';
@@ -69,6 +69,12 @@ export function LoginPage() {
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? 'Entrando...' : 'Entrar'}
           </Button>
+          <p className="text-sm text-center text-[var(--color-text-muted)]">
+            Ainda não tem conta?{' '}
+            <Link to={voltar ? `/cadastro?voltar=${encodeURIComponent(voltar)}` : '/cadastro'} className="text-[var(--color-primary)] font-semibold">
+              Criar conta
+            </Link>
+          </p>
         </form>
       </div>
     </div>

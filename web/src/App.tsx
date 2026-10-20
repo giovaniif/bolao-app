@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './shared/hooks/AuthProvider';
 import { useAuth } from './shared/hooks/useAuth';
 import { LoginPage } from './features/auth/pages/LoginPage';
+import { SignupPage } from './features/auth/pages/SignupPage';
 import { ChangePasswordPage } from './features/auth/pages/ChangePasswordPage';
 import { ClassificationPage } from './features/classification/pages/ClassificationPage';
 import { PredictionsPage } from './features/predictions/pages/PredictionsPage';
@@ -54,6 +55,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/cadastro" element={<SignupPage />} />
       <Route
         path="/alterar-senha"
         element={

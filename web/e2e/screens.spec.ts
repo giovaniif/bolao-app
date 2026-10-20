@@ -11,6 +11,7 @@ interface Screen {
 
 const screens: Screen[] = [
   { name: 'login', path: '/login', shows: 'Entrar', signedIn: false },
+  { name: 'cadastro', path: '/cadastro?voltar=%2Fconvite%2FFIRMA234', shows: 'Criar conta', signedIn: false },
   { name: 'classificacao', path: '/', shows: 'Bruno Lima' },
   { name: 'palpites', path: '/palpites', shows: 'Salvar palpites' },
   { name: 'rodada-parciais', path: '/rodada?aba=parciais', shows: 'Flamengo' },

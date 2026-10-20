@@ -41,6 +41,11 @@ export function InvitePage() {
               >
                 Entrar para participar
               </Link>
+            ) : null}
+            {!token ? (
+              <Link to={`/cadastro?voltar=${encodeURIComponent(`/convite/${code}`)}`} className="block text-sm text-primary font-semibold">
+                Ainda não tem conta? Criar conta
+              </Link>
             ) : join.data?.status === 'pending' ? (
               <p className="text-sm text-accent">Pedido enviado. Você entra quando o dono aprovar.</p>
             ) : (
