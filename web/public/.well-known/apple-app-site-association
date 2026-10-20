@@ -1,0 +1,10 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["827UMZ89C2.com.giovaniif.bolao"],
+        "components": [{ "/": "/convite/*" }]
+      }
+    ]
+  }
+}
