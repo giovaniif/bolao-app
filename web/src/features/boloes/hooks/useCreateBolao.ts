@@ -7,6 +7,7 @@ import {
   type BolaoSettings,
 } from '../api/createBolaoApi';
 import { queryKeys } from '../../../shared/query/queryKeys';
+import { track } from '../../../shared/analytics/analytics';
 
 export function useCompetitions() {
   return useQuery({ queryKey: queryKeys.competitions, queryFn: getCompetitions, staleTime: Infinity });
@@ -24,7 +25,8 @@ export function useCreateBolao() {
       await updateBolaoSettings(bolao.id, settings);
       return bolao;
     },
-    onSuccess: () => {
+    onSuccess: (_bolao, { settings }) => {
+      track('bolao_created', { visibility: settings.visibility, requires_approval: settings.requires_approval });
       queryClient.invalidateQueries({ queryKey: queryKeys.myBoloes });
     },
   });

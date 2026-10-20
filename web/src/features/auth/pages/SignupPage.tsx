@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../../shared/hooks/useAuth';
 import { signup } from '../api/authApi';
 import { Button } from '../../../shared/components/Button';
+import { track } from '../../../shared/analytics/analytics';
 
 const fieldClass =
   'w-full px-3 py-2 rounded-lg bg-card border border-slate-600 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary';
@@ -37,6 +38,7 @@ export function SignupPage() {
     try {
       const res = await signup({ username: username.trim().toLowerCase(), display_name: displayName.trim(), email: email.trim(), password });
       login(res.token, { id: res.user_id, username: res.username, is_admin: res.is_admin, must_change_password: false });
+      track('signed_up');
       navigate(next);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao criar a conta');
