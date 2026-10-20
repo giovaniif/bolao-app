@@ -156,3 +156,12 @@ func TestRoleChanges(t *testing.T) {
 		})
 	}
 }
+
+func TestCanCreateBolao(t *testing.T) {
+	if err := CanCreateBolao(MaxOwnedActiveBoloes - 1); err != nil {
+		t.Errorf("below the limit: err = %v, want nil", err)
+	}
+	if err := CanCreateBolao(MaxOwnedActiveBoloes); !errors.Is(err, ErrTooManyBoloes) {
+		t.Errorf("at the limit: err = %v, want ErrTooManyBoloes", err)
+	}
+}
