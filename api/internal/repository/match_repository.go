@@ -98,7 +98,7 @@ func (r *MatchRepository) ListRounds(ctx context.Context, bolaoID uuid.UUID) ([]
 }
 
 func (r *MatchRepository) UpdateResults(ctx context.Context, id uuid.UUID, homeGoals, awayGoals int) error {
-	query := `UPDATE matches SET home_goals = $2, away_goals = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $1`
+	query := `UPDATE matches SET home_goals = $2, away_goals = $3, locked = locked OR provider_match_id IS NOT NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1`
 	_, err := r.pool.Exec(ctx, query, id, homeGoals, awayGoals)
 	return err
 }
@@ -110,8 +110,14 @@ func (r *MatchRepository) UpdateMarketClosesAt(ctx context.Context, bolaoID uuid
 }
 
 func (r *MatchRepository) Update(ctx context.Context, id uuid.UUID, homeTeam, awayTeam string) error {
-	query := `UPDATE matches SET home_team = $2, away_team = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $1`
+	query := `UPDATE matches SET home_team = $2, away_team = $3, locked = locked OR provider_match_id IS NOT NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1`
 	_, err := r.pool.Exec(ctx, query, id, homeTeam, awayTeam)
+	return err
+}
+
+func (r *MatchRepository) Unlock(ctx context.Context, id uuid.UUID) error {
+	query := `UPDATE matches SET locked = false, updated_at = CURRENT_TIMESTAMP WHERE id = $1`
+	_, err := r.pool.Exec(ctx, query, id)
 	return err
 }
 

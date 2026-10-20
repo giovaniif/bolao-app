@@ -31,7 +31,7 @@ type Match struct {
 	ID              uuid.UUID  `json:"id"`
 	BolaoID         uuid.UUID  `json:"bolao_id"`
 	CompetitionID   *uuid.UUID `json:"competition_id,omitempty"`
-	ProviderMatchID *int64     `json:"-"`
+	ProviderMatchID *int64     `json:"provider_match_id,omitempty"`
 	Round           int        `json:"round"`
 	HomeTeam        string     `json:"home_team"`
 	AwayTeam        string     `json:"away_team"`
@@ -40,7 +40,7 @@ type Match struct {
 	HomeGoals       *int       `json:"home_goals,omitempty"`
 	AwayGoals       *int       `json:"away_goals,omitempty"`
 	Status          string     `json:"status"`
-	Locked          bool       `json:"-"`
+	Locked          bool       `json:"locked"`
 	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       time.Time  `json:"updated_at"`
 }
