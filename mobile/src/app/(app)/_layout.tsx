@@ -22,6 +22,7 @@ export default function AppLayout() {
       }}
     >
       <Tabs.Screen name="index" options={{ title: 'Palpitar' }} />
+      <Tabs.Screen name="classificacao" options={{ title: 'Classificação' }} />
       <Tabs.Screen name="boloes" options={{ title: 'Meus bolões' }} />
     </Tabs>
   );
