@@ -151,3 +151,33 @@ func TestPushRepository_SkipsMembersThatAreNotActive(t *testing.T) {
 		t.Errorf("subscriptions = %d, want 0 for a pending member", len(subs))
 	}
 }
+
+func TestMembershipRepository_TransferOwnership(t *testing.T) {
+	pool := pushTestPool(t)
+	ctx := context.Background()
+	owner, next := newUser(t, pool), newUser(t, pool)
+	b, err := NewBolaoRepository(pool).CreateOwned(ctx, "Transfer", owner)
+	if err != nil {
+		t.Fatalf("CreateOwned: %v", err)
+	}
+	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM boloes WHERE id = $1`, b.ID) })
+	repo := NewMembershipRepository(pool)
+	if err := repo.Add(ctx, b.ID, next, models.MemberRoleAdmin, models.MemberStatusActive); err != nil {
+		t.Fatalf("Add: %v", err)
+	}
+
+	if err := repo.TransferOwnership(ctx, b.ID, owner, next); err != nil {
+		t.Fatalf("TransferOwnership: %v", err)
+	}
+
+	got, err := NewBolaoRepository(pool).GetByID(ctx, b.ID)
+	if err != nil || got.OwnerID == nil || *got.OwnerID != next {
+		t.Errorf("owner = %v, %v; want %v", got.OwnerID, err, next)
+	}
+	for user, want := range map[uuid.UUID]string{owner: models.MemberRoleAdmin, next: models.MemberRoleOwner} {
+		m, err := repo.Get(ctx, b.ID, user)
+		if err != nil || m.Role != want {
+			t.Errorf("role of %v = %+v, %v; want %s", user, m, err, want)
+		}
+	}
+}
