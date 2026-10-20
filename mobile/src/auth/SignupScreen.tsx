@@ -8,6 +8,7 @@ import { useAuth } from './AuthProvider';
 import { TextField } from '../components/TextField';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { colors } from '../theme';
+import { track } from '../analytics/analytics';
 
 export function SignupScreen() {
   const [displayName, setDisplayName] = useState('');
@@ -23,6 +24,7 @@ export function SignupScreen() {
       signup({ username: username.trim().toLowerCase(), display_name: displayName.trim(), email: email.trim(), password }),
     onSuccess: async (res) => {
       await signIn(res);
+      track('signed_up');
       router.replace(returnTo(voltar, '/boloes'));
     },
   });

@@ -1,6 +1,7 @@
 import { Redirect, Tabs } from 'expo-router';
 import { useAuth } from '../../auth/AuthProvider';
 import { colors } from '../../theme';
+import { AnalyticsGate } from '../../analytics/AnalyticsGate';
 
 export default function AppLayout() {
   const { ready, token } = useAuth();
@@ -11,6 +12,7 @@ export default function AppLayout() {
     return <Redirect href="/login" />;
   }
   return (
+    <>
     <Tabs
       screenOptions={{
         headerStyle: { backgroundColor: colors.bg },
@@ -25,5 +27,7 @@ export default function AppLayout() {
       <Tabs.Screen name="classificacao" options={{ title: 'Classificação' }} />
       <Tabs.Screen name="boloes" options={{ title: 'Meus bolões' }} />
     </Tabs>
+    <AnalyticsGate />
+    </>
   );
 }

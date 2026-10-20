@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createInviteLink, getInviteCode, getMembers, reviewRequest } from '../api/boloes';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { colors } from '../theme';
+import { track } from '../analytics/analytics';
 
 const INVITE_HOST = process.env.EXPO_PUBLIC_INVITE_URL ?? 'https://bolao-app-dev.vercel.app';
 
@@ -19,6 +20,7 @@ export function MembersScreen() {
   const link = useMutation({
     mutationFn: () => createInviteLink(id),
     onSuccess: async (res) => {
+      track('invite_link_created');
       await Share.share({ message: `Entra no meu bolão: ${INVITE_HOST}/convite/${res.token}` });
     },
   });

@@ -6,6 +6,7 @@ import { useCurrentBolao } from '../bolao/useCurrentBolao';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { MatchRow } from './MatchRow';
 import { colors } from '../theme';
+import { track } from '../analytics/analytics';
 
 type Score = { home: number; away: number };
 
@@ -42,6 +43,7 @@ export function PredictScreen() {
   const save = useMutation({
     mutationFn: () => savePredictions(bolaoId, open.map((m) => ({ match_id: m.id, home_goals: scores[m.id].home, away_goals: scores[m.id].away }))),
     onSuccess: () => {
+      track('predictions_saved', { round, count: open.length });
       setEdits({});
       queryClient.invalidateQueries({ queryKey: ['predictions', bolaoId, round] });
     },

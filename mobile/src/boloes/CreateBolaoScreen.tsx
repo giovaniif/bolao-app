@@ -9,6 +9,7 @@ import { Toggle } from '../components/Toggle';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { RulesList } from './RulesList';
 import { colors } from '../theme';
+import { track } from '../analytics/analytics';
 
 export function CreateBolaoScreen() {
   const router = useRouter();
@@ -23,6 +24,7 @@ export function CreateBolaoScreen() {
   const create = useMutation({
     mutationFn: () => createBolao(name.trim(), isPublic ? 'public' : 'private', approval, competition?.id),
     onSuccess: async (bolao) => {
+      track('bolao_created', { visibility: isPublic ? 'public' : 'private', requires_approval: approval });
       await queryClient.invalidateQueries({ queryKey: bolaoKeys.mine });
       await select(bolao.id);
       router.replace('/');
