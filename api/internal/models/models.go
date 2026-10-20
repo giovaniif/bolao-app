@@ -18,17 +18,42 @@ type User struct {
 	UpdatedAt          time.Time `json:"updated_at"`
 }
 
+const (
+	MatchStatusScheduled = "scheduled"
+	MatchStatusTimed     = "timed"
+	MatchStatusLive      = "live"
+	MatchStatusFinished  = "finished"
+	MatchStatusPostponed = "postponed"
+	MatchStatusCancelled = "cancelled"
+)
+
 type Match struct {
-	ID             uuid.UUID  `json:"id"`
-	BolaoID        uuid.UUID  `json:"bolao_id"`
-	Round          int        `json:"round"`
-	HomeTeam       string     `json:"home_team"`
-	AwayTeam       string     `json:"away_team"`
-	MarketClosesAt *time.Time `json:"market_closes_at,omitempty"`
-	HomeGoals      *int       `json:"home_goals,omitempty"`
-	AwayGoals      *int       `json:"away_goals,omitempty"`
-	CreatedAt      time.Time  `json:"created_at"`
-	UpdatedAt      time.Time  `json:"updated_at"`
+	ID              uuid.UUID  `json:"id"`
+	BolaoID         uuid.UUID  `json:"bolao_id"`
+	CompetitionID   *uuid.UUID `json:"competition_id,omitempty"`
+	ProviderMatchID *int64     `json:"-"`
+	Round           int        `json:"round"`
+	HomeTeam        string     `json:"home_team"`
+	AwayTeam        string     `json:"away_team"`
+	KickoffAt       *time.Time `json:"kickoff_at,omitempty"`
+	MarketClosesAt  *time.Time `json:"market_closes_at,omitempty"`
+	HomeGoals       *int       `json:"home_goals,omitempty"`
+	AwayGoals       *int       `json:"away_goals,omitempty"`
+	Status          string     `json:"status"`
+	Locked          bool       `json:"-"`
+	CreatedAt       time.Time  `json:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at"`
+}
+
+type Competition struct {
+	ID           uuid.UUID `json:"id"`
+	Provider     string    `json:"provider"`
+	ProviderCode string    `json:"provider_code"`
+	Name         string    `json:"name"`
+	Season       int       `json:"season"`
+	Status       string    `json:"status"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }
 
 type Bolao struct {

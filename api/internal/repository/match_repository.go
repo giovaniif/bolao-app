@@ -19,18 +19,18 @@ func NewMatchRepository(pool *pgxpool.Pool) *MatchRepository {
 
 func (r *MatchRepository) Create(ctx context.Context, m *models.Match) error {
 	query := `
-		INSERT INTO matches (id, bolao_id, round, home_team, away_team, market_closes_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
-		RETURNING created_at, updated_at`
-	return r.pool.QueryRow(ctx, query, m.ID, m.BolaoID, m.Round, m.HomeTeam, m.AwayTeam, m.MarketClosesAt).Scan(&m.CreatedAt, &m.UpdatedAt)
+		INSERT INTO matches (id, bolao_id, competition_id, round, home_team, away_team, market_closes_at)
+		VALUES ($1, $2, (SELECT competition_id FROM boloes WHERE id = $2), $3, $4, $5, $6)
+		RETURNING competition_id, status, locked, created_at, updated_at`
+	return r.pool.QueryRow(ctx, query, m.ID, m.BolaoID, m.Round, m.HomeTeam, m.AwayTeam, m.MarketClosesAt).Scan(&m.CompetitionID, &m.Status, &m.Locked, &m.CreatedAt, &m.UpdatedAt)
 }
 
 func (r *MatchRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Match, error) {
 	var m models.Match
-	query := `SELECT id, bolao_id, round, home_team, away_team, market_closes_at, home_goals, away_goals, created_at, updated_at
+	query := `SELECT id, bolao_id, competition_id, provider_match_id, round, home_team, away_team, kickoff_at, market_closes_at, home_goals, away_goals, status, locked, created_at, updated_at
 		FROM matches WHERE id = $1`
 	err := r.pool.QueryRow(ctx, query, id).Scan(
-		&m.ID, &m.BolaoID, &m.Round, &m.HomeTeam, &m.AwayTeam, &m.MarketClosesAt, &m.HomeGoals, &m.AwayGoals, &m.CreatedAt, &m.UpdatedAt,
+		&m.ID, &m.BolaoID, &m.CompetitionID, &m.ProviderMatchID, &m.Round, &m.HomeTeam, &m.AwayTeam, &m.KickoffAt, &m.MarketClosesAt, &m.HomeGoals, &m.AwayGoals, &m.Status, &m.Locked, &m.CreatedAt, &m.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err
@@ -39,7 +39,7 @@ func (r *MatchRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Ma
 }
 
 func (r *MatchRepository) ListByRound(ctx context.Context, bolaoID uuid.UUID, round int) ([]models.Match, error) {
-	query := `SELECT id, bolao_id, round, home_team, away_team, market_closes_at, home_goals, away_goals, created_at, updated_at
+	query := `SELECT id, bolao_id, competition_id, provider_match_id, round, home_team, away_team, kickoff_at, market_closes_at, home_goals, away_goals, status, locked, created_at, updated_at
 		FROM matches WHERE bolao_id = $1 AND round = $2 ORDER BY created_at`
 	rows, err := r.pool.Query(ctx, query, bolaoID, round)
 	if err != nil {
@@ -50,7 +50,7 @@ func (r *MatchRepository) ListByRound(ctx context.Context, bolaoID uuid.UUID, ro
 	var matches []models.Match
 	for rows.Next() {
 		var m models.Match
-		if err := rows.Scan(&m.ID, &m.BolaoID, &m.Round, &m.HomeTeam, &m.AwayTeam, &m.MarketClosesAt, &m.HomeGoals, &m.AwayGoals, &m.CreatedAt, &m.UpdatedAt); err != nil {
+		if err := rows.Scan(&m.ID, &m.BolaoID, &m.CompetitionID, &m.ProviderMatchID, &m.Round, &m.HomeTeam, &m.AwayTeam, &m.KickoffAt, &m.MarketClosesAt, &m.HomeGoals, &m.AwayGoals, &m.Status, &m.Locked, &m.CreatedAt, &m.UpdatedAt); err != nil {
 			return nil, err
 		}
 		matches = append(matches, m)
@@ -59,7 +59,7 @@ func (r *MatchRepository) ListByRound(ctx context.Context, bolaoID uuid.UUID, ro
 }
 
 func (r *MatchRepository) ListAllByBolao(ctx context.Context, bolaoID uuid.UUID) ([]models.Match, error) {
-	query := `SELECT id, bolao_id, round, home_team, away_team, market_closes_at, home_goals, away_goals, created_at, updated_at
+	query := `SELECT id, bolao_id, competition_id, provider_match_id, round, home_team, away_team, kickoff_at, market_closes_at, home_goals, away_goals, status, locked, created_at, updated_at
 		FROM matches WHERE bolao_id = $1 ORDER BY round, created_at`
 	rows, err := r.pool.Query(ctx, query, bolaoID)
 	if err != nil {
@@ -70,7 +70,7 @@ func (r *MatchRepository) ListAllByBolao(ctx context.Context, bolaoID uuid.UUID)
 	var matches []models.Match
 	for rows.Next() {
 		var m models.Match
-		if err := rows.Scan(&m.ID, &m.BolaoID, &m.Round, &m.HomeTeam, &m.AwayTeam, &m.MarketClosesAt, &m.HomeGoals, &m.AwayGoals, &m.CreatedAt, &m.UpdatedAt); err != nil {
+		if err := rows.Scan(&m.ID, &m.BolaoID, &m.CompetitionID, &m.ProviderMatchID, &m.Round, &m.HomeTeam, &m.AwayTeam, &m.KickoffAt, &m.MarketClosesAt, &m.HomeGoals, &m.AwayGoals, &m.Status, &m.Locked, &m.CreatedAt, &m.UpdatedAt); err != nil {
 			return nil, err
 		}
 		matches = append(matches, m)
