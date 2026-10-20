@@ -76,6 +76,12 @@ type ReconcilePlan = models.ReconcilePlan
 
 func ReconcileMatches(competitionID, bolaoID uuid.UUID, local []models.Match, remote []FeedMatch, window InsertWindow) ReconcilePlan {
 	rounds := feedRounds(remote)
+	firstKickoff := map[int]time.Time{}
+	for _, f := range remote {
+		if k, ok := firstKickoff[rounds[f.ProviderID]]; !ok || f.Kickoff.Before(k) {
+			firstKickoff[rounds[f.ProviderID]] = f.Kickoff
+		}
+	}
 	byProvider := map[int64]models.Match{}
 	manual := map[string]models.Match{}
 	for _, m := range local {
@@ -95,7 +101,7 @@ func ReconcileMatches(competitionID, bolaoID uuid.UUID, local []models.Match, re
 			current, ok = manual[key]
 			delete(manual, key)
 		}
-		if !ok && !window.contains(f.Kickoff) {
+		if !ok && !window.contains(firstKickoff[round]) {
 			continue
 		}
 		if !ok {
