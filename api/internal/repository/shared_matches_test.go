@@ -112,3 +112,22 @@ func TestSharedMatches_ABolaoWithoutFirstRoundSeesOnlyItsOwnMatches(t *testing.T
 		t.Errorf("rounds = %v, %v; want none", rounds, err)
 	}
 }
+
+func TestSharedMatches_BelongsToBolao(t *testing.T) {
+	f := newSharedFixture(t)
+	ctx := context.Background()
+	b, err := NewBolaoRepository(f.pool).CreateOwnedOn(ctx, "Pertence", newUser(t, f.pool), &f.competition)
+	if err != nil {
+		t.Fatalf("CreateOwnedOn: %v", err)
+	}
+	matches := NewMatchRepository(f.pool)
+	for match, want := range map[uuid.UUID]bool{f.nextMatch: true, f.pastMatch: false} {
+		got, err := matches.BelongsToBolao(ctx, match, b.ID)
+		if err != nil || got != want {
+			t.Errorf("BelongsToBolao(%v) = %v, %v; want %v", match, got, err, want)
+		}
+	}
+	if own, err := matches.BelongsToBolao(ctx, f.pastMatch, f.feedBolao); err != nil || !own {
+		t.Errorf("the feed bolão's own match = %v, %v; want true", own, err)
+	}
+}
