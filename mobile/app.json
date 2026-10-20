@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Bolão",
+    "name": "Bol\u00e3o",
     "slug": "bolao",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -14,7 +14,10 @@
       "config": {
         "usesNonExemptEncryption": false
       },
-      "infoPlist": {}
+      "infoPlist": {},
+      "associatedDomains": [
+        "applinks:bolao.giovani.app"
+      ]
     },
     "android": {
       "adaptiveIcon": {
@@ -24,7 +27,24 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.giovaniif.bolao"
+      "package": "com.giovaniif.bolao",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "bolao.giovani.app",
+              "pathPrefix": "/convite"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
     },
     "plugins": [
       "expo-router",
