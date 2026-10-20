@@ -22,3 +22,7 @@ export function login(username: string, password: string): Promise<LoginResponse
 export function signup(input: SignupInput): Promise<LoginResponse> {
   return api<LoginResponse>('/auth/signup', { method: 'POST', body: JSON.stringify(input) });
 }
+
+export async function deleteAccount(): Promise<void> {
+  await api('/me', { method: 'DELETE' });
+}
