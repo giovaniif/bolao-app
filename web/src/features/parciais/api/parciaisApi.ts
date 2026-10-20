@@ -1,3 +1,4 @@
+import { scopedPath } from '../../../shared/api/scopedPath';
 import { api } from '../../../shared/api/client';
 
 export interface MatchWithPartial {
@@ -20,8 +21,8 @@ export interface UserWithStats {
   correct_results: number;
 }
 
-export async function getPartialsByRound(round: number): Promise<MatchWithPartial[]> {
-  return api<MatchWithPartial[]>(`/parciais/round/${round}`);
+export async function getPartialsByRound(round: number, scope?: string): Promise<MatchWithPartial[]> {
+  return api<MatchWithPartial[]>(scopedPath(`/parciais/round/${round}`, scope));
 }
 
 export async function setPartial(
@@ -40,7 +41,8 @@ export async function clearPartial(matchId: string): Promise<void> {
 }
 
 export async function getPartialClassification(
-  round: number
+  round: number,
+  scope?: string
 ): Promise<UserWithStats[]> {
-  return api<UserWithStats[]>(`/parciais/round/${round}/classification`);
+  return api<UserWithStats[]>(scopedPath(`/parciais/round/${round}/classification`, scope));
 }

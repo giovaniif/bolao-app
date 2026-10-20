@@ -4,7 +4,7 @@ import { queryKeys } from '../../../shared/query/queryKeys';
 
 export function useProfile() {
   return useQuery({
-    queryKey: [...queryKeys.users, 'me'],
+    queryKey: [...queryKeys.users(), 'me'],
     queryFn: getProfile,
   });
 }
@@ -14,7 +14,7 @@ export function useUpdateProfile() {
   return useMutation({
     mutationFn: updateProfile,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [...queryKeys.users, 'me'] });
+      queryClient.invalidateQueries({ queryKey: [...queryKeys.users(), 'me'] });
     },
   });
 }
