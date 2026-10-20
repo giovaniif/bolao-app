@@ -25,9 +25,17 @@ export function MyBolaoCard({ bolao }: { bolao: MyBolao }) {
   if (bolao.member_status === 'pending') {
     return <div className={`${className} opacity-80`}>{body}</div>;
   }
+  const manages = bolao.role === 'owner' || bolao.role === 'admin';
   return (
-    <Link to={`/?bolao=${bolao.id}`} className={`${className} hover:border-primary/60`}>
-      {body}
-    </Link>
+    <div className="space-y-1">
+      <Link to={`/?bolao=${bolao.id}`} className={`${className} hover:border-primary/60`}>
+        {body}
+      </Link>
+      {manages && bolao.status === 'active' && (
+        <Link to={`/membros?bolao=${bolao.id}`} className="block text-right text-xs font-semibold text-primary px-2">
+          Convidar e gerenciar
+        </Link>
+      )}
+    </div>
   );
 }
