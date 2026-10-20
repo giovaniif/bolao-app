@@ -15,6 +15,10 @@ type Config struct {
 	CronSecret      string
 
 	FootballDataAPIKey string
+
+	SentryDSN         string
+	SentryEnvironment string
+	Release           string
 }
 
 func Load() *Config {
@@ -29,6 +33,10 @@ func Load() *Config {
 		CronSecret:      os.Getenv("CRON_SECRET"),
 
 		FootballDataAPIKey: os.Getenv("FOOTBALL_DATA_API_KEY"),
+
+		SentryDSN:         os.Getenv("SENTRY_DSN"),
+		SentryEnvironment: getEnv("SENTRY_ENVIRONMENT", "dev"),
+		Release:           os.Getenv("RENDER_GIT_COMMIT"),
 	}
 }
 
