@@ -8,6 +8,8 @@ import (
 	"net/url"
 	"strconv"
 	"time"
+
+	"github.com/bolao-app/api/internal/service"
 )
 
 const (
@@ -184,4 +186,26 @@ func toMatch(m apiMatch) Match {
 		match.Matchday = *m.Matchday
 	}
 	return match
+}
+
+func (c *Client) FeedMatches(ctx context.Context, competitionCode string, season int) ([]service.FeedMatch, error) {
+	matches, err := c.Matches(ctx, competitionCode, season)
+	if err != nil {
+		return nil, err
+	}
+	feed := make([]service.FeedMatch, 0, len(matches))
+	for _, m := range matches {
+		feed = append(feed, service.FeedMatch{
+			ProviderID: m.ID,
+			Kickoff:    m.Kickoff,
+			Status:     m.Status,
+			Stage:      m.Stage,
+			Matchday:   m.Matchday,
+			HomeTeam:   m.HomeTeam,
+			AwayTeam:   m.AwayTeam,
+			HomeGoals:  m.HomeGoals,
+			AwayGoals:  m.AwayGoals,
+		})
+	}
+	return feed, nil
 }
