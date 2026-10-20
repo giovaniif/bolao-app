@@ -2,9 +2,12 @@ package repository
 
 import (
 	"context"
+	"errors"
+	"strings"
 
 	"github.com/bolao-app/api/internal/models"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -28,7 +31,7 @@ func (r *UserRepository) Create(ctx context.Context, user *models.User) error {
 
 func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.User, error) {
 	var u models.User
-	query := `SELECT id, username, display_name, favorite_team, is_admin, password_hash, must_change_password, created_at, updated_at
+	query := `SELECT id, username, display_name, favorite_team, is_admin, COALESCE(password_hash, ''), must_change_password, created_at, updated_at
 		FROM users WHERE id = $1`
 	err := r.pool.QueryRow(ctx, query, id).Scan(
 		&u.ID, &u.Username, &u.DisplayName, &u.FavoriteTeam, &u.IsAdmin, &u.PasswordHash, &u.MustChangePassword, &u.CreatedAt, &u.UpdatedAt,
@@ -41,7 +44,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Use
 
 func (r *UserRepository) GetByUsername(ctx context.Context, username string) (*models.User, error) {
 	var u models.User
-	query := `SELECT id, username, display_name, favorite_team, is_admin, password_hash, must_change_password, created_at, updated_at
+	query := `SELECT id, username, display_name, favorite_team, is_admin, COALESCE(password_hash, ''), must_change_password, created_at, updated_at
 		FROM users WHERE username = $1`
 	err := r.pool.QueryRow(ctx, query, username).Scan(
 		&u.ID, &u.Username, &u.DisplayName, &u.FavoriteTeam, &u.IsAdmin, &u.PasswordHash, &u.MustChangePassword, &u.CreatedAt, &u.UpdatedAt,
@@ -87,11 +90,35 @@ func (r *UserRepository) Update(ctx context.Context, user *models.User) error {
 
 func (r *UserRepository) GetByUsernameExcluding(ctx context.Context, username string, excludeID uuid.UUID) (*models.User, error) {
 	var u models.User
-	query := `SELECT id, username, display_name, favorite_team, is_admin, password_hash, must_change_password, created_at, updated_at
+	query := `SELECT id, username, display_name, favorite_team, is_admin, COALESCE(password_hash, ''), must_change_password, created_at, updated_at
 		FROM users WHERE username = $1 AND id != $2`
 	err := r.pool.QueryRow(ctx, query, username, excludeID).Scan(
 		&u.ID, &u.Username, &u.DisplayName, &u.FavoriteTeam, &u.IsAdmin, &u.PasswordHash, &u.MustChangePassword, &u.CreatedAt, &u.UpdatedAt,
 	)
+	if err != nil {
+		return nil, err
+	}
+	return &u, nil
+}
+
+var (
+	ErrUsernameTaken = errors.New("este nome de usuário já está em uso")
+	ErrEmailTaken    = errors.New("este e-mail já está em uso")
+)
+
+func (r *UserRepository) CreateAccount(ctx context.Context, username, displayName, email, passwordHash string) (*models.User, error) {
+	u := models.User{ID: uuid.New(), Username: username, DisplayName: displayName, PasswordHash: passwordHash}
+	query := `INSERT INTO users (id, username, display_name, email, password_hash, must_change_password)
+		VALUES ($1, $2, $3, lower(trim($4)), $5, false)
+		RETURNING created_at, updated_at`
+	err := r.pool.QueryRow(ctx, query, u.ID, username, displayName, email, passwordHash).Scan(&u.CreatedAt, &u.UpdatedAt)
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		if strings.Contains(pgErr.ConstraintName, "email") {
+			return nil, ErrEmailTaken
+		}
+		return nil, ErrUsernameTaken
+	}
 	if err != nil {
 		return nil, err
 	}
