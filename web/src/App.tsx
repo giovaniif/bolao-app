@@ -12,6 +12,9 @@ import { RoundPage, type RoundTab } from './features/round/pages/RoundPage';
 import { ChampionsPage } from './features/champions/pages/ChampionsPage';
 import { MyBoloesPage } from './features/boloes/pages/MyBoloesPage';
 import { CreateBolaoPage } from './features/boloes/pages/CreateBolaoPage';
+import { InvitePage } from './features/invites/pages/InvitePage';
+import { JoinByCodePage } from './features/invites/pages/JoinByCodePage';
+import { MembersPage } from './features/members/pages/MembersPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -122,6 +125,23 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <CreateBolaoPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route path="/convite/:code" element={<InvitePage />} />
+      <Route
+        path="/entrar"
+        element={
+          <ProtectedRoute>
+            <JoinByCodePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/membros"
+        element={
+          <ProtectedRoute>
+            <MembersPage />
           </ProtectedRoute>
         }
       />

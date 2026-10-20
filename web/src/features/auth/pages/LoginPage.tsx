@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../../shared/hooks/useAuth';
 import { login } from '../api/authApi';
 import { Button } from '../../../shared/components/Button';
@@ -12,6 +12,9 @@ export function LoginPage() {
   const [loading, setLoading] = useState(false);
   const { login: doLogin } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const voltar = searchParams.get('voltar');
+  const next = voltar && voltar.startsWith('/') && !voltar.startsWith('//') ? voltar : '/';
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -25,7 +28,7 @@ export function LoginPage() {
         is_admin: res.is_admin,
         must_change_password: res.must_change_password,
       });
-      navigate(res.must_change_password ? '/alterar-senha' : '/');
+      navigate(res.must_change_password ? '/alterar-senha' : next);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao entrar');
     } finally {

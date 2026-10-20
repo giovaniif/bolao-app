@@ -67,6 +67,7 @@ type Handler = (url: URL, match: RegExpMatchArray) => unknown;
 const myBoloes = [
   { ...activeBolao, role: 'admin', member_status: 'active', member_count: people.length },
   { id: 'b-firma', name: 'Bolão da Firma', status: 'active', started_at: '2026-09-01T00:00:00Z', role: 'owner', member_status: 'active', member_count: 7 },
+  { id: 'b-familia', name: 'Família', status: 'active', started_at: '2026-09-10T00:00:00Z', role: 'participant', member_status: 'pending', member_count: 9 },
 ];
 
 const routes: [string, RegExp, Handler][] = [
@@ -95,7 +96,12 @@ const routes: [string, RegExp, Handler][] = [
       'O bônus de gols da rodada só vale com a rodada completa.',
     ],
   })],
-  ['GET', /^\/members$/, () => people.map((p) => ({ ...p, role: 'participant', status: 'active', amount_paid: 50 }))],
+  ['GET', /^\/members$/, () => [
+    ...people.map((p, i) => ({ ...p, role: i === 0 ? 'owner' : i === 1 ? 'admin' : 'participant', status: 'active', amount_paid: 50 })),
+    { id: 'u-eva', username: 'eva', display_name: 'Eva Martins', role: 'participant', status: 'pending', amount_paid: 0 },
+  ]],
+  ['GET', /^\/boloes\/[^/]+\/invite$/, () => ({ code: 'FIRMA234' })],
+  ['GET', /^\/invites\/[^/]+$/, () => ({ name: 'Bolão da Firma', member_count: 7, max_members: 50, joins: 'request' })],
   ['GET', /^\/boloes\/active$/, () => activeBolao],
   ['GET', /^\/boloes$/, () => [activeBolao, finishedBolao]],
   ['GET', /^\/boloes\/[^/]+\/participants$/, () => people.map((p) => ({ ...p, amount_paid: 50, joined_at: '2026-04-01T00:00:00Z' }))],

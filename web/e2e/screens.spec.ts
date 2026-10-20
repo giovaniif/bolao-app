@@ -51,6 +51,10 @@ const screens: Screen[] = [
       await expect(page.getByText('Acertar o total de gols da rodada inteira')).toBeVisible();
     },
   },
+  { name: 'convite-visitante', path: '/convite/FIRMA234', shows: 'Bolão da Firma', signedIn: false },
+  { name: 'convite', path: '/convite/FIRMA234', shows: 'Pedir para entrar' },
+  { name: 'entrar-com-codigo', path: '/entrar', shows: 'Código do bolão' },
+  { name: 'membros', path: '/membros?bolao=b-firma', shows: 'FIRMA234' },
   { name: 'admin', path: '/admin', shows: 'Flamengo' },
   {
     name: 'admin-jogos',
