@@ -100,7 +100,7 @@ func main() {
 		api.GET("/users", userHandler.List)
 		api.GET("/predictions", predictionHandler.GetMyPredictions)
 		api.GET("/predictions/round/:round/user/:user_id", predictionHandler.GetByUserAndRound)
-		api.POST("/predictions", predictionHandler.UpsertPredictions)
+		api.POST("/predictions", handler.RequireDefaultMembership(bolaoRepo, membershipRepo), predictionHandler.UpsertPredictions)
 		api.GET("/me", userHandler.GetMe)
 		api.POST("/push/subscriptions", pushHandler.Subscribe)
 		api.DELETE("/push/subscriptions", pushHandler.Unsubscribe)

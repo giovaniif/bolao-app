@@ -121,3 +121,25 @@ func writableBolao(c *gin.Context, bolaoRepo *repository.BolaoRepository) (*mode
 	}
 	return bolao, nil
 }
+
+type defaultBolaoGetter interface {
+	GetActive(ctx context.Context) (*models.Bolao, error)
+}
+
+func RequireDefaultMembership(boloes defaultBolaoGetter, memberships membershipGetter) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if isAdmin, _ := c.Get("is_admin"); isAdmin == true {
+			c.Next()
+			return
+		}
+		bolao, err := boloes.GetActive(c.Request.Context())
+		if err == nil {
+			m, err := memberships.Get(c.Request.Context(), bolao.ID, c.MustGet("user_id").(uuid.UUID))
+			if err == nil && m.Status == models.MemberStatusActive {
+				c.Next()
+				return
+			}
+		}
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "você não participa deste bolão"})
+	}
+}
