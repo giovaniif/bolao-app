@@ -79,6 +79,7 @@ func main() {
 	r.Use(corsMiddleware())
 
 	r.POST("/api/auth/login", authHandler.Login)
+	r.POST("/api/auth/signup", authHandler.Signup)
 	r.GET("/api/teams", userHandler.GetTeams)
 	r.GET("/api/rules", handler.GetRules)
 	r.GET("/api/push/public-key", pushHandler.PublicKey)
