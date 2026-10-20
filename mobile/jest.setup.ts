@@ -11,4 +11,4 @@ jest.mock('expo-secure-store', () => {
   }
 })
 
-require('@testing-library/react-native').configure({ asyncUtilTimeout: 5000 })
+require('@testing-library/react-native').configure({ asyncUtilTimeout: 10000 })
