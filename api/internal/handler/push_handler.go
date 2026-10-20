@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/bolao-app/api/internal/models"
+	"github.com/bolao-app/api/internal/observability"
 	"github.com/bolao-app/api/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -181,6 +182,7 @@ func (h *PushHandler) startMatchSync() {
 		defer cancel()
 		if report, err := h.syncer.RunOnce(ctx); err != nil {
 			log.Printf("match sync: %+v: %v", report, err)
+			observability.Capture(err)
 		}
 	}()
 }

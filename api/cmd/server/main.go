@@ -11,6 +11,7 @@ import (
 	"github.com/bolao-app/api/internal/database"
 	"github.com/bolao-app/api/internal/footballdata"
 	"github.com/bolao-app/api/internal/handler"
+	"github.com/bolao-app/api/internal/observability"
 	"github.com/bolao-app/api/internal/push"
 	"github.com/bolao-app/api/internal/repository"
 	"github.com/bolao-app/api/internal/service"
@@ -74,7 +75,14 @@ func main() {
 	exportHandler := handler.NewExportHandler(exportSvc, bolaoRepo)
 	bolaoHandler := handler.NewBolaoHandler(bolaoSvc, bolaoRepo)
 
+	flushSentry, err := observability.Init(cfg.SentryDSN, cfg.SentryEnvironment, cfg.Release)
+	if err != nil {
+		log.Printf("sentry disabled: %v", err)
+	}
+	defer flushSentry()
+
 	r := gin.Default()
+	r.Use(observability.Middleware(cfg.SentryDSN))
 
 	r.Use(corsMiddleware())
 
