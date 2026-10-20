@@ -41,7 +41,13 @@ type UpdateMeRequest struct {
 }
 
 func (h *UserHandler) List(c *gin.Context) {
-	users, err := h.userRepo.List(c.Request.Context())
+	var users []models.User
+	var err error
+	if isAdmin, _ := c.Get("is_admin"); isAdmin == true {
+		users, err = h.userRepo.List(c.Request.Context())
+	} else {
+		users, err = h.userRepo.ListSharingBolaoWith(c.Request.Context(), c.MustGet("user_id").(uuid.UUID))
+	}
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

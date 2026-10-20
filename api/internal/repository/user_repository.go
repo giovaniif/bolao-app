@@ -124,3 +124,26 @@ func (r *UserRepository) CreateAccount(ctx context.Context, username, displayNam
 	}
 	return &u, nil
 }
+
+func (r *UserRepository) ListSharingBolaoWith(ctx context.Context, userID uuid.UUID) ([]models.User, error) {
+	query := `SELECT DISTINCT u.id, u.username, u.display_name, u.favorite_team, u.is_admin, u.created_at, u.updated_at
+		FROM users u
+		JOIN bolao_participants theirs ON theirs.user_id = u.id AND theirs.status = 'active'
+		JOIN bolao_participants mine ON mine.bolao_id = theirs.bolao_id AND mine.user_id = $1 AND mine.status = 'active'
+		JOIN boloes b ON b.id = theirs.bolao_id AND b.status = 'active'
+		ORDER BY u.display_name`
+	rows, err := r.pool.Query(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var users []models.User
+	for rows.Next() {
+		var u models.User
+		if err := rows.Scan(&u.ID, &u.Username, &u.DisplayName, &u.FavoriteTeam, &u.IsAdmin, &u.CreatedAt, &u.UpdatedAt); err != nil {
+			return nil, err
+		}
+		users = append(users, u)
+	}
+	return users, rows.Err()
+}
