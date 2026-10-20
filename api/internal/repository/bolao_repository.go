@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
 
 	"github.com/bolao-app/api/internal/models"
@@ -23,11 +24,9 @@ func NewBolaoRepository(pool *pgxpool.Pool) *BolaoRepository {
 
 func (r *BolaoRepository) Create(ctx context.Context, name string) (*models.Bolao, error) {
 	var b models.Bolao
-	query := `INSERT INTO boloes (id, name) VALUES ($1, $2)
-		RETURNING id, name, status, started_at, finished_at, created_at, updated_at`
-	err := r.pool.QueryRow(ctx, query, uuid.New(), name).Scan(
-		&b.ID, &b.Name, &b.Status, &b.StartedAt, &b.FinishedAt, &b.CreatedAt, &b.UpdatedAt,
-	)
+	query := `INSERT INTO boloes AS b (id, name, invite_code) VALUES ($1, $2, $3)
+		RETURNING ` + bolaoColumns
+	err := r.pool.QueryRow(ctx, query, uuid.New(), name, NewInviteCode()).Scan(bolaoFields(&b)...)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
@@ -38,13 +37,56 @@ func (r *BolaoRepository) Create(ctx context.Context, name string) (*models.Bola
 	return &b, nil
 }
 
+const bolaoColumns = "b.id, b.name, b.status, b.owner_id, b.visibility, b.requires_approval, b.max_members, COALESCE(b.invite_code, ''), b.started_at, b.finished_at, b.created_at, b.updated_at"
+
+func bolaoFields(b *models.Bolao) []any {
+	return []any{&b.ID, &b.Name, &b.Status, &b.OwnerID, &b.Visibility, &b.RequiresApproval, &b.MaxMembers, &b.InviteCode, &b.StartedAt, &b.FinishedAt, &b.CreatedAt, &b.UpdatedAt}
+}
+
+const inviteAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+
+func NewInviteCode() string {
+	buf := make([]byte, 8)
+	if _, err := rand.Read(buf); err != nil {
+		panic(err)
+	}
+	for i, v := range buf {
+		buf[i] = inviteAlphabet[int(v)%len(inviteAlphabet)]
+	}
+	return string(buf)
+}
+
+func (r *BolaoRepository) CreateOwned(ctx context.Context, name string, ownerID uuid.UUID) (*models.Bolao, error) {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	var b models.Bolao
+	query := `INSERT INTO boloes AS b (id, name, owner_id, invite_code) VALUES ($1, $2, $3, $4)
+		RETURNING ` + bolaoColumns
+	if err := tx.QueryRow(ctx, query, uuid.New(), name, ownerID, NewInviteCode()).Scan(bolaoFields(&b)...); err != nil {
+		return nil, err
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO bolao_participants (bolao_id, user_id, role, status) VALUES ($1, $2, 'owner', 'active')`, b.ID, ownerID); err != nil {
+		return nil, err
+	}
+	return &b, tx.Commit(ctx)
+}
+
+func (r *BolaoRepository) UpdateSettings(ctx context.Context, id uuid.UUID, name, visibility string, requiresApproval bool) error {
+	query := `UPDATE boloes SET name = $2, visibility = $3, requires_approval = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $1`
+	_, err := r.pool.Exec(ctx, query, id, name, visibility, requiresApproval)
+	return err
+}
+
 func (r *BolaoRepository) GetActive(ctx context.Context) (*models.Bolao, error) {
 	var b models.Bolao
-	query := `SELECT id, name, status, started_at, finished_at, created_at, updated_at
-		FROM boloes WHERE status = 'active' LIMIT 1`
-	err := r.pool.QueryRow(ctx, query).Scan(
-		&b.ID, &b.Name, &b.Status, &b.StartedAt, &b.FinishedAt, &b.CreatedAt, &b.UpdatedAt,
-	)
+	query := `SELECT ` + bolaoColumns + `
+		FROM boloes b WHERE b.status = 'active'
+			AND (b.owner_id IS NULL OR EXISTS (SELECT 1 FROM users u WHERE u.id = b.owner_id AND u.is_admin))
+		ORDER BY b.started_at, b.created_at LIMIT 1`
+	err := r.pool.QueryRow(ctx, query).Scan(bolaoFields(&b)...)
 	if err != nil {
 		return nil, err
 	}
@@ -53,11 +95,9 @@ func (r *BolaoRepository) GetActive(ctx context.Context) (*models.Bolao, error) 
 
 func (r *BolaoRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Bolao, error) {
 	var b models.Bolao
-	query := `SELECT id, name, status, started_at, finished_at, created_at, updated_at
-		FROM boloes WHERE id = $1`
-	err := r.pool.QueryRow(ctx, query, id).Scan(
-		&b.ID, &b.Name, &b.Status, &b.StartedAt, &b.FinishedAt, &b.CreatedAt, &b.UpdatedAt,
-	)
+	query := `SELECT ` + bolaoColumns + `
+		FROM boloes b WHERE b.id = $1`
+	err := r.pool.QueryRow(ctx, query, id).Scan(bolaoFields(&b)...)
 	if err != nil {
 		return nil, err
 	}
@@ -65,8 +105,8 @@ func (r *BolaoRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Bo
 }
 
 func (r *BolaoRepository) List(ctx context.Context) ([]models.Bolao, error) {
-	query := `SELECT id, name, status, started_at, finished_at, created_at, updated_at
-		FROM boloes ORDER BY started_at DESC`
+	query := `SELECT ` + bolaoColumns + `
+		FROM boloes b ORDER BY b.started_at DESC`
 	rows, err := r.pool.Query(ctx, query)
 	if err != nil {
 		return nil, err
@@ -76,7 +116,7 @@ func (r *BolaoRepository) List(ctx context.Context) ([]models.Bolao, error) {
 	var boloes []models.Bolao
 	for rows.Next() {
 		var b models.Bolao
-		if err := rows.Scan(&b.ID, &b.Name, &b.Status, &b.StartedAt, &b.FinishedAt, &b.CreatedAt, &b.UpdatedAt); err != nil {
+		if err := rows.Scan(bolaoFields(&b)...); err != nil {
 			return nil, err
 		}
 		boloes = append(boloes, b)
