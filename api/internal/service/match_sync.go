@@ -17,14 +17,7 @@ const (
 	insertAhead             = 14 * 24 * time.Hour
 )
 
-type SyncTarget struct {
-	CompetitionID  uuid.UUID
-	Code           string
-	Season         int
-	BolaoID        uuid.UUID
-	BolaoStartedAt time.Time
-	LastSyncedAt   *time.Time
-}
+type SyncTarget = models.SyncTarget
 
 type SyncReport struct {
 	Synced  int

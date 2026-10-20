@@ -72,10 +72,7 @@ func (w InsertWindow) contains(t time.Time) bool {
 	return !t.Before(w.From) && !t.After(w.To)
 }
 
-type ReconcilePlan struct {
-	Inserts []models.Match
-	Updates []models.Match
-}
+type ReconcilePlan = models.ReconcilePlan
 
 func ReconcileMatches(competitionID, bolaoID uuid.UUID, local []models.Match, remote []FeedMatch, window InsertWindow) ReconcilePlan {
 	rounds := feedRounds(remote)
