@@ -13,7 +13,8 @@
       "supportsTablet": false,
       "config": {
         "usesNonExemptEncryption": false
-      }
+      },
+      "infoPlist": {}
     },
     "android": {
       "adaptiveIcon": {
@@ -42,6 +43,17 @@
       "typedRoutes": true,
       "reactCompiler": true
     },
-    "backgroundColor": "#0f172a"
+    "backgroundColor": "#0f172a",
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "0b876b68-1921-4702-a1f9-273d0e172e24"
+      }
+    },
+    "owner": "giovaniif"
   }
 }
