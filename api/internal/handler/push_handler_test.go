@@ -84,7 +84,7 @@ func newTestPushHandler(store *fakePushStore, notifier *fakeNotifier, matches []
 	if notifier != nil {
 		n = notifier
 	}
-	h := NewPushHandler(store, fakeBolaos{}, fakeMatches{matches}, n, "public-key", testCronSecret)
+	h := NewPushHandler(store, fakeBolaos{}, fakeMatches{matches}, n, nil, "public-key", testCronSecret)
 	h.now = func() time.Time { return testNow }
 	return h
 }
@@ -211,7 +211,7 @@ func TestPushHandlerTick(t *testing.T) {
 }
 
 func TestPushHandlerTickWithoutSecretConfigured(t *testing.T) {
-	h := NewPushHandler(&fakePushStore{}, fakeBolaos{}, fakeMatches{}, &fakeNotifier{}, "public-key", "")
+	h := NewPushHandler(&fakePushStore{}, fakeBolaos{}, fakeMatches{}, &fakeNotifier{}, nil, "public-key", "")
 	w := do(t, pushRouter(h), http.MethodPost, "/api/internal/notifications/tick", "", map[string]string{"X-Cron-Secret": ""})
 	if w.Code != http.StatusUnauthorized {
 		t.Errorf("status = %d, want 401: an unset secret must not open the endpoint", w.Code)
@@ -220,7 +220,7 @@ func TestPushHandlerTickWithoutSecretConfigured(t *testing.T) {
 
 func TestPushHandlerTickWithoutActiveBolao(t *testing.T) {
 	notifier := &fakeNotifier{}
-	h := NewPushHandler(&fakePushStore{}, fakeBolaos{err: errors.New("no rows")}, fakeMatches{}, notifier, "public-key", testCronSecret)
+	h := NewPushHandler(&fakePushStore{}, fakeBolaos{err: errors.New("no rows")}, fakeMatches{}, notifier, nil, "public-key", testCronSecret)
 	w := do(t, pushRouter(h), http.MethodPost, "/api/internal/notifications/tick", "", map[string]string{"X-Cron-Secret": testCronSecret})
 	if w.Code != http.StatusOK || notifier.tickedFor != nil {
 		t.Errorf("status = %d, ticked = %v; want a quiet 200", w.Code, notifier.tickedFor != nil)
@@ -256,4 +256,59 @@ func TestPushHandlerAnnounceRound(t *testing.T) {
 			}
 		}
 	}
+}
+
+type fakeSyncer struct {
+	ran     chan struct{}
+	release chan struct{}
+}
+
+func (f *fakeSyncer) RunOnce(context.Context) (service.SyncReport, error) {
+	f.ran <- struct{}{}
+	if f.release != nil {
+		<-f.release
+	}
+	return service.SyncReport{Synced: 1}, nil
+}
+
+func TestPushHandlerTickRunsTheMatchSyncEvenWithoutPush(t *testing.T) {
+	syncer := &fakeSyncer{ran: make(chan struct{}, 1)}
+	h := NewPushHandler(&fakePushStore{}, fakeBolaos{}, fakeMatches{}, nil, syncer, "", testCronSecret)
+	w := do(t, pushRouter(h), http.MethodPost, "/api/internal/notifications/tick", "", map[string]string{"X-Cron-Secret": testCronSecret})
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", w.Code)
+	}
+	select {
+	case <-syncer.ran:
+	case <-time.After(time.Second):
+		t.Fatal("the match sync did not run")
+	}
+}
+
+func TestPushHandlerTickWithAWrongSecretDoesNotSync(t *testing.T) {
+	syncer := &fakeSyncer{ran: make(chan struct{}, 1)}
+	h := NewPushHandler(&fakePushStore{}, fakeBolaos{}, fakeMatches{}, nil, syncer, "", testCronSecret)
+	do(t, pushRouter(h), http.MethodPost, "/api/internal/notifications/tick", "", map[string]string{"X-Cron-Secret": "wrong"})
+	select {
+	case <-syncer.ran:
+		t.Fatal("the match sync ran with a wrong secret")
+	case <-time.After(50 * time.Millisecond):
+	}
+}
+
+func TestPushHandlerTickSkipsASyncWhileOneRuns(t *testing.T) {
+	syncer := &fakeSyncer{ran: make(chan struct{}, 2), release: make(chan struct{})}
+	h := NewPushHandler(&fakePushStore{}, fakeBolaos{}, fakeMatches{}, nil, syncer, "", testCronSecret)
+	r := pushRouter(h)
+	headers := map[string]string{"X-Cron-Secret": testCronSecret}
+
+	do(t, r, http.MethodPost, "/api/internal/notifications/tick", "", headers)
+	<-syncer.ran
+	do(t, r, http.MethodPost, "/api/internal/notifications/tick", "", headers)
+	select {
+	case <-syncer.ran:
+		t.Fatal("a second sync started while the first one ran")
+	case <-time.After(50 * time.Millisecond):
+	}
+	close(syncer.release)
 }
