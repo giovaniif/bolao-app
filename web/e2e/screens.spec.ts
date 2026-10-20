@@ -31,6 +31,15 @@ const screens: Screen[] = [
     },
   },
   { name: 'admin', path: '/admin', shows: 'Flamengo' },
+  {
+    name: 'admin-jogos',
+    path: '/admin',
+    shows: 'Flamengo',
+    act: async (page) => {
+      await page.getByRole('button', { name: 'Jogos' }).click();
+      await expect(page.getByText('Corrigido')).toBeVisible();
+    },
+  },
   { name: 'hall-dos-campeoes', path: '/hall-dos-campeoes', shows: 'Ana Souza' },
 ];
 
