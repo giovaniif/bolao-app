@@ -147,3 +147,41 @@ func (r *UserRepository) ListSharingBolaoWith(ctx context.Context, userID uuid.U
 	}
 	return users, rows.Err()
 }
+
+var ErrOwnsActiveBolao = errors.New("passe seus bolões ativos para outra pessoa antes de excluir a conta")
+
+func (r *UserRepository) DeleteAccount(ctx context.Context, userID uuid.UUID) error {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	var ownsWithMembers bool
+	if err := tx.QueryRow(ctx, `
+		SELECT EXISTS (
+			SELECT 1 FROM boloes b
+			WHERE b.owner_id = $1 AND b.status = 'active'
+			  AND EXISTS (SELECT 1 FROM bolao_participants p WHERE p.bolao_id = b.id AND p.user_id <> $1 AND p.status = 'active')
+		)`, userID).Scan(&ownsWithMembers); err != nil {
+		return err
+	}
+	if ownsWithMembers {
+		return ErrOwnsActiveBolao
+	}
+	statements := []string{
+		`UPDATE boloes SET status = 'finished', finished_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE owner_id = $1 AND status = 'active'`,
+		`UPDATE bolao_participants SET status = 'removed' WHERE user_id = $1`,
+		`DELETE FROM user_identities WHERE user_id = $1`,
+		`DELETE FROM push_subscriptions WHERE user_id = $1`,
+		`UPDATE users SET username = 'excluido_' || substr(replace(id::text, '-', ''), 1, 12), display_name = 'Conta excluída',
+			email = NULL, password_hash = NULL, favorite_team = NULL, is_admin = false, must_change_password = false,
+			updated_at = CURRENT_TIMESTAMP
+		WHERE id = $1`,
+	}
+	for _, statement := range statements {
+		if _, err := tx.Exec(ctx, statement, userID); err != nil {
+			return err
+		}
+	}
+	return tx.Commit(ctx)
+}
