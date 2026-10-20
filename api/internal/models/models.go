@@ -40,7 +40,7 @@ type Match struct {
 	HomeGoals       *int       `json:"home_goals,omitempty"`
 	AwayGoals       *int       `json:"away_goals,omitempty"`
 	Status          string     `json:"status"`
-	Locked          bool       `json:"-"`
+	Locked          bool       `json:"locked"`
 	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       time.Time  `json:"updated_at"`
 }

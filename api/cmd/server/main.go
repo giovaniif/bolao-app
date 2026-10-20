@@ -117,6 +117,7 @@ func main() {
 			admin.PUT("/matches/:id", matchHandler.UpdateMatch)
 			admin.PUT("/matches/:id/results", matchHandler.UpdateResults)
 			admin.DELETE("/matches/:id", matchHandler.DeleteMatch)
+			admin.DELETE("/matches/:id/lock", matchHandler.UnlockMatch)
 			admin.PUT("/matches/round/:round/closes", matchHandler.UpdateRoundCloses)
 			admin.DELETE("/matches/round/:round", matchHandler.DeleteRound)
 			admin.POST("/boloes", bolaoHandler.Create)

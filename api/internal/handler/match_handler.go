@@ -251,6 +251,26 @@ func (h *MatchHandler) UpdateMatch(c *gin.Context) {
 	c.JSON(http.StatusOK, match)
 }
 
+func (h *MatchHandler) UnlockMatch(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id inválido"})
+		return
+	}
+
+	if err := h.assertMatchInActiveBolao(c, id); err != nil {
+		return
+	}
+
+	if err := h.matchRepo.Unlock(c.Request.Context(), id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	match, _ := h.matchRepo.GetByID(c.Request.Context(), id)
+	c.JSON(http.StatusOK, match)
+}
+
 func (h *MatchHandler) DeleteMatch(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
