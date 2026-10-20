@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/bolao-app/api/internal/constants"
+	"github.com/bolao-app/api/internal/service"
+	"github.com/google/uuid"
 )
 
 type fakeClock struct {
@@ -184,5 +186,45 @@ func TestMatches_AnErrorStatusIsAnError(t *testing.T) {
 
 	if _, err := c.Matches(context.Background(), "BSA", 2026); err == nil {
 		t.Fatal("err = nil, want an error for 403")
+	}
+}
+
+func TestFeedMatches_ConvertsForTheSync(t *testing.T) {
+	calls := 0
+	srv := fixtureServer(t, "testdata/bsa_2026.json", nil, &calls)
+	feed, err := newTestClient(srv, &fakeClock{now: time.Now()}).FeedMatches(context.Background(), "BSA", 2026)
+	if err != nil {
+		t.Fatalf("FeedMatches: %v", err)
+	}
+	i := slices.IndexFunc(feed, func(f service.FeedMatch) bool { return f.ProviderID == 554740 })
+	if i < 0 {
+		t.Fatal("match 554740 not found")
+	}
+	f := feed[i]
+	if f.HomeTeam != "Atlético-MG" || f.Matchday != 1 || f.Stage != service.StageRegularSeason || f.Status != service.FeedStatusFinished || *f.HomeGoals != 2 {
+		t.Errorf("feed match = %+v", f)
+	}
+}
+
+func TestFeedMatches_TheWholeSeasonReconcilesIntoThirtyEightRounds(t *testing.T) {
+	calls := 0
+	srv := fixtureServer(t, "testdata/bsa_2026.json", nil, &calls)
+	feed, err := newTestClient(srv, &fakeClock{now: time.Now()}).FeedMatches(context.Background(), "BSA", 2026)
+	if err != nil {
+		t.Fatalf("FeedMatches: %v", err)
+	}
+	window := service.InsertWindow{From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC), To: time.Date(2027, 1, 1, 0, 0, 0, 0, time.UTC)}
+	plan := service.ReconcileMatches(uuid.New(), uuid.New(), nil, feed, window)
+	perRound := map[int]int{}
+	for _, m := range plan.Inserts {
+		perRound[m.Round]++
+	}
+	if len(perRound) != 38 {
+		t.Fatalf("rounds = %d, want 38", len(perRound))
+	}
+	for round, n := range perRound {
+		if n != 10 {
+			t.Errorf("round %d has %d matches, want 10", round, n)
+		}
 	}
 }

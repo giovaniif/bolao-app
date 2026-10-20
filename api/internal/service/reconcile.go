@@ -63,13 +63,25 @@ type FeedMatch struct {
 	AwayGoals  *int
 }
 
-type ReconcilePlan struct {
-	Inserts []models.Match
-	Updates []models.Match
+type InsertWindow struct {
+	From time.Time
+	To   time.Time
 }
 
-func ReconcileMatches(competitionID, bolaoID uuid.UUID, local []models.Match, remote []FeedMatch) ReconcilePlan {
+func (w InsertWindow) contains(t time.Time) bool {
+	return !t.Before(w.From) && !t.After(w.To)
+}
+
+type ReconcilePlan = models.ReconcilePlan
+
+func ReconcileMatches(competitionID, bolaoID uuid.UUID, local []models.Match, remote []FeedMatch, window InsertWindow) ReconcilePlan {
 	rounds := feedRounds(remote)
+	firstKickoff := map[int]time.Time{}
+	for _, f := range remote {
+		if k, ok := firstKickoff[rounds[f.ProviderID]]; !ok || f.Kickoff.Before(k) {
+			firstKickoff[rounds[f.ProviderID]] = f.Kickoff
+		}
+	}
 	byProvider := map[int64]models.Match{}
 	manual := map[string]models.Match{}
 	for _, m := range local {
@@ -88,6 +100,9 @@ func ReconcileMatches(competitionID, bolaoID uuid.UUID, local []models.Match, re
 			key := manualKey(round, f.HomeTeam, f.AwayTeam)
 			current, ok = manual[key]
 			delete(manual, key)
+		}
+		if !ok && !window.contains(firstKickoff[round]) {
+			continue
 		}
 		if !ok {
 			plan.Inserts = append(plan.Inserts, applyFeed(models.Match{

@@ -114,3 +114,17 @@ type PushSubscription struct {
 	P256dh   string    `json:"p256dh"`
 	Auth     string    `json:"auth"`
 }
+
+type ReconcilePlan struct {
+	Inserts []Match
+	Updates []Match
+}
+
+type SyncTarget struct {
+	CompetitionID  uuid.UUID
+	Code           string
+	Season         int
+	BolaoID        uuid.UUID
+	BolaoStartedAt time.Time
+	LastSyncedAt   *time.Time
+}

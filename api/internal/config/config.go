@@ -13,6 +13,8 @@ type Config struct {
 	VAPIDPrivateKey string
 	VAPIDSubject    string
 	CronSecret      string
+
+	FootballDataAPIKey string
 }
 
 func Load() *Config {
@@ -25,6 +27,8 @@ func Load() *Config {
 		VAPIDPrivateKey: os.Getenv("VAPID_PRIVATE_KEY"),
 		VAPIDSubject:    os.Getenv("VAPID_SUBJECT"),
 		CronSecret:      os.Getenv("CRON_SECRET"),
+
+		FootballDataAPIKey: os.Getenv("FOOTBALL_DATA_API_KEY"),
 	}
 }
 

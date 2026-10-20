@@ -5,9 +5,11 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/bolao-app/api/internal/config"
 	"github.com/bolao-app/api/internal/database"
+	"github.com/bolao-app/api/internal/footballdata"
 	"github.com/bolao-app/api/internal/handler"
 	"github.com/bolao-app/api/internal/push"
 	"github.com/bolao-app/api/internal/repository"
@@ -49,13 +51,21 @@ func main() {
 		log.Print("push notifications disabled: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY or VAPID_SUBJECT not set")
 	}
 
+	var matchSyncer handler.MatchSyncer
+	if cfg.FootballDataAPIKey != "" {
+		feed := footballdata.NewClient(footballdata.DefaultBaseURL, cfg.FootballDataAPIKey)
+		matchSyncer = service.NewMatchSyncService(feed, repository.NewMatchSyncRepository(pool), time.Now)
+	} else {
+		log.Print("match sync disabled: FOOTBALL_DATA_API_KEY not set")
+	}
+
 	authHandler := handler.NewAuthHandler(userRepo, cfg.JWTSecret)
 	userHandler := handler.NewUserHandler(userRepo, bolaoRepo)
 	var notifier handler.RoundNotifier
 	if notificationSvc != nil {
 		notifier = notificationSvc
 	}
-	pushHandler := handler.NewPushHandler(pushRepo, bolaoRepo, matchRepo, notifier, cfg.VAPIDPublicKey, cfg.CronSecret)
+	pushHandler := handler.NewPushHandler(pushRepo, bolaoRepo, matchRepo, notifier, matchSyncer, cfg.VAPIDPublicKey, cfg.CronSecret)
 	matchHandler := handler.NewMatchHandler(matchRepo, bolaoRepo, pushHandler)
 	predictionHandler := handler.NewPredictionHandler(predictionRepo, matchRepo, bolaoRepo)
 	partialHandler := handler.NewPartialHandler(matchRepo, partialRepo, bolaoRepo)
@@ -134,7 +144,7 @@ func corsMiddleware() gin.HandlerFunc {
 }
 
 func runMigrations(ctx context.Context, pool *pgxpool.Pool) error {
-	for _, name := range []string{"001_init.sql", "002_timestamptz.sql", "003_match_partials.sql", "004_passwords.sql", "005_partials_nullable.sql", "006_boloes.sql", "007_push_notifications.sql", "008_competitions.sql"} {
+	for _, name := range []string{"001_init.sql", "002_timestamptz.sql", "003_match_partials.sql", "004_passwords.sql", "005_partials_nullable.sql", "006_boloes.sql", "007_push_notifications.sql", "008_competitions.sql", "009_match_sync.sql"} {
 		path := filepath.Join("migrations", name)
 		content, err := os.ReadFile(path)
 		if err != nil {

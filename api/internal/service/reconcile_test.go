@@ -22,6 +22,8 @@ func finishedFeed(id int64, home, away string, hg, ag int) FeedMatch {
 
 func providerID(v int64) *int64 { return &v }
 
+var openWindow = InsertWindow{From: feedKickoff.Add(-365 * 24 * time.Hour), To: feedKickoff.Add(365 * 24 * time.Hour)}
+
 func local(id int64, round int, home, away string) models.Match {
 	k := feedKickoff
 	return models.Match{ID: uuid.New(), ProviderMatchID: providerID(id), Round: round, HomeTeam: home, AwayTeam: away, KickoffAt: &k, MarketClosesAt: &k, Status: models.MatchStatusTimed}
@@ -209,8 +211,43 @@ func TestReconcileMatches(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.check(t, ReconcileMatches(competition, bolao, tt.local, tt.remote))
+			tt.check(t, ReconcileMatches(competition, bolao, tt.local, tt.remote, openWindow))
 		})
+	}
+}
+
+func TestReconcileMatches_InsertsOnlyInsideTheWindow(t *testing.T) {
+	window := InsertWindow{From: feedKickoff.Add(-24 * time.Hour), To: feedKickoff.Add(14 * 24 * time.Hour)}
+	before := feed(1, FeedStatusFinished, 1, "Bahia", "Santos")
+	before.Kickoff = feedKickoff.Add(-48 * time.Hour)
+	inside := feed(2, FeedStatusTimed, 32, "Flamengo", "Palmeiras")
+	after := feed(3, FeedStatusTimed, 36, "Grêmio", "Inter")
+	after.Kickoff = feedKickoff.Add(20 * 24 * time.Hour)
+	tracked := local(4, 30, "Remo", "Bahia")
+	movedOut := feed(4, FeedStatusTimed, 30, "Remo", "Bahia")
+	movedOut.Kickoff = feedKickoff.Add(30 * 24 * time.Hour)
+
+	plan := ReconcileMatches(uuid.New(), uuid.New(), []models.Match{tracked}, []FeedMatch{before, inside, after, movedOut}, window)
+
+	if len(plan.Inserts) != 1 || *plan.Inserts[0].ProviderMatchID != 2 {
+		t.Errorf("inserts = %+v, want only provider match 2", plan.Inserts)
+	}
+	if len(plan.Updates) != 1 || *plan.Updates[0].ProviderMatchID != 4 {
+		t.Errorf("updates = %+v, want the tracked match even outside the window", plan.Updates)
+	}
+}
+
+func TestReconcileMatches_InsertsARoundWholeWhenItsFirstKickoffIsInsideTheWindow(t *testing.T) {
+	window := InsertWindow{From: feedKickoff.Add(-24 * time.Hour), To: feedKickoff.Add(14 * 24 * time.Hour)}
+	first := feed(1, FeedStatusTimed, 34, "Bahia", "Santos")
+	first.Kickoff = window.To.Add(-time.Hour)
+	last := feed(2, FeedStatusTimed, 34, "Flamengo", "Palmeiras")
+	last.Kickoff = window.To.Add(48 * time.Hour)
+
+	plan := ReconcileMatches(uuid.New(), uuid.New(), nil, []FeedMatch{last, first}, window)
+
+	if len(plan.Inserts) != 2 {
+		t.Errorf("inserts = %d, want the whole round 34", len(plan.Inserts))
 	}
 }
 
