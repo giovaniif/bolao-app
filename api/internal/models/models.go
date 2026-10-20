@@ -73,6 +73,43 @@ type BolaoParticipant struct {
 	JoinedAt   time.Time `json:"joined_at"`
 }
 
+const (
+	MemberRoleOwner       = "owner"
+	MemberRoleAdmin       = "admin"
+	MemberRoleParticipant = "participant"
+
+	MemberStatusPending = "pending"
+	MemberStatusActive  = "active"
+	MemberStatusRemoved = "removed"
+)
+
+type Membership struct {
+	BolaoID    uuid.UUID `json:"bolao_id"`
+	UserID     uuid.UUID `json:"user_id"`
+	Role       string    `json:"role"`
+	Status     string    `json:"status"`
+	AmountPaid float64   `json:"amount_paid"`
+	JoinedAt   time.Time `json:"joined_at"`
+}
+
+type MemberView struct {
+	ID           uuid.UUID `json:"id"`
+	Username     string    `json:"username"`
+	DisplayName  string    `json:"display_name"`
+	FavoriteTeam *string   `json:"favorite_team,omitempty"`
+	Role         string    `json:"role"`
+	Status       string    `json:"status"`
+	AmountPaid   float64   `json:"amount_paid"`
+	JoinedAt     time.Time `json:"joined_at"`
+}
+
+type MyBolao struct {
+	Bolao
+	Role         string `json:"role"`
+	MemberStatus string `json:"member_status"`
+	MemberCount  int    `json:"member_count"`
+}
+
 type ParticipantView struct {
 	User
 	AmountPaid float64   `json:"amount_paid"`
