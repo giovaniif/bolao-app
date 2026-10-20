@@ -124,6 +124,8 @@ func main() {
 			scoped.GET("/export/all", exportHandler.ExportAll)
 		}
 
+		handler.NewMemberHandler(membershipRepo, bolaoRepo).Routes(api, handler.RequireMember(membershipRepo))
+
 		admin := api.Group("")
 		admin.Use(handler.AdminMiddleware())
 		{
@@ -161,7 +163,7 @@ func corsMiddleware() gin.HandlerFunc {
 }
 
 func runMigrations(ctx context.Context, pool *pgxpool.Pool) error {
-	for _, name := range []string{"001_init.sql", "002_timestamptz.sql", "003_match_partials.sql", "004_passwords.sql", "005_partials_nullable.sql", "006_boloes.sql", "007_push_notifications.sql", "008_competitions.sql", "009_match_sync.sql", "010_bolao_members.sql"} {
+	for _, name := range []string{"001_init.sql", "002_timestamptz.sql", "003_match_partials.sql", "004_passwords.sql", "005_partials_nullable.sql", "006_boloes.sql", "007_push_notifications.sql", "008_competitions.sql", "009_match_sync.sql", "010_bolao_members.sql", "011_many_active_boloes.sql"} {
 		path := filepath.Join("migrations", name)
 		content, err := os.ReadFile(path)
 		if err != nil {

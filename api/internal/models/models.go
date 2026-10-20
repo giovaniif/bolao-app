@@ -57,13 +57,18 @@ type Competition struct {
 }
 
 type Bolao struct {
-	ID         uuid.UUID  `json:"id"`
-	Name       string     `json:"name"`
-	Status     string     `json:"status"`
-	StartedAt  time.Time  `json:"started_at"`
-	FinishedAt *time.Time `json:"finished_at,omitempty"`
-	CreatedAt  time.Time  `json:"created_at"`
-	UpdatedAt  time.Time  `json:"updated_at"`
+	ID               uuid.UUID  `json:"id"`
+	Name             string     `json:"name"`
+	Status           string     `json:"status"`
+	OwnerID          *uuid.UUID `json:"owner_id,omitempty"`
+	Visibility       string     `json:"visibility"`
+	RequiresApproval bool       `json:"requires_approval"`
+	MaxMembers       int        `json:"max_members"`
+	InviteCode       string     `json:"-"`
+	StartedAt        time.Time  `json:"started_at"`
+	FinishedAt       *time.Time `json:"finished_at,omitempty"`
+	CreatedAt        time.Time  `json:"created_at"`
+	UpdatedAt        time.Time  `json:"updated_at"`
 }
 
 type BolaoParticipant struct {

@@ -97,3 +97,21 @@ func (r *MembershipRepository) ListBoloesOfUser(ctx context.Context, userID uuid
 	}
 	return boloes, rows.Err()
 }
+
+func (r *MembershipRepository) TransferOwnership(ctx context.Context, bolaoID, from, to uuid.UUID) error {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	if _, err := tx.Exec(ctx, `UPDATE bolao_participants SET role = 'admin' WHERE bolao_id = $1 AND user_id = $2`, bolaoID, from); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `UPDATE bolao_participants SET role = 'owner' WHERE bolao_id = $1 AND user_id = $2`, bolaoID, to); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `UPDATE boloes SET owner_id = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $1`, bolaoID, to); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
