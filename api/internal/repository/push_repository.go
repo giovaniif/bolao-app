@@ -39,7 +39,7 @@ func (r *PushRepository) DeleteByEndpoint(ctx context.Context, endpoint string) 
 func (r *PushRepository) ListForBolao(ctx context.Context, bolaoID uuid.UUID) ([]models.PushSubscription, error) {
 	query := `SELECT s.id, s.user_id, s.endpoint, s.p256dh, s.auth
 		FROM push_subscriptions s
-		JOIN bolao_participants p ON p.user_id = s.user_id AND p.bolao_id = $1`
+		JOIN bolao_participants p ON p.user_id = s.user_id AND p.bolao_id = $1 AND p.status = 'active'`
 	rows, err := r.pool.Query(ctx, query, bolaoID)
 	if err != nil {
 		return nil, err

@@ -118,7 +118,7 @@ func (r *BolaoRepository) ListParticipants(ctx context.Context, bolaoID uuid.UUI
 			bp.amount_paid, bp.joined_at
 		FROM bolao_participants bp
 		JOIN users u ON u.id = bp.user_id
-		WHERE bp.bolao_id = $1
+		WHERE bp.bolao_id = $1 AND bp.status = 'active'
 		ORDER BY u.display_name`
 	rows, err := r.pool.Query(ctx, query, bolaoID)
 	if err != nil {
