@@ -5,6 +5,7 @@ import (
 	"crypto/subtle"
 	"log"
 	"net/http"
+	"sync/atomic"
 	"time"
 
 	"github.com/bolao-app/api/internal/models"
@@ -31,7 +32,14 @@ type RoundNotifier interface {
 	Tick(ctx context.Context, bolaoID uuid.UUID, rounds []service.RoundClose, now time.Time) (int, error)
 }
 
-const announceTimeout = 30 * time.Second
+type MatchSyncer interface {
+	RunOnce(ctx context.Context) (service.SyncReport, error)
+}
+
+const (
+	announceTimeout  = 30 * time.Second
+	matchSyncTimeout = 2 * time.Minute
+)
 
 type PushHandler struct {
 	store      pushSubscriptionStore
@@ -39,12 +47,15 @@ type PushHandler struct {
 	matches    bolaoMatchLister
 	notifier   RoundNotifier
 	publicKey  string
+	syncer     MatchSyncer
+	syncing    atomic.Bool
 	cronSecret string
 	now        func() time.Time
 }
 
-func NewPushHandler(store pushSubscriptionStore, bolaos activeBolaoGetter, matches bolaoMatchLister, notifier RoundNotifier, publicKey, cronSecret string) *PushHandler {
+func NewPushHandler(store pushSubscriptionStore, bolaos activeBolaoGetter, matches bolaoMatchLister, notifier RoundNotifier, syncer MatchSyncer, publicKey, cronSecret string) *PushHandler {
 	return &PushHandler{
+		syncer:     syncer,
 		store:      store,
 		bolaos:     bolaos,
 		matches:    matches,
@@ -121,6 +132,7 @@ func (h *PushHandler) Tick(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "não autorizado"})
 		return
 	}
+	h.startMatchSync()
 	if !h.enabled() {
 		c.JSON(http.StatusOK, gin.H{"sent": 0})
 		return
@@ -157,4 +169,18 @@ func (h *PushHandler) announce(bolaoID uuid.UUID, r service.Reminder) {
 	if _, err := h.notifier.Notify(ctx, bolaoID, r); err != nil {
 		log.Printf("announce round %d: %v", r.Round, err)
 	}
+}
+
+func (h *PushHandler) startMatchSync() {
+	if h.syncer == nil || !h.syncing.CompareAndSwap(false, true) {
+		return
+	}
+	go func() {
+		defer h.syncing.Store(false)
+		ctx, cancel := context.WithTimeout(context.Background(), matchSyncTimeout)
+		defer cancel()
+		if report, err := h.syncer.RunOnce(ctx); err != nil {
+			log.Printf("match sync: %+v: %v", report, err)
+		}
+	}()
 }

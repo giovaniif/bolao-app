@@ -55,7 +55,7 @@ func main() {
 	if notificationSvc != nil {
 		notifier = notificationSvc
 	}
-	pushHandler := handler.NewPushHandler(pushRepo, bolaoRepo, matchRepo, notifier, cfg.VAPIDPublicKey, cfg.CronSecret)
+	pushHandler := handler.NewPushHandler(pushRepo, bolaoRepo, matchRepo, notifier, nil, cfg.VAPIDPublicKey, cfg.CronSecret)
 	matchHandler := handler.NewMatchHandler(matchRepo, bolaoRepo, pushHandler)
 	predictionHandler := handler.NewPredictionHandler(predictionRepo, matchRepo, bolaoRepo)
 	partialHandler := handler.NewPartialHandler(matchRepo, partialRepo, bolaoRepo)
