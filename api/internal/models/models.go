@@ -31,7 +31,7 @@ type Match struct {
 	ID              uuid.UUID  `json:"id"`
 	BolaoID         uuid.UUID  `json:"bolao_id"`
 	CompetitionID   *uuid.UUID `json:"competition_id,omitempty"`
-	ProviderMatchID *int64     `json:"-"`
+	ProviderMatchID *int64     `json:"provider_match_id,omitempty"`
 	Round           int        `json:"round"`
 	HomeTeam        string     `json:"home_team"`
 	AwayTeam        string     `json:"away_team"`
