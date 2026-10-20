@@ -108,6 +108,14 @@ type MemberView struct {
 	JoinedAt     time.Time `json:"joined_at"`
 }
 
+type PublicBolao struct {
+	ID               uuid.UUID `json:"id"`
+	Name             string    `json:"name"`
+	RequiresApproval bool      `json:"requires_approval"`
+	MemberCount      int       `json:"member_count"`
+	MaxMembers       int       `json:"max_members"`
+}
+
 type MyBolao struct {
 	Bolao
 	Role         string `json:"role"`
