@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { useCurrentBolao } from '../bolao/useCurrentBolao';
 import { useAuth } from '../auth/AuthProvider';
 import { PrimaryButton } from '../components/PrimaryButton';
+import { DeleteAccount } from '../auth/DeleteAccount';
 import { colors } from '../theme';
 
 const ROLE: Record<string, string> = { owner: 'Dono', admin: 'Admin', participant: 'Participante' };
@@ -52,8 +53,9 @@ export function MyBoloesScreen() {
           </View>
         );
       })}
-      <View style={{ marginTop: 24 }}>
+      <View style={{ marginTop: 24, gap: 12 }}>
         <PrimaryButton title="Sair" variant="secondary" onPress={signOut} />
+        <DeleteAccount />
       </View>
     </ScrollView>
   );

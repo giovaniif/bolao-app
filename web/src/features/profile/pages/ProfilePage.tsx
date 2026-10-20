@@ -7,6 +7,7 @@ import { useProfile, useUpdateProfile } from '../hooks/useProfile';
 import { getTeams } from '../api/profileApi';
 import { useAuth } from '../../../shared/hooks/useAuth';
 import { PushToggle } from '../../notifications/components/PushToggle';
+import { DeleteAccount } from '../components/DeleteAccount';
 import { usePushSubscription } from '../../notifications/hooks/usePushSubscription';
 
 export function ProfilePage() {
@@ -118,6 +119,9 @@ export function ProfilePage() {
         >
           Sair
         </Button>
+        <div className="mt-6">
+          <DeleteAccount />
+        </div>
       </div>
     </Layout>
   );
