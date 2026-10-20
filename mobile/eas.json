@@ -7,18 +7,29 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "env": { "EXPO_PUBLIC_API_URL": "https://bolao-app-dev.onrender.com/api" }
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://bolao-app-dev.onrender.com/api"
+      }
     },
     "preview": {
       "distribution": "internal",
-      "env": { "EXPO_PUBLIC_API_URL": "https://bolao-app-dev.onrender.com/api" }
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://bolao-app-dev.onrender.com/api"
+      }
     },
     "production": {
       "autoIncrement": true,
-      "env": { "EXPO_PUBLIC_API_URL": "https://bolao-app-mcc8.onrender.com/api" }
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://bolao-app-mcc8.onrender.com/api"
+      }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "ascAppId": "6825092951",
+        "appleTeamId": "827UMZ89C2"
+      }
+    }
   }
 }
