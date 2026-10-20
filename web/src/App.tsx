@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './shared/hooks/AuthProvider';
+import { AnalyticsGate } from './shared/analytics/AnalyticsGate';
 import { useAuth } from './shared/hooks/useAuth';
 import { LoginPage } from './features/auth/pages/LoginPage';
 import { SignupPage } from './features/auth/pages/SignupPage';
@@ -160,6 +161,7 @@ export default function App() {
       <BrowserRouter basename={basename}>
         <AuthProvider>
           <AppRoutes />
+          <AnalyticsGate />
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>

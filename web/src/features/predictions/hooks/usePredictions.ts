@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getMyPredictions, savePredictions, type PredictionInput } from '../api/predictionsApi';
 import { queryKeys } from '../../../shared/query/queryKeys';
 import { useCurrentBolao } from '../../../shared/hooks/useCurrentBolao';
+import { track } from '../../../shared/analytics/analytics';
 
 export function useMyPredictions(round: number) {
   const { bolaoId: scope, isLoading } = useCurrentBolao();
@@ -17,7 +18,8 @@ export function useSavePredictions(round: number) {
   const { bolaoId: scope } = useCurrentBolao();
   return useMutation({
     mutationFn: (predictions: PredictionInput[]) => savePredictions(predictions, scope),
-    onSuccess: () => {
+    onSuccess: (_result, predictions) => {
+      track('predictions_saved', { round, count: predictions.length });
       queryClient.invalidateQueries({ queryKey: queryKeys.predictions(round) });
     },
   });

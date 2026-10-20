@@ -8,6 +8,7 @@ import { getTeams } from '../api/profileApi';
 import { useAuth } from '../../../shared/hooks/useAuth';
 import { PushToggle } from '../../notifications/components/PushToggle';
 import { DeleteAccount } from '../components/DeleteAccount';
+import { PrivacyToggle } from '../../../shared/analytics/PrivacyToggle';
 import { usePushSubscription } from '../../notifications/hooks/usePushSubscription';
 
 export function ProfilePage() {
@@ -119,6 +120,7 @@ export function ProfilePage() {
         >
           Sair
         </Button>
+        <PrivacyToggle />
         <div className="mt-6">
           <DeleteAccount />
         </div>

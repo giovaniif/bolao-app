@@ -9,6 +9,7 @@ import {
   type MemberRole,
 } from '../api/membersApi';
 import { queryKeys } from '../../../shared/query/queryKeys';
+import { track } from '../../../shared/analytics/analytics';
 
 export function useMembers(bolaoId?: string) {
   return useQuery({
@@ -27,7 +28,7 @@ export function useInviteCode(bolaoId?: string, enabled = true) {
 }
 
 export function useCreateInviteLink(bolaoId?: string) {
-  return useMutation({ mutationFn: () => createInviteLink(bolaoId!) });
+  return useMutation({ mutationFn: () => createInviteLink(bolaoId!), onSuccess: () => track('invite_link_created') });
 }
 
 export function useMemberActions(bolaoId?: string) {
