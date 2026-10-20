@@ -1,6 +1,6 @@
 ---
 name: babysit-prs
-description: Keep this repo's open PRs mergeable. Fix failed CI, answer or fix CodeRabbit and human review comments, rebase stacks that conflict, check the UI screenshots, and report what is left. Use when asked to babysit, watch, shepherd or keep PRs green, or with /loop (for example "/loop 10m /babysit-prs"). Takes optional PR numbers; with none, it covers every open PR by the current user.
+description: Keep this repo's open PRs mergeable. Fix failed CI, answer or fix review comments, rebase stacks that conflict, check the UI screenshots, and report what is left. Use when asked to babysit, watch, shepherd or keep PRs green, or with /loop (for example "/loop 10m /babysit-prs"). Takes optional PR numbers; with none, it covers every open PR by the current user.
 ---
 
 # Babysit PRs
@@ -48,7 +48,7 @@ gh api repos/{owner}/{repo}/issues/<n>/comments --paginate
 gh api graphql -f query='query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){pullRequest(number:$n){reviewThreads(first:100){nodes{id isResolved comments(first:20){nodes{author{login} body path line}}}}}}}' -F o=<owner> -F r=<repo> -F n=<n>
 ```
 
-Read every thread that is not resolved, from CodeRabbit (`coderabbitai`) and from people.
+Read every review thread that is not resolved.
 
 - **Correct finding:** fix it, push, then reply on the thread with the commit SHA and resolve it (`resolveReviewThread` mutation).
 - **Wrong finding:** reply with the reason, in one or two sentences, and leave it open for the reviewer.
