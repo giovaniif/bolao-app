@@ -54,6 +54,12 @@ describe('useCurrentBolao', () => {
     await waitFor(() => expect(screen.getByTestId('id').textContent).toBe('b-firma'))
   })
 
+  it('remembers a bolão that came in the URL', async () => {
+    stubMine(MINE)
+    renderWithProviders(<Probe />, { route: '/?bolao=b-firma' })
+    await waitFor(() => expect(localStorage.getItem('bolao')).toBe('b-firma'))
+  })
+
   it('ignores a bolão in the URL where the user does not play', async () => {
     stubMine(MINE)
     renderWithProviders(<Probe />, { route: '/?bolao=b-wait' })
