@@ -34,3 +34,25 @@ describe('authApi', () => {
     expect(res.username).toBe('admin')
   })
 })
+
+describe('signup', () => {
+  it('creates the account and returns the login', async () => {
+    const mockSignup = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      text: () => Promise.resolve(JSON.stringify({ token: 'jwt', user_id: '9', username: 'joao', is_admin: false, must_change_password: false })),
+    })
+    vi.stubGlobal('fetch', mockSignup)
+    const { signup } = await import('./authApi')
+
+    const res = await signup({ username: 'joao', display_name: 'João', email: 'joao@example.com', password: 'segredo123' })
+
+    expect(mockSignup).toHaveBeenCalledWith(
+      `${API_BASE}/auth/signup`,
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ username: 'joao', display_name: 'João', email: 'joao@example.com', password: 'segredo123' }),
+      })
+    )
+    expect(res.username).toBe('joao')
+  })
+})
