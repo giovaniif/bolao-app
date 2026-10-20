@@ -83,6 +83,9 @@ func main() {
 	r.GET("/api/push/public-key", pushHandler.PublicKey)
 	r.POST("/api/internal/notifications/tick", pushHandler.Tick)
 
+	inviteHandler := handler.NewInviteHandler(repository.NewInviteRepository(pool), membershipRepo, bolaoRepo)
+	inviteHandler.PublicRoutes(r.Group("/api"))
+
 	api := r.Group("/api")
 	api.Use(handler.AuthMiddleware(cfg.JWTSecret))
 	{
@@ -125,6 +128,7 @@ func main() {
 		}
 
 		handler.NewMemberHandler(membershipRepo, bolaoRepo).Routes(api, handler.RequireMember(membershipRepo))
+		inviteHandler.Routes(api, handler.RequireMember(membershipRepo))
 
 		admin := api.Group("")
 		admin.Use(handler.AdminMiddleware())
