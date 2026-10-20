@@ -6,7 +6,7 @@ import { PrimaryButton } from '../components/PrimaryButton';
 import { colors } from '../theme';
 import { track } from '../analytics/analytics';
 
-const INVITE_HOST = process.env.EXPO_PUBLIC_INVITE_URL ?? 'https://bolao-app-dev.vercel.app';
+const INVITE_HOST = process.env.EXPO_PUBLIC_INVITE_URL ?? 'https://bolao.giovani.app';
 
 export function MembersScreen() {
   const { id = '' } = useLocalSearchParams<{ id: string }>();
