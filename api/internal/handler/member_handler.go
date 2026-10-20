@@ -25,7 +25,7 @@ type memberStore interface {
 
 type ownedBolaoStore interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*models.Bolao, error)
-	CreateOwned(ctx context.Context, name string, ownerID uuid.UUID) (*models.Bolao, error)
+	CreateOwnedOn(ctx context.Context, name string, ownerID uuid.UUID, competitionID *uuid.UUID) (*models.Bolao, error)
 	UpdateSettings(ctx context.Context, id uuid.UUID, name, visibility string, requiresApproval bool) error
 	CountOwnedActive(ctx context.Context, ownerID uuid.UUID) (int, error)
 }
@@ -77,7 +77,8 @@ func (h *MemberHandler) ListMine(c *gin.Context) {
 
 func (h *MemberHandler) Create(c *gin.Context) {
 	var req struct {
-		Name string `json:"name"`
+		Name          string `json:"name"`
+		CompetitionID string `json:"competition_id"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -87,6 +88,15 @@ func (h *MemberHandler) Create(c *gin.Context) {
 	if !ok {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "o nome deve ter entre 3 e 100 caracteres"})
 		return
+	}
+	var competitionID *uuid.UUID
+	if req.CompetitionID != "" {
+		id, err := uuid.Parse(req.CompetitionID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "campeonato inválido"})
+			return
+		}
+		competitionID = &id
 	}
 	userID := c.MustGet("user_id").(uuid.UUID)
 	owned, err := h.boloes.CountOwnedActive(c.Request.Context(), userID)
@@ -98,7 +108,7 @@ func (h *MemberHandler) Create(c *gin.Context) {
 		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 		return
 	}
-	bolao, err := h.boloes.CreateOwned(c.Request.Context(), name, userID)
+	bolao, err := h.boloes.CreateOwnedOn(c.Request.Context(), name, userID, competitionID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

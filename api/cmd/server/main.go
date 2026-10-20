@@ -82,6 +82,7 @@ func main() {
 	r.POST("/api/auth/signup", authHandler.Signup)
 	r.GET("/api/teams", userHandler.GetTeams)
 	r.GET("/api/rules", handler.GetRules)
+	r.GET("/api/competitions", handler.NewCompetitionHandler(repository.NewCompetitionRepository(pool)).List)
 	r.GET("/api/push/public-key", pushHandler.PublicKey)
 	r.POST("/api/internal/notifications/tick", pushHandler.Tick)
 
