@@ -96,7 +96,11 @@ func (s *MatchSyncService) syncTarget(ctx context.Context, target SyncTarget) (b
 	if err != nil {
 		return false, err
 	}
-	window := InsertWindow{From: target.BolaoStartedAt, To: now.Add(insertAhead)}
+	from := target.BolaoStartedAt
+	if now.After(from) {
+		from = now
+	}
+	window := InsertWindow{From: from, To: now.Add(insertAhead)}
 	if err := s.store.ApplyPlan(ctx, ReconcileMatches(target.CompetitionID, target.BolaoID, local, remote, window)); err != nil {
 		return false, err
 	}
