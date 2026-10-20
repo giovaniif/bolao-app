@@ -68,9 +68,10 @@ func (f *fakeMemberStore) ListBoloesOfUser(context.Context, uuid.UUID) ([]models
 }
 
 type fakeBolaoStore struct {
-	bolao    models.Bolao
-	created  []string
-	settings []string
+	bolao        models.Bolao
+	created      []string
+	competitions []*uuid.UUID
+	settings     []string
 }
 
 func (f *fakeBolaoStore) GetByID(context.Context, uuid.UUID) (*models.Bolao, error) {
@@ -78,8 +79,9 @@ func (f *fakeBolaoStore) GetByID(context.Context, uuid.UUID) (*models.Bolao, err
 	return &b, nil
 }
 
-func (f *fakeBolaoStore) CreateOwned(_ context.Context, name string, owner uuid.UUID) (*models.Bolao, error) {
+func (f *fakeBolaoStore) CreateOwnedOn(_ context.Context, name string, owner uuid.UUID, competition *uuid.UUID) (*models.Bolao, error) {
 	f.created = append(f.created, name)
+	f.competitions = append(f.competitions, competition)
 	return &models.Bolao{ID: uuid.New(), Name: name, Status: "active", OwnerID: &owner}, nil
 }
 
@@ -118,6 +120,20 @@ func TestMemberHandler_CreateAndListMyBoloes(t *testing.T) {
 	w = do(t, r, http.MethodGet, "/api/me/boloes", "", tokenFor(t, user, false))
 	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `"role":"owner"`) {
 		t.Errorf("list: status = %d body = %s", w.Code, w.Body)
+	}
+}
+
+func TestMemberHandler_CreateOnACompetition(t *testing.T) {
+	bolaoID, user, competition := uuid.New(), uuid.New(), uuid.New()
+	boloes := activeBolao(bolaoID)
+	r := memberHandlerRouter(newFakeMemberStore(bolaoID), boloes)
+
+	w := do(t, r, http.MethodPost, "/api/me/boloes", `{"name":"Brasileirão da firma","competition_id":"`+competition.String()+`"}`, tokenFor(t, user, false))
+	if w.Code != http.StatusCreated || len(boloes.competitions) != 1 || boloes.competitions[0] == nil || *boloes.competitions[0] != competition {
+		t.Errorf("status = %d competitions = %v", w.Code, boloes.competitions)
+	}
+	if w := do(t, r, http.MethodPost, "/api/me/boloes", `{"name":"Ruim","competition_id":"nope"}`, tokenFor(t, user, false)); w.Code != http.StatusBadRequest {
+		t.Errorf("bad competition id: status = %d, want 400", w.Code)
 	}
 }
 

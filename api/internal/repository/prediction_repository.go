@@ -40,7 +40,7 @@ func (r *PredictionRepository) GetByUserAndRound(ctx context.Context, userID, bo
 	query := `SELECT p.id, p.user_id, p.match_id, p.home_goals, p.away_goals, p.created_at, p.updated_at
 		FROM predictions p
 		JOIN matches m ON p.match_id = m.id
-		WHERE p.user_id = $1 AND m.bolao_id = $2 AND m.round = $3`
+		WHERE p.user_id = $1 AND ` + matchInBolao("$2") + ` AND m.round = $3`
 	rows, err := r.pool.Query(ctx, query, userID, bolaoID, round)
 	if err != nil {
 		return nil, err
@@ -82,7 +82,7 @@ func (r *PredictionRepository) GetAllForBolao(ctx context.Context, bolaoID uuid.
 	query := `SELECT p.id, p.user_id, p.match_id, p.home_goals, p.away_goals, p.created_at, p.updated_at
 		FROM predictions p
 		JOIN matches m ON p.match_id = m.id
-		WHERE m.bolao_id = $1`
+		WHERE ` + matchInBolao("$1")
 	rows, err := r.pool.Query(ctx, query, bolaoID)
 	if err != nil {
 		return nil, err
@@ -104,7 +104,7 @@ func (r *PredictionRepository) GetAllPredictionsForRound(ctx context.Context, bo
 	query := `SELECT p.id, p.user_id, p.match_id, p.home_goals, p.away_goals, p.created_at, p.updated_at
 		FROM predictions p
 		JOIN matches m ON p.match_id = m.id
-		WHERE m.bolao_id = $1 AND m.round = $2`
+		WHERE ` + matchInBolao("$1") + ` AND m.round = $2`
 	rows, err := r.pool.Query(ctx, query, bolaoID, round)
 	if err != nil {
 		return nil, err

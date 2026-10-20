@@ -40,7 +40,7 @@ func (r *MatchRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Ma
 
 func (r *MatchRepository) ListByRound(ctx context.Context, bolaoID uuid.UUID, round int) ([]models.Match, error) {
 	query := `SELECT id, bolao_id, competition_id, provider_match_id, round, home_team, away_team, kickoff_at, market_closes_at, home_goals, away_goals, status, locked, created_at, updated_at
-		FROM matches WHERE bolao_id = $1 AND round = $2 ORDER BY created_at`
+		FROM matches m WHERE ` + matchInBolao("$1") + ` AND m.round = $2 ORDER BY m.kickoff_at NULLS LAST, m.created_at`
 	rows, err := r.pool.Query(ctx, query, bolaoID, round)
 	if err != nil {
 		return nil, err
@@ -60,7 +60,7 @@ func (r *MatchRepository) ListByRound(ctx context.Context, bolaoID uuid.UUID, ro
 
 func (r *MatchRepository) ListAllByBolao(ctx context.Context, bolaoID uuid.UUID) ([]models.Match, error) {
 	query := `SELECT id, bolao_id, competition_id, provider_match_id, round, home_team, away_team, kickoff_at, market_closes_at, home_goals, away_goals, status, locked, created_at, updated_at
-		FROM matches WHERE bolao_id = $1 ORDER BY round, created_at`
+		FROM matches m WHERE ` + matchInBolao("$1") + ` ORDER BY m.round, m.kickoff_at NULLS LAST, m.created_at`
 	rows, err := r.pool.Query(ctx, query, bolaoID)
 	if err != nil {
 		return nil, err
@@ -79,7 +79,7 @@ func (r *MatchRepository) ListAllByBolao(ctx context.Context, bolaoID uuid.UUID)
 }
 
 func (r *MatchRepository) ListRounds(ctx context.Context, bolaoID uuid.UUID) ([]int, error) {
-	query := `SELECT DISTINCT round FROM matches WHERE bolao_id = $1 ORDER BY round`
+	query := `SELECT DISTINCT m.round FROM matches m WHERE ` + matchInBolao("$1") + ` ORDER BY m.round`
 	rows, err := r.pool.Query(ctx, query, bolaoID)
 	if err != nil {
 		return nil, err
@@ -131,4 +131,11 @@ func (r *MatchRepository) DeleteRound(ctx context.Context, bolaoID uuid.UUID, ro
 	query := `DELETE FROM matches WHERE bolao_id = $1 AND round = $2`
 	_, err := r.pool.Exec(ctx, query, bolaoID, round)
 	return err
+}
+
+func (r *MatchRepository) BelongsToBolao(ctx context.Context, matchID, bolaoID uuid.UUID) (bool, error) {
+	var belongs bool
+	query := `SELECT EXISTS (SELECT 1 FROM matches m WHERE m.id = $1 AND ` + matchInBolao("$2") + `)`
+	err := r.pool.QueryRow(ctx, query, matchID, bolaoID).Scan(&belongs)
+	return belongs, err
 }

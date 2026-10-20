@@ -82,6 +82,7 @@ func main() {
 	r.POST("/api/auth/signup", authHandler.Signup)
 	r.GET("/api/teams", userHandler.GetTeams)
 	r.GET("/api/rules", handler.GetRules)
+	r.GET("/api/competitions", handler.NewCompetitionHandler(repository.NewCompetitionRepository(pool)).List)
 	r.GET("/api/push/public-key", pushHandler.PublicKey)
 	r.POST("/api/internal/notifications/tick", pushHandler.Tick)
 
@@ -171,7 +172,7 @@ func corsMiddleware() gin.HandlerFunc {
 }
 
 func runMigrations(ctx context.Context, pool *pgxpool.Pool) error {
-	for _, name := range []string{"001_init.sql", "002_timestamptz.sql", "003_match_partials.sql", "004_passwords.sql", "005_partials_nullable.sql", "006_boloes.sql", "007_push_notifications.sql", "008_competitions.sql", "009_match_sync.sql", "010_bolao_members.sql", "011_many_active_boloes.sql", "012_hidden_boloes.sql"} {
+	for _, name := range []string{"001_init.sql", "002_timestamptz.sql", "003_match_partials.sql", "004_passwords.sql", "005_partials_nullable.sql", "006_boloes.sql", "007_push_notifications.sql", "008_competitions.sql", "009_match_sync.sql", "010_bolao_members.sql", "011_many_active_boloes.sql", "012_hidden_boloes.sql", "013_bolao_first_round.sql"} {
 		path := filepath.Join("migrations", name)
 		content, err := os.ReadFile(path)
 		if err != nil {

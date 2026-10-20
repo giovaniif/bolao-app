@@ -29,3 +29,22 @@ func (r *CompetitionRepository) GetByBolao(ctx context.Context, bolaoID uuid.UUI
 	}
 	return &c, nil
 }
+
+func (r *CompetitionRepository) ListActive(ctx context.Context) ([]models.Competition, error) {
+	query := `SELECT id, provider, provider_code, name, season, status, created_at, updated_at
+		FROM competitions WHERE status = 'active' ORDER BY name`
+	rows, err := r.pool.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	competitions := []models.Competition{}
+	for rows.Next() {
+		var c models.Competition
+		if err := rows.Scan(&c.ID, &c.Provider, &c.ProviderCode, &c.Name, &c.Season, &c.Status, &c.CreatedAt, &c.UpdatedAt); err != nil {
+			return nil, err
+		}
+		competitions = append(competitions, c)
+	}
+	return competitions, rows.Err()
+}

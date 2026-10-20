@@ -37,10 +37,10 @@ func (r *BolaoRepository) Create(ctx context.Context, name string) (*models.Bola
 	return &b, nil
 }
 
-const bolaoColumns = "b.id, b.name, b.status, b.owner_id, b.visibility, b.requires_approval, b.max_members, COALESCE(b.invite_code, ''), b.started_at, b.finished_at, b.created_at, b.updated_at"
+const bolaoColumns = "b.id, b.name, b.status, b.owner_id, b.visibility, b.requires_approval, b.max_members, COALESCE(b.invite_code, ''), b.competition_id, b.first_round, b.started_at, b.finished_at, b.created_at, b.updated_at"
 
 func bolaoFields(b *models.Bolao) []any {
-	return []any{&b.ID, &b.Name, &b.Status, &b.OwnerID, &b.Visibility, &b.RequiresApproval, &b.MaxMembers, &b.InviteCode, &b.StartedAt, &b.FinishedAt, &b.CreatedAt, &b.UpdatedAt}
+	return []any{&b.ID, &b.Name, &b.Status, &b.OwnerID, &b.Visibility, &b.RequiresApproval, &b.MaxMembers, &b.InviteCode, &b.CompetitionID, &b.FirstRound, &b.StartedAt, &b.FinishedAt, &b.CreatedAt, &b.UpdatedAt}
 }
 
 const inviteAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
@@ -57,15 +57,28 @@ func NewInviteCode() string {
 }
 
 func (r *BolaoRepository) CreateOwned(ctx context.Context, name string, ownerID uuid.UUID) (*models.Bolao, error) {
+	return r.CreateOwnedOn(ctx, name, ownerID, nil)
+}
+
+func (r *BolaoRepository) CreateOwnedOn(ctx context.Context, name string, ownerID uuid.UUID, competitionID *uuid.UUID) (*models.Bolao, error) {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 	var b models.Bolao
-	query := `INSERT INTO boloes AS b (id, name, owner_id, invite_code) VALUES ($1, $2, $3, $4)
+	query := `INSERT INTO boloes AS b (id, name, owner_id, invite_code, competition_id, first_round)
+		VALUES ($1, $2, $3, $4, $5::uuid, CASE WHEN $5::uuid IS NULL THEN NULL ELSE (
+			SELECT COALESCE(
+				(SELECT MIN(round) FROM (
+					SELECT round, MIN(COALESCE(kickoff_at, market_closes_at)) AS starts
+					FROM matches WHERE competition_id = $5::uuid GROUP BY round
+				) rounds WHERE starts > CURRENT_TIMESTAMP),
+				(SELECT MAX(round) + 1 FROM matches WHERE competition_id = $5::uuid),
+				1)
+		) END)
 		RETURNING ` + bolaoColumns
-	if err := tx.QueryRow(ctx, query, uuid.New(), name, ownerID, NewInviteCode()).Scan(bolaoFields(&b)...); err != nil {
+	if err := tx.QueryRow(ctx, query, uuid.New(), name, ownerID, NewInviteCode(), competitionID).Scan(bolaoFields(&b)...); err != nil {
 		return nil, err
 	}
 	if _, err := tx.Exec(ctx, `INSERT INTO bolao_participants (bolao_id, user_id, role, status) VALUES ($1, $2, 'owner', 'active')`, b.ID, ownerID); err != nil {
