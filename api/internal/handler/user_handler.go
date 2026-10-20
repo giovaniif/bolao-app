@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
@@ -236,4 +237,17 @@ func contains(s []string, e string) bool {
 		}
 	}
 	return false
+}
+
+func (h *UserHandler) DeleteMe(c *gin.Context) {
+	err := h.userRepo.DeleteAccount(c.Request.Context(), c.MustGet("user_id").(uuid.UUID))
+	if errors.Is(err, repository.ErrOwnsActiveBolao) {
+		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		return
+	}
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.Status(http.StatusNoContent)
 }

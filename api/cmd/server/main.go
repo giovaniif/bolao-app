@@ -104,6 +104,7 @@ func main() {
 		api.POST("/push/subscriptions", pushHandler.Subscribe)
 		api.DELETE("/push/subscriptions", pushHandler.Unsubscribe)
 		api.PUT("/me", userHandler.UpdateMe)
+		api.DELETE("/me", userHandler.DeleteMe)
 		api.GET("/parciais/round/:round", partialHandler.ListByRound)
 		api.PUT("/parciais/match/:id", partialHandler.SetPartial)
 		api.DELETE("/parciais/match/:id", partialHandler.ClearPartial)
