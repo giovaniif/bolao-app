@@ -22,6 +22,10 @@ this table to keep the two halves (document and code) from drifting apart silent
 | Correct total goal count for the entire round | `PointsRoundTotalGoals` | 10 | `scoring.go` |
 | Bonus for variety of exact scores predicted in the round | `bonusByScoreTypes` | 1 type=0 / 2=10 / 3=20 / 4+=30 | `scoring.go` |
 
+The app shows these rules from `GET /api/rules`, which `Rules()` in `rules.go` builds from the same
+constants. `rules_test.go` fails when a constant or a bonus tier is missing from it, so the text
+that players read never drifts from the code.
+
 The two functions that apply these constants are `CalculateMatchPoints` (one match) and
 `CalculateRoundPoints` (an entire round, including the bonuses that only make sense at the
 aggregate level).

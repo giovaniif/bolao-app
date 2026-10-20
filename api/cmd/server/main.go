@@ -80,6 +80,7 @@ func main() {
 
 	r.POST("/api/auth/login", authHandler.Login)
 	r.GET("/api/teams", userHandler.GetTeams)
+	r.GET("/api/rules", handler.GetRules)
 	r.GET("/api/push/public-key", pushHandler.PublicKey)
 	r.POST("/api/internal/notifications/tick", pushHandler.Tick)
 
