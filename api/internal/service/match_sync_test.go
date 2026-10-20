@@ -154,3 +154,16 @@ func TestMatchSync_AProviderErrorMarksAFailureAndKeepsTheData(t *testing.T) {
 		t.Errorf("report = %+v, want 1 failed", report)
 	}
 }
+
+func TestMatchSync_NeverInsertsARoundThatAlreadyStarted(t *testing.T) {
+	started := FeedMatch{ProviderID: 1, Kickoff: syncNow.Add(-2 * 24 * time.Hour), Status: FeedStatusFinished, Stage: StageRegularSeason, Matchday: 30, HomeTeam: "Bahia", AwayTeam: "Santos"}
+	feed := &fakeFeed{matches: []FeedMatch{started}}
+	store := &fakeSyncStore{targets: []SyncTarget{target(nil)}, budget: 100}
+
+	if _, err := NewMatchSyncService(feed, store, func() time.Time { return syncNow }).RunOnce(context.Background()); err != nil {
+		t.Fatalf("RunOnce: %v", err)
+	}
+	if len(store.plans) != 1 || len(store.plans[0].Inserts) != 0 {
+		t.Errorf("plans = %+v, want no insert of a round that started after the bolão but before now", store.plans)
+	}
+}
