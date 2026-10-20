@@ -14,7 +14,9 @@ import {
   useDeleteMatch,
   useDeleteRound,
   useTeams,
+  useUnlockMatch,
 } from '../hooks/useAdmin';
+import { FeedBadge } from './FeedBadge';
 import type { Match } from '../api/adminApi';
 import { Button } from '../../../shared/components/Button';
 import { Input } from '../../../shared/components/Input';
@@ -49,6 +51,7 @@ export function AdminMatches() {
   const updateClosesMutation = useUpdateRoundCloses(round);
   const deleteMatchMutation = useDeleteMatch(round);
   const deleteRoundMutation = useDeleteRound();
+  const unlockMatchMutation = useUnlockMatch(round);
 
   const closesAtValue =
     closesAt ||
@@ -327,6 +330,8 @@ export function AdminMatches() {
               onDeleteMatch={handleDeleteMatch}
               isUpdating={updateMatchMutation.isPending}
               isDeleting={deleteMatchMutation.isPending}
+              onUnlock={(id) => unlockMatchMutation.mutate(id)}
+              isUnlocking={unlockMatchMutation.isPending}
             />
           ))}
         </div>
@@ -355,8 +360,10 @@ function MatchRow({
   onSaveResult,
   onUpdateMatch,
   onDeleteMatch,
+  onUnlock,
   isUpdating,
   isDeleting,
+  isUnlocking,
 }: {
   match: Match;
   teams: string[];
@@ -371,8 +378,10 @@ function MatchRow({
   onSaveResult: (matchId: string) => void;
   onUpdateMatch: (matchId: string) => void;
   onDeleteMatch: (matchId: string) => void;
+  onUnlock: (matchId: string) => void;
   isUpdating: boolean;
   isDeleting: boolean;
+  isUnlocking: boolean;
 }) {
   const isEditingMatch = editingMatch === match.id;
   return (
@@ -501,6 +510,7 @@ function MatchRow({
           🗑
         </button>
       </div>
+      <FeedBadge match={match} onUnlock={onUnlock} isUnlocking={isUnlocking} />
     </div>
   );
 }
