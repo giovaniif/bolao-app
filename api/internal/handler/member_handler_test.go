@@ -88,6 +88,8 @@ func (f *fakeBolaoStore) UpdateSettings(_ context.Context, _ uuid.UUID, name, vi
 	return nil
 }
 
+func (f *fakeBolaoStore) CountOwnedActive(context.Context, uuid.UUID) (int, error) { return 0, nil }
+
 func memberHandlerRouter(store *fakeMemberStore, boloes *fakeBolaoStore) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()

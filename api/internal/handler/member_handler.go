@@ -27,6 +27,7 @@ type ownedBolaoStore interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*models.Bolao, error)
 	CreateOwned(ctx context.Context, name string, ownerID uuid.UUID) (*models.Bolao, error)
 	UpdateSettings(ctx context.Context, id uuid.UUID, name, visibility string, requiresApproval bool) error
+	CountOwnedActive(ctx context.Context, ownerID uuid.UUID) (int, error)
 }
 
 type MemberHandler struct {
@@ -87,7 +88,17 @@ func (h *MemberHandler) Create(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "o nome deve ter entre 3 e 100 caracteres"})
 		return
 	}
-	bolao, err := h.boloes.CreateOwned(c.Request.Context(), name, c.MustGet("user_id").(uuid.UUID))
+	userID := c.MustGet("user_id").(uuid.UUID)
+	owned, err := h.boloes.CountOwnedActive(c.Request.Context(), userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if err := service.CanCreateBolao(owned); err != nil {
+		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		return
+	}
+	bolao, err := h.boloes.CreateOwned(c.Request.Context(), name, userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

@@ -125,3 +125,14 @@ func RoleChange(actorRole, targetRole, newRole string) (string, string, error) {
 	}
 	return newRole, actorRole, nil
 }
+
+const MaxOwnedActiveBoloes = 5
+
+var ErrTooManyBoloes = errors.New("você já é dono de 5 bolões ativos")
+
+func CanCreateBolao(ownedActive int) error {
+	if ownedActive >= MaxOwnedActiveBoloes {
+		return ErrTooManyBoloes
+	}
+	return nil
+}

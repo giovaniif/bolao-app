@@ -187,3 +187,38 @@ func (r *BolaoRepository) UpdateParticipantAmountPaid(ctx context.Context, bolao
 	_, err := r.pool.Exec(ctx, query, bolaoID, userID, amount)
 	return err
 }
+
+func (r *BolaoRepository) SetHidden(ctx context.Context, id uuid.UUID, hidden bool) error {
+	_, err := r.pool.Exec(ctx, `UPDATE boloes SET hidden = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $1`, id, hidden)
+	return err
+}
+
+func (r *BolaoRepository) CountOwnedActive(ctx context.Context, ownerID uuid.UUID) (int, error) {
+	var count int
+	err := r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM boloes WHERE owner_id = $1 AND status = 'active'`, ownerID).Scan(&count)
+	return count, err
+}
+
+func (r *BolaoRepository) ListPublic(ctx context.Context, search string, limit int) ([]models.PublicBolao, error) {
+	query := `SELECT b.id, b.name, b.requires_approval, b.max_members,
+			(SELECT COUNT(*) FROM bolao_participants p WHERE p.bolao_id = b.id AND p.status = 'active') AS members
+		FROM boloes b
+		WHERE b.visibility = 'public' AND b.status = 'active' AND NOT b.hidden
+			AND ($1 = '' OR b.name ILIKE '%' || $1 || '%')
+		ORDER BY members DESC, b.created_at DESC
+		LIMIT $2`
+	rows, err := r.pool.Query(ctx, query, search, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	boloes := []models.PublicBolao{}
+	for rows.Next() {
+		var b models.PublicBolao
+		if err := rows.Scan(&b.ID, &b.Name, &b.RequiresApproval, &b.MaxMembers, &b.MemberCount); err != nil {
+			return nil, err
+		}
+		boloes = append(boloes, b)
+	}
+	return boloes, rows.Err()
+}
