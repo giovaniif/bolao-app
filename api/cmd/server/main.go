@@ -124,6 +124,8 @@ func main() {
 			scoped.GET("/export/all", exportHandler.ExportAll)
 		}
 
+		handler.NewMemberHandler(membershipRepo, bolaoRepo).Routes(api, handler.RequireMember(membershipRepo))
+
 		admin := api.Group("")
 		admin.Use(handler.AdminMiddleware())
 		{
