@@ -99,29 +99,13 @@ func (h *InviteHandler) Join(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "convite não encontrado"})
 		return
 	}
-	count, err := h.members.CountActive(ctx, bolao.ID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	var current *models.Membership
-	if m, err := h.members.Get(ctx, bolao.ID, userID); err == nil {
-		current = m
-	}
 	via := service.JoinByCode
 	if isLinkToken(code) {
 		via = service.JoinByInviteLink
 	}
-	target := service.JoinTarget{
-		Active:           bolao.Status == "active",
-		Public:           bolao.Visibility == "public",
-		RequiresApproval: bolao.RequiresApproval,
-		ActiveMembers:    count,
-		MaxMembers:       bolao.MaxMembers,
-	}
-	status, err := service.JoinStatus(target, current, via)
+	status, err := joinStatusFor(ctx, h.members, bolao, userID, via)
 	if err != nil {
-		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		c.JSON(statusForJoin(err), gin.H{"error": err.Error()})
 		return
 	}
 	if via == service.JoinByInviteLink {
@@ -170,4 +154,31 @@ func (h *InviteHandler) Rotate(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"code": code})
+}
+
+func joinStatusFor(ctx context.Context, members memberStore, bolao *models.Bolao, userID uuid.UUID, via string) (string, error) {
+	count, err := members.CountActive(ctx, bolao.ID)
+	if err != nil {
+		return "", err
+	}
+	var current *models.Membership
+	if m, err := members.Get(ctx, bolao.ID, userID); err == nil {
+		current = m
+	}
+	return service.JoinStatus(service.JoinTarget{
+		Active:           bolao.Status == "active",
+		Public:           bolao.Visibility == "public",
+		RequiresApproval: bolao.RequiresApproval,
+		ActiveMembers:    count,
+		MaxMembers:       bolao.MaxMembers,
+	}, current, via)
+}
+
+func statusForJoin(err error) int {
+	for _, known := range []error{service.ErrBolaoFinished, service.ErrAlreadyMember, service.ErrAlreadyRequested, service.ErrBolaoFull, service.ErrBolaoNotPublic} {
+		if errors.Is(err, known) {
+			return http.StatusConflict
+		}
+	}
+	return http.StatusInternalServerError
 }
