@@ -131,3 +131,20 @@ func TestSharedMatches_BelongsToBolao(t *testing.T) {
 		t.Errorf("the feed bolão's own match = %v, %v; want true", own, err)
 	}
 }
+
+func TestCompetitionRepository_ListActive(t *testing.T) {
+	f := newSharedFixture(t)
+	ctx := context.Background()
+	if _, err := f.pool.Exec(ctx, `UPDATE competitions SET status = 'finished' WHERE id = $1`, f.competition); err != nil {
+		t.Fatalf("finish: %v", err)
+	}
+	competitions, err := NewCompetitionRepository(f.pool).ListActive(ctx)
+	if err != nil {
+		t.Fatalf("ListActive: %v", err)
+	}
+	for _, c := range competitions {
+		if c.ID == f.competition || c.Status != "active" {
+			t.Errorf("competition %s (%s) listed, want only active ones", c.Name, c.Status)
+		}
+	}
+}
