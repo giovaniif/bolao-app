@@ -109,9 +109,9 @@ func TestMatchSync_WhenToCallTheProvider(t *testing.T) {
 func TestMatchSync_AppliesTheReconcilePlanInsideTheWindow(t *testing.T) {
 	soon := FeedMatch{ProviderID: 1, Kickoff: syncNow.Add(3 * 24 * time.Hour), Status: FeedStatusTimed, Stage: StageRegularSeason, Matchday: 32, HomeTeam: "Flamengo", AwayTeam: "Palmeiras"}
 	late := soon
-	late.ProviderID, late.Kickoff = 2, syncNow.Add(20*24*time.Hour)
+	late.ProviderID, late.Matchday, late.Kickoff = 2, 35, syncNow.Add(20*24*time.Hour)
 	beforeBolao := soon
-	beforeBolao.ProviderID, beforeBolao.Kickoff = 3, syncNow.Add(-100*24*time.Hour)
+	beforeBolao.ProviderID, beforeBolao.Matchday, beforeBolao.Kickoff = 3, 1, syncNow.Add(-100*24*time.Hour)
 	feed := &fakeFeed{matches: []FeedMatch{soon, late, beforeBolao}}
 	tgt := target(nil)
 	store := &fakeSyncStore{targets: []SyncTarget{tgt}, budget: 100}

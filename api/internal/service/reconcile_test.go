@@ -237,6 +237,20 @@ func TestReconcileMatches_InsertsOnlyInsideTheWindow(t *testing.T) {
 	}
 }
 
+func TestReconcileMatches_InsertsARoundWholeWhenItsFirstKickoffIsInsideTheWindow(t *testing.T) {
+	window := InsertWindow{From: feedKickoff.Add(-24 * time.Hour), To: feedKickoff.Add(14 * 24 * time.Hour)}
+	first := feed(1, FeedStatusTimed, 34, "Bahia", "Santos")
+	first.Kickoff = window.To.Add(-time.Hour)
+	last := feed(2, FeedStatusTimed, 34, "Flamengo", "Palmeiras")
+	last.Kickoff = window.To.Add(48 * time.Hour)
+
+	plan := ReconcileMatches(uuid.New(), uuid.New(), nil, []FeedMatch{last, first}, window)
+
+	if len(plan.Inserts) != 2 {
+		t.Errorf("inserts = %d, want the whole round 34", len(plan.Inserts))
+	}
+}
+
 func TestNeedsResultsSync(t *testing.T) {
 	now := feedKickoff
 	at := func(d time.Duration, status string) models.Match {
