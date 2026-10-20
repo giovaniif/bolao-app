@@ -48,7 +48,7 @@ func (r *PartialRepository) ListByRound(ctx context.Context, bolaoID uuid.UUID, 
 	query := `SELECT p.match_id, p.home_goals, p.away_goals, p.updated_by, p.updated_at
 		FROM match_partials p
 		JOIN matches m ON p.match_id = m.id
-		WHERE m.bolao_id = $1 AND m.round = $2`
+		WHERE ` + matchInBolao("$1") + ` AND m.round = $2`
 	rows, err := r.pool.Query(ctx, query, bolaoID, round)
 	if err != nil {
 		return nil, err

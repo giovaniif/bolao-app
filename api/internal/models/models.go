@@ -65,6 +65,8 @@ type Bolao struct {
 	RequiresApproval bool       `json:"requires_approval"`
 	MaxMembers       int        `json:"max_members"`
 	InviteCode       string     `json:"-"`
+	CompetitionID    *uuid.UUID `json:"competition_id,omitempty"`
+	FirstRound       *int       `json:"first_round,omitempty"`
 	StartedAt        time.Time  `json:"started_at"`
 	FinishedAt       *time.Time `json:"finished_at,omitempty"`
 	CreatedAt        time.Time  `json:"created_at"`

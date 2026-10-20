@@ -1,0 +1,1 @@
+ALTER TABLE boloes ADD COLUMN IF NOT EXISTS first_round INT;

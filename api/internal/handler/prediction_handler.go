@@ -144,7 +144,12 @@ func (h *PredictionHandler) UpsertPredictions(c *gin.Context) {
 			return
 		}
 
-		if match.BolaoID != active.ID {
+		belongs, err := h.matchRepo.BelongsToBolao(c.Request.Context(), matchID, active.ID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		if !belongs {
 			c.JSON(http.StatusForbidden, gin.H{"error": "não é possível registrar palpites em um bolão encerrado"})
 			return
 		}
