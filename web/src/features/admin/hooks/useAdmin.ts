@@ -15,6 +15,7 @@ import {
   deleteRound,
   createUser,
   updateUser,
+  unlockMatch,
 } from '../api/adminApi';
 import { queryKeys } from '../../../shared/query/queryKeys';
 
@@ -69,6 +70,16 @@ export function useUpdateMatchResults(round: number) {
       queryClient.invalidateQueries({ queryKey: queryKeys.matches(round) });
       queryClient.invalidateQueries({ queryKey: ['classification'] });
       queryClient.invalidateQueries({ queryKey: queryKeys.rounds() });
+    },
+  });
+}
+
+export function useUnlockMatch(round: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: unlockMatch,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.matches(round) });
     },
   });
 }

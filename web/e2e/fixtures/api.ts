@@ -34,6 +34,8 @@ function matchesOf(round: number) {
     away_team: teams[(i + round + 1) % teams.length],
     market_closes_at: closes,
     ...(played ? { home_goals: (i + round) % 3, away_goals: i % 2 } : {}),
+    ...(i > 0 ? { provider_match_id: round * 100 + i } : {}),
+    locked: i === 4,
   }));
 }
 

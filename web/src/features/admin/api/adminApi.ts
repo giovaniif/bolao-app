@@ -16,6 +16,8 @@ export interface Match {
   market_closes_at?: string;
   home_goals?: number;
   away_goals?: number;
+  provider_match_id?: number;
+  locked: boolean;
 }
 
 export async function getUsers(): Promise<User[]> {
@@ -100,4 +102,8 @@ export async function deleteMatch(matchId: string): Promise<void> {
 
 export async function deleteRound(round: number): Promise<void> {
   await api(`/matches/round/${round}`, { method: 'DELETE' });
+}
+
+export async function unlockMatch(matchId: string): Promise<Match> {
+  return api<Match>(`/matches/${matchId}/lock`, { method: 'DELETE' });
 }
