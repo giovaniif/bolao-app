@@ -5,11 +5,12 @@ import { LoginScreen } from './LoginScreen'
 import { SignupScreen } from './SignupScreen'
 
 const mockReplace = jest.fn()
+let mockParams: Record<string, string> = {}
 jest.mock('expo-router', () => {
   const { Text } = jest.requireActual('react-native')
   return {
     useRouter: () => ({ replace: mockReplace, push: jest.fn() }),
-    useLocalSearchParams: () => ({}),
+    useLocalSearchParams: () => mockParams,
     Link: ({ children }: { children: string }) => <Text>{children}</Text>,
   }
 })
@@ -17,6 +18,7 @@ jest.mock('expo-router', () => {
 const mockFetch = jest.fn()
 
 beforeEach(() => {
+  mockParams = {}
   mockReplace.mockReset()
   mockFetch.mockReset()
   globalThis.fetch = mockFetch as unknown as typeof fetch
@@ -38,6 +40,26 @@ describe('LoginScreen', () => {
     await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/'))
     expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual({ username: 'ana', password: '123' })
     expect(SecureStore.setItemAsync).toHaveBeenCalledWith('token', 'jwt')
+  })
+
+  it('goes back to the invite after logging in', async () => {
+    mockParams = { voltar: '/convite/AMIGOS22' }
+    mockFetch.mockResolvedValueOnce(loginResponse())
+    await renderWithProviders(<LoginScreen />)
+    await fireEvent.changeText(screen.getByLabelText('Usuário'), 'ana')
+    await fireEvent.changeText(screen.getByLabelText('Senha'), '123')
+    await fireEvent.press(screen.getByRole('button', { name: 'Entrar' }))
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/convite/AMIGOS22'))
+  })
+
+  it('ignores a voltar that leaves the app', async () => {
+    mockParams = { voltar: 'https://evil.example' }
+    mockFetch.mockResolvedValueOnce(loginResponse())
+    await renderWithProviders(<LoginScreen />)
+    await fireEvent.changeText(screen.getByLabelText('Usuário'), 'ana')
+    await fireEvent.changeText(screen.getByLabelText('Senha'), '123')
+    await fireEvent.press(screen.getByRole('button', { name: 'Entrar' }))
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/'))
   })
 
   it('shows a wrong password', async () => {
