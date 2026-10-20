@@ -8,6 +8,7 @@ is_test_path() {
   case "$1" in
     (*_test.go | testdata/* | */testdata/* | test/*) return 0 ;;
     (web/*.test.ts | web/*.test.tsx | web/src/test/* | web/e2e/*) return 0 ;;
+    (mobile/*.test.ts | mobile/*.test.tsx | mobile/src/test/* | mobile/jest.setup.ts) return 0 ;;
     (*) return 1 ;;
   esac
 }
@@ -112,7 +113,7 @@ changed_tests() {
     fi
     changed+=("$to")
     [ "$from" = "$to" ] || removed+=("$from")
-  done < <(git diff --name-status -z -M --diff-filter=AMRD "$old" "$new" -- '*_test.go' '*/testdata/*' 'web/*.test.ts' 'web/*.test.tsx')
+  done < <(git diff --name-status -z -M --diff-filter=AMRD "$old" "$new" -- '*_test.go' '*/testdata/*' 'web/*.test.ts' 'web/*.test.tsx' 'mobile/*.test.ts' 'mobile/*.test.tsx')
 }
 
 mixed=0
@@ -168,7 +169,7 @@ module_of() {
 
 go_units=$(for f in "${changed[@]}"; do
   case "$f" in
-    (web/*) ;;
+    (web/* | mobile/*) ;;
     (*/testdata/*) echo "${f%%/testdata/*}" ;;
     (testdata/*) echo "." ;;
     (*) dirname "$f" ;;
@@ -179,6 +180,11 @@ web_units=$(for f in "${changed[@]}"; do
     (web/testdata/*) echo "." ;;
     (web/*/testdata/*) f="${f#web/}"; echo "${f%%/testdata/*}" ;;
     (web/*) echo "${f#web/}" ;;
+  esac
+done | sort -u)
+mobile_units=$(for f in "${changed[@]}"; do
+  case "$f" in
+    (mobile/*) echo "${f#mobile/}" ;;
   esac
 done | sort -u)
 read -r -a skip_dirs <<<"${TDD_SKIP_DIRS-api/internal/repository}"
@@ -225,6 +231,25 @@ if [ -n "$web_units" ]; then
       echo "tdd: vitest $unit on base"
       if (cd web && "${web_test[@]}" "$unit"); then
         passed+=("web/$unit")
+      fi
+    done
+  fi
+fi
+
+if [ -n "$mobile_units" ]; then
+  if [ ! -f mobile/package.json ]; then
+    echo "tdd: no mobile/package.json on base, so these mobile tests cannot pass there:" $mobile_units
+  else
+    read -r -a mobile_install <<<"${TDD_MOBILE_INSTALL:-npm ci --no-audit --no-fund --ignore-scripts}"
+    read -r -a mobile_test <<<"${TDD_MOBILE_TEST:-npx jest --ci}"
+    if ! (cd mobile && "${mobile_install[@]}"); then
+      echo "tdd: FAIL. ${mobile_install[*]} failed in mobile on base"
+      exit 1
+    fi
+    for unit in $mobile_units; do
+      echo "tdd: jest $unit on base"
+      if (cd mobile && "${mobile_test[@]}" "$unit"); then
+        passed+=("mobile/$unit")
       fi
     done
   fi
