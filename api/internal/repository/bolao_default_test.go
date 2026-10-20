@@ -58,3 +58,24 @@ func TestBolaoRepository_UpdateSettings(t *testing.T) {
 		t.Errorf("bolão = %+v, want Novo, public, no approval", got)
 	}
 }
+
+func TestMigrations_RunOnEveryBootWithManyActiveBoloes(t *testing.T) {
+	pool := freshDatabase(t)
+	ctx := context.Background()
+	all := append(append([]string{}, migrationsBeforeMembers...), "010_bolao_members.sql", "011_many_active_boloes.sql")
+	runMigrationFiles(t, pool, all...)
+	if _, err := pool.Exec(ctx, `INSERT INTO boloes (name) VALUES ('Segundo ativo')`); err != nil {
+		t.Fatalf("second active bolão: %v", err)
+	}
+
+	runMigrationFiles(t, pool, all...)
+	runMigrationFiles(t, pool, all...)
+
+	var unique bool
+	if err := pool.QueryRow(ctx, `SELECT i.indisunique FROM pg_index i JOIN pg_class c ON c.oid = i.indexrelid WHERE c.relname = 'idx_boloes_one_active'`).Scan(&unique); err != nil {
+		t.Fatalf("index: %v", err)
+	}
+	if unique {
+		t.Error("idx_boloes_one_active is unique again after a boot")
+	}
+}
