@@ -10,6 +10,8 @@ import { AdminPage } from './features/admin/pages/AdminPage';
 import { ProfilePage } from './features/profile/pages/ProfilePage';
 import { RoundPage, type RoundTab } from './features/round/pages/RoundPage';
 import { ChampionsPage } from './features/champions/pages/ChampionsPage';
+import { MyBoloesPage } from './features/boloes/pages/MyBoloesPage';
+import { CreateBolaoPage } from './features/boloes/pages/CreateBolaoPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -104,6 +106,22 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <ChampionsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/meus-boloes"
+        element={
+          <ProtectedRoute>
+            <MyBoloesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/criar-bolao"
+        element={
+          <ProtectedRoute>
+            <CreateBolaoPage />
           </ProtectedRoute>
         }
       />
