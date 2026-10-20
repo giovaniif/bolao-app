@@ -6,6 +6,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { bolaoKeys, useCurrentBolao } from '../bolao/useCurrentBolao';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { colors } from '../theme';
+import { track } from '../analytics/analytics';
 
 export function InviteScreen() {
   const { code = '' } = useLocalSearchParams<{ code: string }>();
@@ -17,6 +18,7 @@ export function InviteScreen() {
   const join = useMutation({
     mutationFn: () => joinInvite(code),
     onSuccess: async (res) => {
+      track(res.status === 'active' ? 'bolao_joined' : 'join_requested');
       await queryClient.invalidateQueries({ queryKey: bolaoKeys.mine });
       if (res.status === 'active') {
         await select(res.bolao_id);

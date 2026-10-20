@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Bol\u00e3o",
+    "name": "Bolão",
     "slug": "bolao",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -35,7 +35,8 @@
           "imageWidth": 76
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true,
