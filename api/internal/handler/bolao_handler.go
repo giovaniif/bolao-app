@@ -29,7 +29,13 @@ type FinishBolaoRequest struct {
 }
 
 func (h *BolaoHandler) List(c *gin.Context) {
-	boloes, err := h.bolaoRepo.List(c.Request.Context())
+	var boloes []models.Bolao
+	var err error
+	if isAdmin, _ := c.Get("is_admin"); isAdmin == true {
+		boloes, err = h.bolaoRepo.List(c.Request.Context())
+	} else {
+		boloes, err = h.bolaoRepo.ListReadableBy(c.Request.Context(), c.MustGet("user_id").(uuid.UUID))
+	}
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -53,6 +59,10 @@ func (h *BolaoHandler) ListParticipants(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "id inválido"})
+		return
+	}
+	if err := assertReadable(c, h.bolaoRepo, id); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "bolão não encontrado"})
 		return
 	}
 	participants, err := h.bolaoRepo.ListParticipants(c.Request.Context(), id)
