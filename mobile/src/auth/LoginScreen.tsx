@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
-import { Link, useRouter } from 'expo-router';
+import { Link, useLocalSearchParams, useRouter } from 'expo-router';
+import { returnTo } from './returnTo';
 import { useMutation } from '@tanstack/react-query';
 import { login } from '../api/auth';
 import { useAuth } from './AuthProvider';
@@ -13,11 +14,12 @@ export function LoginScreen() {
   const [password, setPassword] = useState('');
   const { signIn } = useAuth();
   const router = useRouter();
+  const { voltar } = useLocalSearchParams<{ voltar?: string }>();
   const mutation = useMutation({
     mutationFn: () => login(username.trim(), password),
     onSuccess: async (res) => {
       await signIn(res);
-      router.replace('/');
+      router.replace(returnTo(voltar, '/'));
     },
   });
 
