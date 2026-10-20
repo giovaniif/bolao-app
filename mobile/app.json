@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Bol\u00e3o",
+    "name": "Bolao",
     "slug": "bolao",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -14,7 +14,9 @@
       "config": {
         "usesNonExemptEncryption": false
       },
-      "infoPlist": {},
+      "infoPlist": {
+        "CFBundleDisplayName": "Bolão"
+      },
       "associatedDomains": [
         "applinks:bolao.giovani.app"
       ]
@@ -74,6 +76,9 @@
         "projectId": "0b876b68-1921-4702-a1f9-273d0e172e24"
       }
     },
-    "owner": "giovaniif"
+    "owner": "giovaniif",
+    "locales": {
+      "pt": "./locales/pt.json"
+    }
   }
 }
