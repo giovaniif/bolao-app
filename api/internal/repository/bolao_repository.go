@@ -118,8 +118,16 @@ func (r *BolaoRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Bo
 }
 
 func (r *BolaoRepository) List(ctx context.Context) ([]models.Bolao, error) {
+	return r.listWhere(ctx, `ORDER BY b.started_at DESC`)
+}
+
+func (r *BolaoRepository) ListActive(ctx context.Context) ([]models.Bolao, error) {
+	return r.listWhere(ctx, `WHERE b.status = 'active' ORDER BY b.started_at, b.created_at`)
+}
+
+func (r *BolaoRepository) listWhere(ctx context.Context, clause string) ([]models.Bolao, error) {
 	query := `SELECT ` + bolaoColumns + `
-		FROM boloes b ORDER BY b.started_at DESC`
+		FROM boloes b ` + clause
 	rows, err := r.pool.Query(ctx, query)
 	if err != nil {
 		return nil, err

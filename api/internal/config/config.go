@@ -14,6 +14,8 @@ type Config struct {
 	VAPIDSubject    string
 	CronSecret      string
 
+	ExpoAccessToken string
+
 	FootballDataAPIKey string
 
 	AppURL       string
@@ -35,6 +37,8 @@ func Load() *Config {
 		VAPIDPrivateKey: os.Getenv("VAPID_PRIVATE_KEY"),
 		VAPIDSubject:    os.Getenv("VAPID_SUBJECT"),
 		CronSecret:      os.Getenv("CRON_SECRET"),
+
+		ExpoAccessToken: os.Getenv("EXPO_ACCESS_TOKEN"),
 
 		FootballDataAPIKey: os.Getenv("FOOTBALL_DATA_API_KEY"),
 

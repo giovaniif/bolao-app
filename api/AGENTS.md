@@ -27,7 +27,7 @@ internal/auth/         JWT and password hashing
 internal/handler/      HTTP: parse, validate, authorize, respond
 internal/service/      business rules: pure, no DB, no gin
 internal/repository/   SQL against pgxpool
-internal/push/         Web Push sender (VAPID)
+internal/push/         Web Push sender (VAPID) and Expo push sender
 internal/models/       structs shared across layers, with JSON tags
 internal/constants/    static domain data (team list)
 migrations/            numbered .sql, run on start
@@ -91,7 +91,9 @@ These rules have no unit test, because they live in handlers or SQL that need a 
 
 ### Push
 
-- `NewPushHandler` with a nil notifier means no VAPID keys. Subscribe returns 503 and the tick does nothing. The rest of the API still runs.
+- `NewPushHandler` with a nil notifier means no push at all: Subscribe and the Expo token endpoints return 503, and the tick does nothing. Without VAPID keys only Web Push is off: Subscribe returns 503, but Expo tokens and the tick still work.
+- A reminder goes to Web Push and Expo together. `ClaimUserNotification` claims it per user, per scope (`AudienceOf`: the competition, or the bolão when it has none), per round, kind and deadline (migration 014). So a user in several bolões of one competition gets one reminder per deadline on all devices.
+- The tick covers every active bolão (`ListActive`). An Expo token that answers `DeviceNotRegistered` is deleted, as a Web Push endpoint that answers 404 or 410 is.
 - Supabase `pg_cron` calls the tick every minute (see the README).
 - `AnnounceRound` sends in the background, so the admin request does not wait. It does nothing until the round has a deadline.
 - `Upsert` moves a known endpoint to the new user. A browser that logs in as someone else stops notifying the previous user.

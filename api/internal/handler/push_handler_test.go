@@ -28,8 +28,10 @@ var (
 )
 
 type fakePushStore struct {
-	upserted []models.PushSubscription
-	deleted  []string
+	upserted      []models.PushSubscription
+	deleted       []string
+	expoTokens    []models.ExpoPushToken
+	deletedTokens []string
 }
 
 func (f *fakePushStore) Upsert(_ context.Context, s *models.PushSubscription) error {
@@ -42,13 +44,29 @@ func (f *fakePushStore) DeleteForUser(_ context.Context, _ uuid.UUID, endpoint s
 	return nil
 }
 
-type fakeBolaos struct{ err error }
+func (f *fakePushStore) UpsertExpoToken(_ context.Context, t *models.ExpoPushToken) error {
+	f.expoTokens = append(f.expoTokens, *t)
+	return nil
+}
 
-func (f fakeBolaos) GetActive(context.Context) (*models.Bolao, error) {
+func (f *fakePushStore) DeleteExpoTokenForUser(_ context.Context, _ uuid.UUID, token string) error {
+	f.deletedTokens = append(f.deletedTokens, token)
+	return nil
+}
+
+type fakeBolaos struct {
+	err    error
+	active []models.Bolao
+}
+
+func (f fakeBolaos) ListActive(context.Context) ([]models.Bolao, error) {
 	if f.err != nil {
 		return nil, f.err
 	}
-	return &models.Bolao{ID: testBolaoID}, nil
+	if f.active != nil {
+		return f.active, nil
+	}
+	return []models.Bolao{{ID: testBolaoID}}, nil
 }
 
 type fakeMatches struct{ matches []models.Match }
@@ -58,15 +76,18 @@ func (f fakeMatches) ListAllByBolao(context.Context, uuid.UUID) ([]models.Match,
 }
 
 type fakeNotifier struct {
-	mu        sync.Mutex
-	notified  []service.Reminder
-	tickedFor []service.RoundClose
-	done      chan struct{}
+	mu         sync.Mutex
+	notified   []service.Reminder
+	notifiedTo []service.Audience
+	tickedFor  []service.RoundClose
+	tickedTo   []service.Audience
+	done       chan struct{}
 }
 
-func (f *fakeNotifier) Notify(_ context.Context, _ uuid.UUID, r service.Reminder) (int, error) {
+func (f *fakeNotifier) Notify(_ context.Context, a service.Audience, r service.Reminder) (int, error) {
 	f.mu.Lock()
 	f.notified = append(f.notified, r)
+	f.notifiedTo = append(f.notifiedTo, a)
 	f.mu.Unlock()
 	if f.done != nil {
 		f.done <- struct{}{}
@@ -74,8 +95,9 @@ func (f *fakeNotifier) Notify(_ context.Context, _ uuid.UUID, r service.Reminder
 	return 1, nil
 }
 
-func (f *fakeNotifier) Tick(_ context.Context, _ uuid.UUID, rounds []service.RoundClose, _ time.Time) (int, error) {
+func (f *fakeNotifier) Tick(_ context.Context, a service.Audience, rounds []service.RoundClose, _ time.Time) (int, error) {
 	f.tickedFor = rounds
+	f.tickedTo = append(f.tickedTo, a)
 	return 3, nil
 }
 
@@ -97,6 +119,8 @@ func pushRouter(h *PushHandler) *gin.Engine {
 	api := r.Group("/api", AuthMiddleware(testJWTSecret))
 	api.POST("/push/subscriptions", h.Subscribe)
 	api.DELETE("/push/subscriptions", h.Unsubscribe)
+	api.POST("/push/expo-tokens", h.RegisterExpoToken)
+	api.DELETE("/push/expo-tokens", h.UnregisterExpoToken)
 	return r
 }
 
@@ -241,7 +265,7 @@ func TestPushHandlerAnnounceRound(t *testing.T) {
 	}
 	for _, tt := range tests {
 		notifier := &fakeNotifier{done: make(chan struct{}, 1)}
-		newTestPushHandler(&fakePushStore{}, notifier, nil).AnnounceRound(testBolaoID, 7, tt.closesAt)
+		newTestPushHandler(&fakePushStore{}, notifier, nil).AnnounceRound(models.Bolao{ID: testBolaoID}, 7, tt.closesAt)
 
 		select {
 		case <-notifier.done:
@@ -255,6 +279,128 @@ func TestPushHandlerAnnounceRound(t *testing.T) {
 				t.Errorf("%s: not announced", tt.name)
 			}
 		}
+	}
+}
+
+const validExpoToken = `{"token":"ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]","platform":"ios"}`
+
+func TestPushHandlerRegisterExpoToken(t *testing.T) {
+	tests := []struct {
+		name       string
+		body       string
+		headers    func(*testing.T) map[string]string
+		disabled   bool
+		wantStatus int
+		wantStored int
+	}{
+		{"a valid token is stored", validExpoToken, bearer, false, http.StatusNoContent, 1},
+		{"an android token is stored", `{"token":"ExpoPushToken[abc]","platform":"android"}`, bearer, false, http.StatusNoContent, 1},
+		{"unauthenticated is rejected", validExpoToken, func(*testing.T) map[string]string { return nil }, false, http.StatusUnauthorized, 0},
+		{"a missing token is a bad request", `{"platform":"ios"}`, bearer, false, http.StatusBadRequest, 0},
+		{"a token that is not an Expo token is a bad request", `{"token":"abc","platform":"ios"}`, bearer, false, http.StatusBadRequest, 0},
+		{"an unknown platform is a bad request", `{"token":"ExponentPushToken[abc]","platform":"web"}`, bearer, false, http.StatusBadRequest, 0},
+		{"push disabled refuses tokens", validExpoToken, bearer, true, http.StatusServiceUnavailable, 0},
+	}
+	for _, tt := range tests {
+		store := &fakePushStore{}
+		notifier := &fakeNotifier{}
+		if tt.disabled {
+			notifier = nil
+		}
+		r := pushRouter(newTestPushHandler(store, notifier, nil))
+		w := do(t, r, http.MethodPost, "/api/push/expo-tokens", tt.body, tt.headers(t))
+		if w.Code != tt.wantStatus {
+			t.Errorf("%s: status = %d, want %d (%s)", tt.name, w.Code, tt.wantStatus, w.Body)
+		}
+		if len(store.expoTokens) != tt.wantStored {
+			t.Errorf("%s: stored = %d, want %d", tt.name, len(store.expoTokens), tt.wantStored)
+		}
+	}
+}
+
+func TestPushHandlerRegisterExpoTokenStoresTheUserAndPlatform(t *testing.T) {
+	store := &fakePushStore{}
+	userID := uuid.New()
+	token, err := auth.GenerateToken(userID, "maria", false, testJWTSecret)
+	if err != nil {
+		t.Fatal(err)
+	}
+	do(t, pushRouter(newTestPushHandler(store, &fakeNotifier{}, nil)), http.MethodPost, "/api/push/expo-tokens", validExpoToken, map[string]string{"Authorization": "Bearer " + token})
+	if len(store.expoTokens) != 1 {
+		t.Fatalf("stored = %d, want 1", len(store.expoTokens))
+	}
+	got := store.expoTokens[0]
+	if got.UserID != userID || got.Token != "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]" || got.Platform != "ios" {
+		t.Errorf("stored %+v, want the caller's ios token", got)
+	}
+}
+
+func TestPushHandlerUnregisterExpoToken(t *testing.T) {
+	store := &fakePushStore{}
+	r := pushRouter(newTestPushHandler(store, &fakeNotifier{}, nil))
+
+	if w := do(t, r, http.MethodDelete, "/api/push/expo-tokens", `{}`, bearer(t)); w.Code != http.StatusBadRequest {
+		t.Errorf("missing token: status = %d, want 400", w.Code)
+	}
+	if w := do(t, r, http.MethodDelete, "/api/push/expo-tokens", `{"token":"ExponentPushToken[abc]"}`, nil); w.Code != http.StatusUnauthorized {
+		t.Errorf("unauthenticated: status = %d, want 401", w.Code)
+	}
+	if w := do(t, r, http.MethodDelete, "/api/push/expo-tokens", `{"token":"ExponentPushToken[abc]"}`, bearer(t)); w.Code != http.StatusNoContent {
+		t.Errorf("unregister: status = %d, want 204", w.Code)
+	}
+	if strings.Join(store.deletedTokens, ",") != "ExponentPushToken[abc]" {
+		t.Errorf("deleted = %v, want the one token", store.deletedTokens)
+	}
+}
+
+func TestPushHandlerExpoWorksWithoutVAPIDKeys(t *testing.T) {
+	notifier := &fakeNotifier{}
+	store := &fakePushStore{}
+	h := NewPushHandler(store, fakeBolaos{}, fakeMatches{}, notifier, nil, "", testCronSecret)
+	r := pushRouter(h)
+
+	if w := do(t, r, http.MethodPost, "/api/push/subscriptions", validSubscription, bearer(t)); w.Code != http.StatusServiceUnavailable {
+		t.Errorf("web subscribe without VAPID: status = %d, want 503", w.Code)
+	}
+	if w := do(t, r, http.MethodPost, "/api/push/expo-tokens", validExpoToken, bearer(t)); w.Code != http.StatusNoContent {
+		t.Errorf("expo register without VAPID: status = %d, want 204", w.Code)
+	}
+	do(t, r, http.MethodPost, "/api/internal/notifications/tick", "", map[string]string{"X-Cron-Secret": testCronSecret})
+	if len(notifier.tickedTo) != 1 {
+		t.Errorf("ticks = %d, want the tick to run for Expo without VAPID", len(notifier.tickedTo))
+	}
+}
+
+func TestPushHandlerTickCoversEveryActiveBolao(t *testing.T) {
+	competition := uuid.New()
+	first := models.Bolao{ID: uuid.New(), CompetitionID: &competition}
+	second := models.Bolao{ID: uuid.New(), CompetitionID: &competition}
+	notifier := &fakeNotifier{}
+	h := NewPushHandler(&fakePushStore{}, fakeBolaos{active: []models.Bolao{first, second}}, fakeMatches{}, notifier, nil, "public-key", testCronSecret)
+
+	w := do(t, pushRouter(h), http.MethodPost, "/api/internal/notifications/tick", "", map[string]string{"X-Cron-Secret": testCronSecret})
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `"sent":6`) {
+		t.Errorf("status = %d, body = %s; want both bolões counted", w.Code, w.Body)
+	}
+	want := []service.Audience{service.AudienceOf(first), service.AudienceOf(second)}
+	if len(notifier.tickedTo) != 2 || notifier.tickedTo[0] != want[0] || notifier.tickedTo[1] != want[1] {
+		t.Errorf("ticked for %+v, want %+v", notifier.tickedTo, want)
+	}
+}
+
+func TestPushHandlerAnnounceRoundTargetsTheBolaoCompetition(t *testing.T) {
+	competition := uuid.New()
+	b := models.Bolao{ID: testBolaoID, CompetitionID: &competition}
+	future := testNow.Add(48 * time.Hour)
+	notifier := &fakeNotifier{done: make(chan struct{}, 1)}
+	newTestPushHandler(&fakePushStore{}, notifier, nil).AnnounceRound(b, 7, &future)
+	select {
+	case <-notifier.done:
+		if notifier.notifiedTo[0] != service.AudienceOf(b) {
+			t.Errorf("announced to %+v, want %+v", notifier.notifiedTo[0], service.AudienceOf(b))
+		}
+	case <-time.After(time.Second):
+		t.Fatal("not announced")
 	}
 }
 

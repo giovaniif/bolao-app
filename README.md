@@ -92,11 +92,12 @@ Required environment variables on Render:
 | `RESEND_API_KEY` | Resend API key for the password reset email |
 | `RESEND_FROM` | Optional. Sender address, default `Bolão <nao-responda@bolao.giovani.app>`. Its domain must be verified in Resend |
 | `APP_URL` | Optional. Web origin for the reset link, default `https://bolao.giovani.app` |
+| `EXPO_ACCESS_TOKEN` | Optional. An Expo access token, needed only when the Expo project has enhanced push security on |
 
 Password reset emails stay disabled (and the API logs it) until `RESEND_API_KEY` is set.
 
-Push notifications stay disabled (and the API logs it) until all three `VAPID_*` variables
-are set. Generate a key pair with:
+Web Push stays disabled (and the API logs it) until all three `VAPID_*` variables
+are set. Expo push for the mobile app needs no keys, so it works without them. Generate a key pair with:
 
 ```bash
 npx web-push generate-vapid-keys
