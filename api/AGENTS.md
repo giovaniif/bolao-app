@@ -78,8 +78,8 @@ These rules have no unit test, because they live in handlers or SQL that need a 
 - `resolveBolaoID` takes the bolão of the `/boloes/:id` route. On the two unscoped reads that stay (`GET /classification` and `GET /matches/rounds/summary`, for the Hall of Champions), it reads `?bolao_id=` for a readable bolão. Without one of them it returns an error and the handler answers 400.
 - `assertMatchInActiveBolao` returns 403 for a match of a finished bolão. It stops a stale client that edits a match by id.
 - A user can read another user's predictions for a round only after every market in the round closed.
-- The finish-bolão body is optional. No body means `force=false`. `FinishActive` then refuses with `ErrUnresolvedMatches` while a match has no result.
-- `FinishActive` counts every match without a result. `PendingResults` counts only matches whose market closed. Both are correct.
+- The finish-bolão body (`POST /boloes/:id/finish`) is optional. No body means `force=false`. `Finish` then refuses with `ErrUnresolvedMatches` while a match has no result.
+- `Finish` counts every match without a result (`UnresolvedMatches`). `PendingResults` counts only matches whose market closed. Both are correct.
 - Classification `round`: `1`..`998` is that round only. `0` or `999` is cumulative up to the last round that exists.
 - Classification loads the whole bolão in three queries (`ListAllByBolao`, `GetAllForBolao`), not one query per round.
 - A partial score of `NULL` means "not entered" and does not count. An explicit 0×0 partial counts (migration 005).

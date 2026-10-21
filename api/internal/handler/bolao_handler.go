@@ -46,15 +46,6 @@ func (h *BolaoHandler) List(c *gin.Context) {
 	c.JSON(http.StatusOK, boloes)
 }
 
-func (h *BolaoHandler) GetActive(c *gin.Context) {
-	active, err := h.bolaoRepo.GetActive(c.Request.Context())
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "nenhum bolão ativo encontrado"})
-		return
-	}
-	c.JSON(http.StatusOK, active)
-}
-
 func (h *BolaoHandler) ListParticipants(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -96,14 +87,6 @@ func (h *BolaoHandler) Create(c *gin.Context) {
 	c.JSON(http.StatusCreated, bolao)
 }
 
-func (h *BolaoHandler) FinishActive(c *gin.Context) {
-	var req FinishBolaoRequest
-	_ = c.ShouldBindJSON(&req)
-
-	bolao, err := h.bolaoSvc.FinishActive(c.Request.Context(), req.Force)
-	respondFinish(c, bolao, err)
-}
-
 func (h *BolaoHandler) Finish(c *gin.Context) {
 	var req FinishBolaoRequest
 	_ = c.ShouldBindJSON(&req)
@@ -132,8 +115,6 @@ func respondFinish(c *gin.Context, bolao *models.Bolao, err error) {
 		})
 	case errors.Is(err, service.ErrBolaoFinished):
 		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
-	case errors.Is(err, service.ErrNoActiveBolao):
-		c.JSON(http.StatusNotFound, gin.H{"error": "nenhum bolão ativo encontrado"})
 	case errors.Is(err, service.ErrBolaoNotFound):
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 	default:

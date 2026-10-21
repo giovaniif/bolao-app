@@ -11,7 +11,6 @@ import (
 	"github.com/google/uuid"
 )
 
-var ErrNoActiveBolao = errors.New("nenhum bolão ativo encontrado")
 var ErrBolaoNotFound = errors.New("bolão não encontrado")
 var ErrActiveBolaoExists = repository.ErrActiveBolaoExists
 
@@ -43,22 +42,6 @@ type BolaoService struct {
 
 func NewBolaoService(bolaoRepo BolaoStore, matchRepo BolaoMatchLister) *BolaoService {
 	return &BolaoService{bolaoRepo: bolaoRepo, matchRepo: matchRepo}
-}
-
-func (s *BolaoService) GetActiveOrErr(ctx context.Context) (*models.Bolao, error) {
-	active, err := s.bolaoRepo.GetActive(ctx)
-	if err != nil {
-		return nil, ErrNoActiveBolao
-	}
-	return active, nil
-}
-
-func (s *BolaoService) FinishActive(ctx context.Context, force bool) (*models.Bolao, error) {
-	active, err := s.GetActiveOrErr(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return s.Finish(ctx, active.ID, force)
 }
 
 func (s *BolaoService) Finish(ctx context.Context, bolaoID uuid.UUID, force bool) (*models.Bolao, error) {

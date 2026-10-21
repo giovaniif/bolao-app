@@ -132,7 +132,6 @@ func main() {
 		api.PUT("/parciais/match/:id", partialHandler.SetPartial)
 		api.DELETE("/parciais/match/:id", partialHandler.ClearPartial)
 		api.GET("/boloes", bolaoHandler.List)
-		api.GET("/boloes/active", bolaoHandler.GetActive)
 		api.GET("/boloes/:id/participants", bolaoHandler.ListParticipants)
 
 		scoped := api.Group("/boloes/:id", handler.RequireMember(membershipRepo))
@@ -159,12 +158,7 @@ func main() {
 		{
 			admin.POST("/users", userHandler.Create)
 			admin.PUT("/users/:id", userHandler.Update)
-			admin.POST("/matches", matchHandler.CreateMatches)
-			admin.PUT("/matches/:id", matchHandler.UpdateMatch)
-			admin.DELETE("/matches/:id", matchHandler.DeleteMatch)
-			admin.DELETE("/matches/round/:round", matchHandler.DeleteRound)
 			admin.POST("/boloes", bolaoHandler.Create)
-			admin.POST("/boloes/active/finish", bolaoHandler.FinishActive)
 			admin.PUT("/boloes/:id/participants/:user_id", bolaoHandler.UpdateParticipantAmountPaid)
 		}
 	}

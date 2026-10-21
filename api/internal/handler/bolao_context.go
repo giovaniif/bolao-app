@@ -108,7 +108,7 @@ func resolveBolaoID(c *gin.Context, bolaoRepo *repository.BolaoRepository) (uuid
 func writableBolao(c *gin.Context, bolaoRepo *repository.BolaoRepository) (*models.Bolao, error) {
 	id, ok := scopedBolaoID(c)
 	if !ok {
-		return bolaoRepo.GetActive(c.Request.Context())
+		return nil, errBolaoRequired
 	}
 	bolao, err := bolaoRepo.GetByID(c.Request.Context(), id)
 	if err != nil {
