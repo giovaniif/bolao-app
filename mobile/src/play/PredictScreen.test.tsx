@@ -90,7 +90,7 @@ describe('PredictScreen', () => {
     await waitFor(() => expect(screen.getByText('Palpites salvos!')).toBeTruthy())
     const post = calls.find((c) => c.method === 'POST')
     expect(JSON.parse(post!.body!)).toEqual({ predictions: [{ match_id: 'm-1', home_goals: 2, away_goals: 1 }] })
-    expect(screen.getByText('2 × 1')).toBeTruthy()
+    expect(screen.getAllByText('2 × 1')).toHaveLength(2)
     expect(screen.getByText('Fechado')).toBeTruthy()
 
     await fireEvent.press(screen.getByRole('button', { name: 'Editar palpites' }))
