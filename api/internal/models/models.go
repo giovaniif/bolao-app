@@ -168,6 +168,28 @@ type PushSubscription struct {
 	Auth     string    `json:"auth"`
 }
 
+type ExpoPushToken struct {
+	ID       uuid.UUID `json:"id"`
+	UserID   uuid.UUID `json:"user_id"`
+	Token    string    `json:"token"`
+	Platform string    `json:"platform"`
+}
+
+type ExpoMessage struct {
+	To       string            `json:"to"`
+	Title    string            `json:"title"`
+	Body     string            `json:"body"`
+	Data     map[string]string `json:"data,omitempty"`
+	Sound    string            `json:"sound,omitempty"`
+	Priority string            `json:"priority,omitempty"`
+}
+
+type ExpoResult struct {
+	Token               string
+	OK                  bool
+	DeviceNotRegistered bool
+}
+
 type ReconcilePlan struct {
 	Inserts  []Match
 	Updates  []Match
