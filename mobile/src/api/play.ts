@@ -7,6 +7,8 @@ export interface MyBolao {
   role: 'owner' | 'admin' | 'participant';
   member_status: 'pending' | 'active';
   member_count: number;
+  visibility?: 'private' | 'public';
+  requires_approval?: boolean;
 }
 
 export interface RoundsSummary {
