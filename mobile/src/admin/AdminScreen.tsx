@@ -3,8 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-nati
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   adminKeys,
-  finishActiveBolao,
-  getActiveBolao,
+  finishBolao,
   getAdminMatches,
   getAdminRoundsSummary,
   getParticipants,
@@ -15,7 +14,8 @@ import {
   type AdminMatch,
   type Participant,
 } from '../api/admin';
-import { useCurrentBolao } from '../bolao/useCurrentBolao';
+import type { MyBolao } from '../api/play';
+import { bolaoKeys, useCurrentBolao } from '../bolao/useCurrentBolao';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { TextField } from '../components/TextField';
 import { colors } from '../theme';
@@ -167,32 +167,14 @@ function BolaoPicker({ selected, onSelect }: { selected: string; onSelect: (id: 
   );
 }
 
-function MatchesPanel() {
-  const { bolao, boloes, isLoading } = useCurrentBolao();
-  const [pickedBolao, setPickedBolao] = useState<string | null>(null);
-  const fallback = bolao?.status === 'active' ? bolao.id : boloes.find((b) => b.member_status === 'active' && b.status === 'active')?.id;
-  const bolaoId = pickedBolao ?? fallback ?? '';
+function MatchesPanel({ bolaoId }: { bolaoId: string }) {
   const [chosen, setChosen] = useState<number | null>(null);
   const summary = useQuery({ queryKey: adminKeys.summary(bolaoId), queryFn: () => getAdminRoundsSummary(bolaoId), enabled: !!bolaoId });
   const round = chosen ?? summary.data?.active ?? 0;
   const matches = useQuery({ queryKey: adminKeys.matches(bolaoId, round), queryFn: () => getAdminMatches(bolaoId, round), enabled: !!bolaoId && round > 0 });
 
-  if (isLoading) {
-    return <ActivityIndicator color={colors.primary} />;
-  }
-  if (!bolaoId) {
-    return <Text style={{ color: colors.muted }}>Nenhum bolão ativo no momento.</Text>;
-  }
-
   return (
     <View style={{ gap: 12 }}>
-      <BolaoPicker
-        selected={bolaoId}
-        onSelect={(id) => {
-          setPickedBolao(id);
-          setChosen(null);
-        }}
-      />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
         {(summary.data?.rounds ?? []).map((r) => (
           <Pressable
@@ -262,11 +244,9 @@ function ParticipantRow({ bolaoId, participant }: { bolaoId: string; participant
   );
 }
 
-function ParticipantsPanel() {
-  const active = useQuery({ queryKey: adminKeys.active, queryFn: getActiveBolao });
-  const bolaoId = active.data?.id ?? '';
+function ParticipantsPanel({ bolaoId }: { bolaoId: string }) {
   const participants = useQuery({ queryKey: adminKeys.participants(bolaoId), queryFn: () => getParticipants(bolaoId), enabled: !!bolaoId });
-  if (active.isLoading || participants.isLoading) {
+  if (participants.isLoading) {
     return <ActivityIndicator color={colors.primary} />;
   }
   return (
@@ -278,18 +258,16 @@ function ParticipantsPanel() {
   );
 }
 
-function BolaoPanel() {
+function BolaoPanel({ bolao }: { bolao: MyBolao }) {
   const queryClient = useQueryClient();
-  const active = useQuery({ queryKey: adminKeys.active, queryFn: getActiveBolao, retry: false });
   const [confirming, setConfirming] = useState(false);
   const [unresolved, setUnresolved] = useState(false);
   const finish = useMutation({
-    mutationFn: (force: boolean) => finishActiveBolao(force),
+    mutationFn: (force: boolean) => finishBolao(bolao.id, force),
     onSuccess: () => {
       setConfirming(false);
       setUnresolved(false);
-      queryClient.invalidateQueries({ queryKey: adminKeys.active });
-      queryClient.invalidateQueries({ queryKey: ['me', 'boloes'] });
+      queryClient.invalidateQueries({ queryKey: bolaoKeys.mine });
     },
     onError: (err) => {
       if ((err as Error & { status?: number }).status === 409) {
@@ -298,19 +276,12 @@ function BolaoPanel() {
     },
   });
 
-  if (active.isLoading) {
-    return <ActivityIndicator color={colors.primary} />;
-  }
-  if (!active.data) {
-    return <Text style={{ color: colors.muted }}>Nenhum bolão ativo no momento.</Text>;
-  }
-
   return (
     <View style={{ backgroundColor: colors.card, borderRadius: 12, padding: 16, gap: 12, borderWidth: 1, borderColor: colors.border }}>
       <View>
         <Text style={{ color: colors.muted, fontSize: 13 }}>Bolão ativo</Text>
-        <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700' }}>{active.data.name}</Text>
-        <Text style={{ color: colors.muted, fontSize: 12 }}>Iniciado em {new Date(active.data.started_at).toLocaleDateString('pt-BR')}</Text>
+        <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700' }}>{bolao.name}</Text>
+        {bolao.started_at && <Text style={{ color: colors.muted, fontSize: 12 }}>Iniciado em {new Date(bolao.started_at).toLocaleDateString('pt-BR')}</Text>}
       </View>
       {unresolved ? (
         <View style={{ gap: 8, padding: 12, borderRadius: 10, backgroundColor: '#450a0a66', borderWidth: 1, borderColor: '#991b1b' }}>
@@ -333,6 +304,10 @@ function BolaoPanel() {
 
 export function AdminScreen() {
   const [tab, setTab] = useState<Tab>('jogos');
+  const { bolao, boloes, isLoading } = useCurrentBolao();
+  const [pickedBolao, setPickedBolao] = useState<string | null>(null);
+  const options = boloes.filter((b) => b.member_status === 'active' && b.status === 'active');
+  const current = options.find((b) => b.id === pickedBolao) ?? (bolao?.status === 'active' ? bolao : options[0]);
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
       <View style={{ flexDirection: 'row', backgroundColor: colors.card, borderRadius: 12, padding: 4 }}>
@@ -349,9 +324,18 @@ export function AdminScreen() {
           </Pressable>
         ))}
       </View>
-      {tab === 'jogos' && <MatchesPanel />}
-      {tab === 'participantes' && <ParticipantsPanel />}
-      {tab === 'bolao' && <BolaoPanel />}
+      {isLoading ? (
+        <ActivityIndicator color={colors.primary} />
+      ) : !current ? (
+        <Text style={{ color: colors.muted }}>Nenhum bolão ativo no momento.</Text>
+      ) : (
+        <>
+          <BolaoPicker selected={current.id} onSelect={setPickedBolao} />
+          {tab === 'jogos' && <MatchesPanel key={current.id} bolaoId={current.id} />}
+          {tab === 'participantes' && <ParticipantsPanel bolaoId={current.id} />}
+          {tab === 'bolao' && <BolaoPanel key={current.id} bolao={current} />}
+        </>
+      )}
     </ScrollView>
   );
 }

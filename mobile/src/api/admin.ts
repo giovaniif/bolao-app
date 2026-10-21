@@ -4,7 +4,6 @@ import type { RoundsSummary } from './play';
 export const adminKeys = {
   summary: (bolaoId: string) => ['admin', bolaoId, 'rounds'] as const,
   matches: (bolaoId: string, round: number) => ['admin', bolaoId, 'matches', round] as const,
-  active: ['admin', 'active-bolao'] as const,
   participants: (bolaoId: string) => ['admin', 'participants', bolaoId] as const,
 };
 
@@ -18,13 +17,6 @@ export interface AdminMatch {
   away_goals?: number;
   provider_match_id?: number;
   locked: boolean;
-}
-
-export interface ActiveBolao {
-  id: string;
-  name: string;
-  status: string;
-  started_at: string;
 }
 
 export interface Participant {
@@ -54,10 +46,6 @@ export function setRoundCloses(bolaoId: string, round: number, closesAt: Date): 
   return api<AdminMatch[]>(`/boloes/${bolaoId}/matches/round/${round}/closes`, { method: 'PUT', body: JSON.stringify({ market_closes_at: closesAt.toISOString() }) });
 }
 
-export function getActiveBolao(): Promise<ActiveBolao> {
-  return api<ActiveBolao>('/boloes/active');
-}
-
 export function getParticipants(bolaoId: string): Promise<Participant[]> {
   return api<Participant[]>(`/boloes/${bolaoId}/participants`);
 }
@@ -66,6 +54,6 @@ export async function setAmountPaid(bolaoId: string, userId: string, amountPaid:
   await api(`/boloes/${bolaoId}/participants/${userId}`, { method: 'PUT', body: JSON.stringify({ amount_paid: amountPaid }) });
 }
 
-export async function finishActiveBolao(force: boolean): Promise<void> {
-  await api('/boloes/active/finish', { method: 'POST', body: JSON.stringify({ force }) });
+export async function finishBolao(bolaoId: string, force: boolean): Promise<void> {
+  await api(`/boloes/${bolaoId}/finish`, { method: 'POST', body: JSON.stringify({ force }) });
 }
