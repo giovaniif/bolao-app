@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import * as SecureStore from 'expo-secure-store';
 import { setToken } from '../api/client';
 import type { LoginResponse } from '../api/auth';
+import { unregisterForPush } from '../notifications/push';
 
 export interface SessionUser {
   id: string;
@@ -47,6 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
+    await unregisterForPush();
     setToken(null);
     setTokenState(null);
     setUser(null);

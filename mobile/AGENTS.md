@@ -30,6 +30,7 @@ npx expo-doctor         # find dependency and config problems
 src/app/          routes (Expo Router): every file is a screen, _layout.tsx is a navigator
 src/api/          api<T>() and the fetch functions, with interfaces that match the Go JSON
 src/auth/         the session (token in expo-secure-store) and the login and sign-up screens
+src/notifications/ Expo push: permission, token registration, tap handling (PushGate)
 src/test/         render helpers for tests
 jest.setup.ts     mocks of native modules for jest
 ```
@@ -42,6 +43,12 @@ jest.setup.ts     mocks of native modules for jest
 - Server state is TanStack Query only, as in `web/`.
 - Do not create or edit `ios/` or `android/`. Expo generates them from `app.json` and config plugins.
 - UI text is Portuguese. Code, tests and comments policy follow the root rules (no comments).
+
+## Push notifications
+
+- `PushGate` (in the `(app)` layout) registers the device after login. It asks for permission once per install (`push-asked` in secure store) and posts the Expo push token to `POST /api/push/expo-tokens` with the EAS `projectId` from `app.json`.
+- `signOut` deletes the token from the API before it clears the session, so the device stops getting the previous user's reminders.
+- A tap on a notification opens Palpitar. Push needs a development or store build: Expo Go cannot receive remote push. `expo-notifications` is a native module, so adding or changing it needs a new EAS build.
 
 ## Builds
 
