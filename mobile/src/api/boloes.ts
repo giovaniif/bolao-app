@@ -50,5 +50,18 @@ export const getMembers = (bolaoId: string) => api<Member[]>(`/boloes/${bolaoId}
 export const getInviteCode = (bolaoId: string) => api<{ code: string }>(`/boloes/${bolaoId}/invite`);
 export const createInviteLink = (bolaoId: string) =>
   api<{ token: string; expires_at: string }>(`/boloes/${bolaoId}/invite/links`, { method: 'POST' });
-export const reviewRequest = (bolaoId: string, userId: string, decision: 'approve' | 'reject') =>
+export interface BolaoSettings {
+  name: string;
+  visibility: 'private' | 'public';
+  requires_approval: boolean;
+}
+
+export const setMemberRole = (bolaoId: string, userId: string, role: 'admin' | 'participant') =>
+  api(`/boloes/${bolaoId}/members/${userId}/role`, { method: 'PUT', body: JSON.stringify({ role }) });
+export const removeMember = (bolaoId: string, userId: string) => api(`/boloes/${bolaoId}/members/${userId}`, { method: 'DELETE' });
+export const leaveBolao = (bolaoId: string) => api(`/boloes/${bolaoId}/leave`, { method: 'POST' });
+export const rotateInviteCode = (bolaoId: string) => api<{ code: string }>(`/boloes/${bolaoId}/invite/rotate`, { method: 'POST' });
+export const updateBolaoSettings = (bolaoId: string, settings: BolaoSettings) =>
+  api(`/boloes/${bolaoId}`, { method: 'PATCH', body: JSON.stringify(settings) });
+export const reviewRequest =(bolaoId: string, userId: string, decision: 'approve' | 'reject') =>
   api(`/boloes/${bolaoId}/members/${userId}/${decision}`, { method: 'POST' });
