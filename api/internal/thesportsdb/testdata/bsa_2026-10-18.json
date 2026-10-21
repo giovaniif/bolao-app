@@ -1,0 +1,54 @@
+{
+ "events": [
+  {
+   "idEvent": "2398493",
+   "strTimestamp": "2026-10-18T21:30:00",
+   "strHomeTeam": "Bahia",
+   "strAwayTeam": "Flamengo",
+   "intHomeScore": "0",
+   "intAwayScore": "3",
+   "strStatus": "FT",
+   "dateEvent": "2026-10-18"
+  },
+  {
+   "idEvent": "2398496",
+   "strTimestamp": "2026-10-18T19:00:00",
+   "strHomeTeam": "Fluminense",
+   "strAwayTeam": "Santos",
+   "intHomeScore": "1",
+   "intAwayScore": "2",
+   "strStatus": "FT",
+   "dateEvent": "2026-10-18"
+  },
+  {
+   "idEvent": "2398497",
+   "strTimestamp": "2026-10-18T19:00:00",
+   "strHomeTeam": "Gr\u00eamio",
+   "strAwayTeam": "Cruzeiro",
+   "intHomeScore": "2",
+   "intAwayScore": "4",
+   "strStatus": "FT",
+   "dateEvent": "2026-10-18"
+  },
+  {
+   "idEvent": "9",
+   "strTimestamp": "2026-10-18T23:00:00",
+   "strHomeTeam": "Mirassol",
+   "strAwayTeam": "Remo",
+   "intHomeScore": "1",
+   "intAwayScore": "0",
+   "strStatus": "2H",
+   "dateEvent": "2026-10-18"
+  },
+  {
+   "idEvent": "10",
+   "strTimestamp": "2026-10-18T23:30:00",
+   "strHomeTeam": "Ceara",
+   "strAwayTeam": "Sport",
+   "intHomeScore": null,
+   "intAwayScore": null,
+   "strStatus": "NS",
+   "dateEvent": "2026-10-18"
+  }
+ ]
+}
