@@ -68,6 +68,8 @@ See [ADR 0004](../docs/adr/0004-startup-migrations.md).
 - They run on every boot, so make them idempotent: `CREATE TABLE IF NOT EXISTS`, `ADD COLUMN IF NOT EXISTS`, guarded `DO $$` blocks.
 - Only `001_init.sql` is fatal on failure. Later ones log and continue, so a non-idempotent migration fails quietly in production.
 - Never edit a migration that ran anywhere. Add a new one.
+- Every table in `public` has row level security on, with no policies (migration 017, issue #44). This blocks the Supabase REST API (`anon`, `authenticated`). The API connects as `postgres`, which owns the tables and has `BYPASSRLS`, so it keeps full access. Never use `FORCE ROW LEVEL SECURITY`.
+- Migration 017 runs on every boot and enables RLS on each table in `public`, so a table from a later migration gets RLS on the next start. To close that gap, a migration that creates a table also runs `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` on it.
 
 ## Behavior notes
 
