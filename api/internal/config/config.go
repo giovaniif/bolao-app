@@ -16,6 +16,10 @@ type Config struct {
 
 	FootballDataAPIKey string
 
+	AppURL       string
+	ResendAPIKey string
+	ResendFrom   string
+
 	SentryDSN         string
 	SentryEnvironment string
 	Release           string
@@ -33,6 +37,10 @@ func Load() *Config {
 		CronSecret:      os.Getenv("CRON_SECRET"),
 
 		FootballDataAPIKey: os.Getenv("FOOTBALL_DATA_API_KEY"),
+
+		AppURL:       getEnv("APP_URL", "https://bolao.giovani.app"),
+		ResendAPIKey: os.Getenv("RESEND_API_KEY"),
+		ResendFrom:   getEnv("RESEND_FROM", "Bolão <nao-responda@bolao.giovani.app>"),
 
 		SentryDSN:         os.Getenv("SENTRY_DSN"),
 		SentryEnvironment: getEnv("SENTRY_ENVIRONMENT", "dev"),

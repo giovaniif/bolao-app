@@ -11,6 +11,7 @@ import (
 	"github.com/bolao-app/api/internal/database"
 	"github.com/bolao-app/api/internal/footballdata"
 	"github.com/bolao-app/api/internal/handler"
+	"github.com/bolao-app/api/internal/mail"
 	"github.com/bolao-app/api/internal/observability"
 	"github.com/bolao-app/api/internal/push"
 	"github.com/bolao-app/api/internal/repository"
@@ -60,7 +61,16 @@ func main() {
 		log.Print("match sync disabled: FOOTBALL_DATA_API_KEY not set")
 	}
 
+	var mailer service.Mailer
+	if cfg.ResendAPIKey != "" {
+		mailer = mail.NewResendSender(mail.ResendBaseURL, cfg.ResendAPIKey, cfg.ResendFrom)
+	} else {
+		log.Print("password reset emails disabled: RESEND_API_KEY not set")
+	}
+	passwordResetSvc := service.NewPasswordResetService(repository.NewPasswordResetRepository(pool), mailer, cfg.AppURL, time.Now, service.RandomResetToken)
+
 	authHandler := handler.NewAuthHandler(userRepo, cfg.JWTSecret)
+	passwordResetHandler := handler.NewPasswordResetHandler(passwordResetSvc)
 	userHandler := handler.NewUserHandler(userRepo, bolaoRepo)
 	var notifier handler.RoundNotifier
 	if notificationSvc != nil {
@@ -86,6 +96,8 @@ func main() {
 
 	r.POST("/api/auth/login", authHandler.Login)
 	r.POST("/api/auth/signup", authHandler.Signup)
+	r.POST("/api/auth/forgot-password", passwordResetHandler.Forgot)
+	r.POST("/api/auth/reset-password", passwordResetHandler.Reset)
 	r.GET("/api/teams", userHandler.GetTeams)
 	r.GET("/api/rules", handler.GetRules)
 	r.GET("/api/competitions", handler.NewCompetitionHandler(repository.NewCompetitionRepository(pool)).List)
@@ -174,7 +186,7 @@ func corsMiddleware() gin.HandlerFunc {
 }
 
 func runMigrations(ctx context.Context, pool *pgxpool.Pool) error {
-	for _, name := range []string{"001_init.sql", "002_timestamptz.sql", "003_match_partials.sql", "004_passwords.sql", "005_partials_nullable.sql", "006_boloes.sql", "007_push_notifications.sql", "008_competitions.sql", "009_match_sync.sql", "010_bolao_members.sql", "011_many_active_boloes.sql", "012_hidden_boloes.sql", "013_bolao_first_round.sql"} {
+	for _, name := range []string{"001_init.sql", "002_timestamptz.sql", "003_match_partials.sql", "004_passwords.sql", "005_partials_nullable.sql", "006_boloes.sql", "007_push_notifications.sql", "008_competitions.sql", "009_match_sync.sql", "010_bolao_members.sql", "011_many_active_boloes.sql", "012_hidden_boloes.sql", "013_bolao_first_round.sql", "014_password_reset.sql"} {
 		path := filepath.Join("migrations", name)
 		content, err := os.ReadFile(path)
 		if err != nil {

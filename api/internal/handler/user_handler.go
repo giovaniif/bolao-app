@@ -52,6 +52,7 @@ type UpdateUserRequest struct {
 }
 
 type UpdateMeRequest struct {
+	Email        *string `json:"email"`
 	Username     string  `json:"username"`
 	DisplayName  string  `json:"display_name"`
 	FavoriteTeam *string `json:"favorite_team"`
@@ -234,7 +235,21 @@ func (h *UserHandler) UpdateMe(c *gin.Context) {
 		}
 	}
 
-	if err := h.userRepo.Update(c.Request.Context(), user); err != nil {
+	if req.Email != nil {
+		email := strings.ToLower(strings.TrimSpace(*req.Email))
+		if !validEmail(email) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "e-mail inválido"})
+			return
+		}
+		user.Email = &email
+	}
+
+	err = h.userRepo.Update(c.Request.Context(), user)
+	if errors.Is(err, repository.ErrEmailTaken) {
+		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		return
+	}
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

@@ -11,6 +11,7 @@ type User struct {
 	Username           string    `json:"username"`
 	DisplayName        string    `json:"display_name"`
 	FavoriteTeam       *string   `json:"favorite_team,omitempty"`
+	Email              *string   `json:"email,omitempty"`
 	IsAdmin            bool      `json:"is_admin"`
 	PasswordHash       string    `json:"-"`
 	MustChangePassword bool      `json:"must_change_password,omitempty"`
