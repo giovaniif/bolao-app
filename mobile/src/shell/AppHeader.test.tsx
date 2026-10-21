@@ -70,3 +70,26 @@ describe('AppHeader profile menu', () => {
     expect(router.push).toHaveBeenCalledWith('/perfil')
   })
 })
+
+describe('AppHeader admin entry', () => {
+  it('shows Admin with the pending results to a platform admin', async () => {
+    await SecureStore.setItemAsync('user', JSON.stringify({ id: 'u-1', username: 'ana', isAdmin: true }))
+    fakeApi([
+      { path: /^\/me\/boloes$/, body: MINE },
+      { path: /^\/me$/, body: { display_name: 'Ana Souza' } },
+      { path: /^\/matches\/rounds\/summary$/, body: { rounds: [7], active: 7, pending_results: 3 } },
+    ])
+    await renderWithProviders(<AppHeader title="Palpites" />)
+    await fireEvent.press(await screen.findByRole('button', { name: 'Meu perfil' }))
+    expect(await screen.findByText('3')).toBeTruthy()
+    await fireEvent.press(screen.getByRole('menuitem', { name: 'Admin' }))
+    expect(router.push).toHaveBeenCalledWith('/admin')
+  })
+
+  it('hides Admin from other users', async () => {
+    fakeApi([{ path: /^\/me\/boloes$/, body: MINE }, { path: /^\/me$/, body: { display_name: 'Ana Souza' } }])
+    await renderWithProviders(<AppHeader title="Palpites" />)
+    await fireEvent.press(await screen.findByRole('button', { name: 'Meu perfil' }))
+    expect(screen.queryByRole('menuitem', { name: 'Admin' })).toBeNull()
+  })
+})

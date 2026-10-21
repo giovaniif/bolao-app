@@ -6,14 +6,18 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../auth/AuthProvider';
 import { useCurrentBolao } from '../bolao/useCurrentBolao';
 import { getProfile } from '../api/auth';
+import { adminKeys, getAdminRoundsSummary } from '../api/admin';
 import { colors } from '../theme';
 import { initials } from './initials';
 
-function MenuItem({ label, onPress, detail, active }: { label: string; onPress: () => void; detail?: string; active?: boolean }) {
+function MenuItem({ label, onPress, detail, active, badge }: { label: string; onPress: () => void; detail?: string; active?: boolean; badge?: number }) {
   return (
     <Pressable accessibilityRole="menuitem" accessibilityLabel={label} onPress={onPress} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12 }}>
       <Text numberOfLines={1} style={{ color: active ? colors.primary : colors.text, fontWeight: active ? '700' : '500', flexShrink: 1 }}>{label}</Text>
       {detail && <Text style={{ color: colors.muted, fontSize: 12 }}>{detail}</Text>}
+      {!!badge && (
+        <Text style={{ minWidth: 20, paddingHorizontal: 6, borderRadius: 10, overflow: 'hidden', backgroundColor: colors.primary, color: colors.bg, fontSize: 12, fontWeight: '800', textAlign: 'center' }}>{badge}</Text>
+      )}
     </Pressable>
   );
 }
@@ -36,12 +40,14 @@ export function AppHeader({ title }: { title?: string }) {
   const { user, token, signOut } = useAuth();
   const { bolao, boloes, select } = useCurrentBolao();
   const profile = useQuery({ queryKey: ['me'], queryFn: getProfile, enabled: !!token });
+  const isAdmin = !!user?.isAdmin;
+  const pending = useQuery({ queryKey: adminKeys.summary, queryFn: getAdminRoundsSummary, enabled: !!token && isAdmin });
   const [menu, setMenu] = useState<'bolao' | 'profile' | null>(null);
   const playable = boloes.filter((b) => b.member_status === 'active');
   const name = profile.data?.display_name ?? user?.username ?? '';
   const menuTop = insets.top + 56;
 
-  function go(path: '/meus-boloes' | '/perfil') {
+  function go(path: '/meus-boloes' | '/perfil' | '/admin') {
     setMenu(null);
     router.push(path);
   }
@@ -81,6 +87,7 @@ export function AppHeader({ title }: { title?: string }) {
       <Dropdown visible={menu === 'profile'} onClose={() => setMenu(null)} top={menuTop} align="right">
         <MenuItem label="Meus bolões" onPress={() => go('/meus-boloes')} />
         <MenuItem label="Perfil" onPress={() => go('/perfil')} />
+        {isAdmin && <MenuItem label="Admin" badge={pending.data?.pending_results} onPress={() => go('/admin')} />}
         <MenuItem
           label="Sair"
           onPress={async () => {
