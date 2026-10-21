@@ -7,6 +7,7 @@ import {
 } from '../api/parciaisApi';
 import { queryKeys } from '../../../shared/query/queryKeys';
 import { useCurrentBolao } from '../../../shared/hooks/useCurrentBolao';
+import { liveRefetchInterval } from './liveRefetch';
 
 export function usePartialsByRound(round: number) {
   const { bolaoId: scope, isLoading } = useCurrentBolao();
@@ -14,15 +15,18 @@ export function usePartialsByRound(round: number) {
     queryKey: queryKeys.partials(round, scope),
     queryFn: () => getPartialsByRound(round, scope),
     enabled: round > 0 && !isLoading,
+    refetchInterval: (query) => liveRefetchInterval(query.state.data),
   });
 }
 
 export function usePartialClassification(round: number) {
   const { bolaoId: scope, isLoading } = useCurrentBolao();
+  const { data: matches } = usePartialsByRound(round);
   return useQuery({
     queryKey: queryKeys.partialClassification(round, scope),
     queryFn: () => getPartialClassification(round, scope),
     enabled: round > 0 && !isLoading,
+    refetchInterval: liveRefetchInterval(matches),
   });
 }
 
