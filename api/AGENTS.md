@@ -97,6 +97,13 @@ These rules have no unit test, because they live in handlers or SQL that need a 
 - `ClaimNotification` races concurrent ticks on the primary key, so exactly one sends. The key holds `closes_at`, so a moved deadline re-arms the reminders (migration 007). A new-round notice keys on the Unix epoch instead, so it is sent once.
 - A reminder stays due for its whole window, so a missed tick does not lose it. A day-before reminder later than one hour is skipped.
 
+### Password reset
+
+- `POST /api/auth/forgot-password` always returns 204, so a caller cannot find out which logins exist. The login is a username or an email.
+- Only the SHA-256 of the token is stored. A token is valid for 1 hour and for one use. A reset marks every open token of the user as used.
+- A second request for the same user within 60 seconds sends nothing.
+- Without `RESEND_API_KEY` the mailer is nil, and a request does nothing.
+
 ## Go conventions
 
 - Constructors: `NewXRepository(pool)` and `NewXHandler(deps...)`, returning a pointer. Dependencies are struct fields.
