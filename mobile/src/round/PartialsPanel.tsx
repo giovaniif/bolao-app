@@ -3,25 +3,10 @@ import { Pressable, Text, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { clearPartial, getPartials, getPartialStandings, setPartial, type MatchWithPartial } from '../api/round';
 import { PrimaryButton } from '../components/PrimaryButton';
+import { PredictCard } from '../play/PredictCard';
 import { colors } from '../theme';
 
 type Partial = { h: number | null; a: number | null };
-
-function Stepper({ team, value, onChange }: { team: string; value: number | null; onChange: (v: number) => void }) {
-  const button = { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.border, alignItems: 'center' as const, justifyContent: 'center' as const };
-  const current = value ?? 0;
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-      <Pressable accessibilityRole="button" accessibilityLabel={`Menos um gol de ${team}`} disabled={current === 0} onPress={() => onChange(current - 1)} style={[button, { opacity: current === 0 ? 0.4 : 1 }]}>
-        <Text style={{ color: colors.text, fontSize: 18, fontWeight: '800' }}>−</Text>
-      </Pressable>
-      <Text style={{ color: colors.text, fontSize: 20, fontWeight: '900', minWidth: 22, textAlign: 'center' }}>{value ?? '–'}</Text>
-      <Pressable accessibilityRole="button" accessibilityLabel={`Mais um gol de ${team}`} onPress={() => onChange(Math.min(99, current + 1))} style={button}>
-        <Text style={{ color: colors.text, fontSize: 18, fontWeight: '800' }}>+</Text>
-      </Pressable>
-    </View>
-  );
-}
 
 const card = { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: 12, padding: 12 };
 
@@ -30,12 +15,14 @@ export function PartialsPanel({ bolaoId, round }: { bolaoId: string; round: numb
   const [editing, setEditing] = useState(false);
   const [edits, setEdits] = useState<Record<string, Partial>>({});
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const [index, setIndex] = useState(0);
   const [shownRound, setShownRound] = useState(round);
   if (round !== shownRound) {
     setShownRound(round);
     setEditing(false);
     setEdits({});
     setMessage(null);
+    setIndex(0);
   }
 
   const matchesKey = ['partials', bolaoId, round];
@@ -100,26 +87,42 @@ export function PartialsPanel({ bolaoId, round }: { bolaoId: string; round: numb
       ) : editing ? (
         <>
           <Text style={{ color: colors.muted, fontSize: 13 }}>Qualquer usuário pode adicionar parciais</Text>
-          {list.map((m) => {
+          {(() => {
+            const i = Math.min(index, list.length - 1);
+            const m = list[i];
             const p = partials[m.id];
             return (
-              <View key={m.id} style={[card, { gap: 10 }]}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Text numberOfLines={1} style={{ color: colors.text, fontWeight: '700', flex: 1 }}>{m.home_team}</Text>
-                  <Stepper team={m.home_team} value={p.h} onChange={(v) => setEdits((prev) => ({ ...prev, [m.id]: { h: v, a: p.a } }))} />
-                </View>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Text numberOfLines={1} style={{ color: colors.text, fontWeight: '700', flex: 1 }}>{m.away_team}</Text>
-                  <Stepper team={m.away_team} value={p.a} onChange={(v) => setEdits((prev) => ({ ...prev, [m.id]: { h: p.h, a: v } }))} />
-                </View>
+              <>
+                <PredictCard
+                  match={{ home_team: m.home_team, away_team: m.away_team, home_goals: m.real_home_goals, away_goals: m.real_away_goals }}
+                  home={p.h ?? 0}
+                  away={p.a ?? 0}
+                  onChange={(h, a) => setEdits((prev) => ({ ...prev, [m.id]: { h, a } }))}
+                  onNext={() => setIndex((n) => Math.min(n + 1, list.length - 1))}
+                  onPrev={() => setIndex((n) => Math.max(n - 1, 0))}
+                  index={i}
+                  total={list.length}
+                  disabled={false}
+                />
                 {m.partial_home != null && m.partial_away != null && (
-                  <Pressable accessibilityRole="button" accessibilityLabel={`Limpar parcial de ${m.home_team} x ${m.away_team}`} disabled={clear.isPending} onPress={() => clear.mutate(m.id)}>
-                    <Text style={{ color: colors.danger, fontSize: 13, fontWeight: '600' }}>Limpar parcial</Text>
+                  <Pressable accessibilityRole="button" accessibilityLabel="Limpar parcial" disabled={clear.isPending} onPress={() => { setMessage(null); clear.mutate(m.id); }} style={{ borderColor: colors.danger, borderWidth: 1, borderRadius: 12, paddingVertical: 10, alignItems: 'center', opacity: clear.isPending ? 0.5 : 1 }}>
+                    <Text style={{ color: colors.danger, fontSize: 14, fontWeight: '600' }}>{clear.isPending ? 'Limpando...' : 'Limpar parcial'}</Text>
                   </Pressable>
                 )}
-              </View>
+                <View style={card}>
+                  {list.map((other, j) => {
+                    const q = partials[other.id];
+                    return (
+                      <Pressable key={other.id} accessibilityRole="button" accessibilityLabel={`Ir para ${other.home_team} x ${other.away_team}`} onPress={() => setIndex(j)} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6, paddingHorizontal: 8, borderRadius: 8, backgroundColor: j === i ? colors.border : 'transparent' }}>
+                        <Text numberOfLines={1} style={{ color: colors.text, fontSize: 13, flex: 1 }}>{`${other.home_team} × ${other.away_team}`}</Text>
+                        <Text style={{ color: colors.text, fontSize: 13, marginLeft: 8 }}>{`${q.h ?? '–'}×${q.a ?? '–'}`}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </>
             );
-          })}
+          })()}
           <View style={{ flexDirection: 'row', gap: 12 }}>
             <View style={{ flex: 1 }}>
               <PrimaryButton title="Voltar" variant="secondary" onPress={() => { setEditing(false); setEdits({}); }} />

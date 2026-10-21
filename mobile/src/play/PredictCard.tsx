@@ -6,6 +6,8 @@ import { colors } from '../theme';
 
 const SWIPE_THRESHOLD = 60;
 
+export type CardMatch = Pick<Match, 'home_team' | 'away_team' | 'home_goals' | 'away_goals'>;
+
 function Stepper({ team, value, disabled, onChange }: { team: string; value: number; disabled: boolean; onChange: (v: number) => void }) {
   const button = { width: 48, height: 48, borderRadius: 24, backgroundColor: colors.border, alignItems: 'center' as const, justifyContent: 'center' as const };
   const minusDisabled = disabled || value <= 0;
@@ -76,7 +78,7 @@ export function PredictCard({
   total,
   disabled,
 }: {
-  match: Match;
+  match: CardMatch;
   home: number;
   away: number;
   onChange: (home: number, away: number) => void;
