@@ -4,6 +4,7 @@ import { useAuth } from '../../../shared/hooks/useAuth';
 import { login } from '../api/authApi';
 import { Button } from '../../../shared/components/Button';
 import { Input } from '../../../shared/components/Input';
+import { SocialSignIn } from '../components/SocialSignIn';
 
 export function LoginPage() {
   const [username, setUsername] = useState('');
@@ -81,6 +82,9 @@ export function LoginPage() {
             </Link>
           </p>
         </form>
+        <div className="mt-4">
+          <SocialSignIn next={next} />
+        </div>
       </div>
     </div>
   );

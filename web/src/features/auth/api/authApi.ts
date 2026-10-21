@@ -43,6 +43,27 @@ export async function changePassword(
   });
 }
 
+export type SocialProvider = 'apple' | 'google';
+
+export async function socialLogin(provider: SocialProvider, idToken: string, username?: string): Promise<LoginResponse> {
+  const body: Record<string, string> = { provider, id_token: idToken };
+  if (username) body.username = username;
+  const res = await api<LoginResponse>('/auth/social', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+  if (!isLoginResponse(res)) {
+    throw new Error('Resposta de login inválida. Tente novamente.');
+  }
+  return res;
+}
+
+export function needsUsername(err: unknown): boolean {
+  if (!(err instanceof Error) || !('body' in err)) return false;
+  const body = (err as { body: unknown }).body;
+  return body !== null && typeof body === 'object' && (body as { needs_username?: unknown }).needs_username === true;
+}
+
 export interface SignupInput {
   username: string;
   display_name: string;

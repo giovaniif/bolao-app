@@ -4,6 +4,7 @@ import { useAuth } from '../../../shared/hooks/useAuth';
 import { signup } from '../api/authApi';
 import { Button } from '../../../shared/components/Button';
 import { track } from '../../../shared/analytics/analytics';
+import { SocialSignIn } from '../components/SocialSignIn';
 
 const fieldClass =
   'w-full px-3 py-2 rounded-lg bg-card border border-slate-600 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary';
@@ -62,6 +63,9 @@ export function SignupPage() {
           <Link to={voltar ? `/login?voltar=${encodeURIComponent(voltar)}` : '/login'} className="text-primary font-semibold">Entrar</Link>
         </p>
       </form>
+      <div className="mt-4 w-full max-w-sm">
+        <SocialSignIn next={next} />
+      </div>
     </div>
   );
 }
