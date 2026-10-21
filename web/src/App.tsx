@@ -19,6 +19,7 @@ import { CreateBolaoPage } from './features/boloes/pages/CreateBolaoPage';
 import { InvitePage } from './features/invites/pages/InvitePage';
 import { JoinByCodePage } from './features/invites/pages/JoinByCodePage';
 import { MembersPage } from './features/members/pages/MembersPage';
+import { PrivacyPage } from './features/legal/pages/PrivacyPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -60,6 +61,7 @@ function AppRoutes() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/cadastro" element={<SignupPage />} />
       <Route path="/esqueci-senha" element={<ForgotPasswordPage />} />
+      <Route path="/privacidade" element={<PrivacyPage />} />
       <Route path="/redefinir-senha" element={<ResetPasswordPage />} />
       <Route
         path="/alterar-senha"
