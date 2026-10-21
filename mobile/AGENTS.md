@@ -53,3 +53,5 @@ jest.setup.ts     mocks of native modules for jest
 ## Builds
 
 EAS builds and submits the app (`npx eas-cli@latest build`, `submit`). The owner's Expo account and the Apple and Google store accounts sign the builds. See issue #87.
+
+The App Store listing is in [store.config.json](store.config.json) (EAS Metadata). The privacy labels, the Play data safety answers and the manual store steps are in [STORE.md](STORE.md).
