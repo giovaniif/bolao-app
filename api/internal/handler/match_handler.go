@@ -15,7 +15,7 @@ import (
 )
 
 type roundAnnouncer interface {
-	AnnounceRound(bolaoID uuid.UUID, round int, closesAt *time.Time)
+	AnnounceRound(b models.Bolao, round int, closesAt *time.Time)
 }
 
 type MatchHandler struct {
@@ -157,7 +157,7 @@ func (h *MatchHandler) CreateMatches(c *gin.Context) {
 		created = append(created, *match)
 	}
 
-	h.announcer.AnnounceRound(active.ID, req.Round, closesAt)
+	h.announcer.AnnounceRound(*active, req.Round, closesAt)
 	c.JSON(http.StatusCreated, created)
 }
 
@@ -215,7 +215,7 @@ func (h *MatchHandler) UpdateRoundCloses(c *gin.Context) {
 		return
 	}
 
-	h.announcer.AnnounceRound(active.ID, round, closesAt)
+	h.announcer.AnnounceRound(*active, round, closesAt)
 	matches, _ := h.matchRepo.ListByRound(c.Request.Context(), active.ID, round)
 	c.JSON(http.StatusOK, matches)
 }

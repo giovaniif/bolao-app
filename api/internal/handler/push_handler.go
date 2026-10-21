@@ -5,6 +5,7 @@ import (
 	"crypto/subtle"
 	"log"
 	"net/http"
+	"regexp"
 	"sync/atomic"
 	"time"
 
@@ -18,10 +19,12 @@ import (
 type pushSubscriptionStore interface {
 	Upsert(ctx context.Context, s *models.PushSubscription) error
 	DeleteForUser(ctx context.Context, userID uuid.UUID, endpoint string) error
+	UpsertExpoToken(ctx context.Context, t *models.ExpoPushToken) error
+	DeleteExpoTokenForUser(ctx context.Context, userID uuid.UUID, token string) error
 }
 
-type activeBolaoGetter interface {
-	GetActive(ctx context.Context) (*models.Bolao, error)
+type activeBolaoLister interface {
+	ListActive(ctx context.Context) ([]models.Bolao, error)
 }
 
 type bolaoMatchLister interface {
@@ -29,8 +32,8 @@ type bolaoMatchLister interface {
 }
 
 type RoundNotifier interface {
-	Notify(ctx context.Context, bolaoID uuid.UUID, r service.Reminder) (int, error)
-	Tick(ctx context.Context, bolaoID uuid.UUID, rounds []service.RoundClose, now time.Time) (int, error)
+	Notify(ctx context.Context, a service.Audience, r service.Reminder) (int, error)
+	Tick(ctx context.Context, a service.Audience, rounds []service.RoundClose, now time.Time) (int, error)
 }
 
 type MatchSyncer interface {
@@ -44,7 +47,7 @@ const (
 
 type PushHandler struct {
 	store      pushSubscriptionStore
-	bolaos     activeBolaoGetter
+	bolaos     activeBolaoLister
 	matches    bolaoMatchLister
 	notifier   RoundNotifier
 	publicKey  string
@@ -54,7 +57,7 @@ type PushHandler struct {
 	now        func() time.Time
 }
 
-func NewPushHandler(store pushSubscriptionStore, bolaos activeBolaoGetter, matches bolaoMatchLister, notifier RoundNotifier, syncer MatchSyncer, publicKey, cronSecret string) *PushHandler {
+func NewPushHandler(store pushSubscriptionStore, bolaos activeBolaoLister, matches bolaoMatchLister, notifier RoundNotifier, syncer MatchSyncer, publicKey, cronSecret string) *PushHandler {
 	return &PushHandler{
 		syncer:     syncer,
 		store:      store,
@@ -69,6 +72,10 @@ func NewPushHandler(store pushSubscriptionStore, bolaos activeBolaoGetter, match
 
 func (h *PushHandler) enabled() bool {
 	return h.notifier != nil && h.publicKey != ""
+}
+
+func (h *PushHandler) notifying() bool {
+	return h.notifier != nil
 }
 
 func (h *PushHandler) PublicKey(c *gin.Context) {
@@ -127,6 +134,48 @@ func (h *PushHandler) Unsubscribe(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
+var expoTokenPattern = regexp.MustCompile(`^Expo(nent)?PushToken\[[^\]]+\]$`)
+
+type expoTokenRequest struct {
+	Token    string `json:"token" binding:"required"`
+	Platform string `json:"platform" binding:"required,oneof=ios android"`
+}
+
+func (h *PushHandler) RegisterExpoToken(c *gin.Context) {
+	if !h.notifying() {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "notificações indisponíveis"})
+		return
+	}
+	var req expoTokenRequest
+	if err := c.ShouldBindJSON(&req); err != nil || !expoTokenPattern.MatchString(req.Token) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "token inválido"})
+		return
+	}
+	token := &models.ExpoPushToken{UserID: c.MustGet("user_id").(uuid.UUID), Token: req.Token, Platform: req.Platform}
+	if err := h.store.UpsertExpoToken(c.Request.Context(), token); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+type expoUnregisterRequest struct {
+	Token string `json:"token" binding:"required"`
+}
+
+func (h *PushHandler) UnregisterExpoToken(c *gin.Context) {
+	var req expoUnregisterRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "token inválido"})
+		return
+	}
+	if err := h.store.DeleteExpoTokenForUser(c.Request.Context(), c.MustGet("user_id").(uuid.UUID), req.Token); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
 func (h *PushHandler) Tick(c *gin.Context) {
 	given := c.GetHeader("X-Cron-Secret")
 	if h.cronSecret == "" || subtle.ConstantTimeCompare([]byte(given), []byte(h.cronSecret)) != 1 {
@@ -134,40 +183,44 @@ func (h *PushHandler) Tick(c *gin.Context) {
 		return
 	}
 	h.startMatchSync()
-	if !h.enabled() {
+	if !h.notifying() {
 		c.JSON(http.StatusOK, gin.H{"sent": 0})
 		return
 	}
 	ctx := c.Request.Context()
-	active, err := h.bolaos.GetActive(ctx)
+	active, err := h.bolaos.ListActive(ctx)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{"sent": 0})
 		return
 	}
-	matches, err := h.matches.ListAllByBolao(ctx, active.ID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	sent, err := h.notifier.Tick(ctx, active.ID, service.RoundCloses(matches), h.now())
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(), "sent": sent})
-		return
+	sent := 0
+	for _, b := range active {
+		matches, err := h.matches.ListAllByBolao(ctx, b.ID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(), "sent": sent})
+			return
+		}
+		n, err := h.notifier.Tick(ctx, service.AudienceOf(b), service.RoundCloses(matches), h.now())
+		sent += n
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(), "sent": sent})
+			return
+		}
 	}
 	c.JSON(http.StatusOK, gin.H{"sent": sent})
 }
 
-func (h *PushHandler) AnnounceRound(bolaoID uuid.UUID, round int, closesAt *time.Time) {
-	if !h.enabled() || closesAt == nil || !closesAt.After(h.now()) {
+func (h *PushHandler) AnnounceRound(b models.Bolao, round int, closesAt *time.Time) {
+	if !h.notifying() || closesAt == nil || !closesAt.After(h.now()) {
 		return
 	}
-	go h.announce(bolaoID, service.Reminder{Kind: service.ReminderNewRound, Round: round, ClosesAt: *closesAt})
+	go h.announce(service.AudienceOf(b), service.Reminder{Kind: service.ReminderNewRound, Round: round, ClosesAt: *closesAt})
 }
 
-func (h *PushHandler) announce(bolaoID uuid.UUID, r service.Reminder) {
+func (h *PushHandler) announce(a service.Audience, r service.Reminder) {
 	ctx, cancel := context.WithTimeout(context.Background(), announceTimeout)
 	defer cancel()
-	if _, err := h.notifier.Notify(ctx, bolaoID, r); err != nil {
+	if _, err := h.notifier.Notify(ctx, a, r); err != nil {
 		log.Printf("announce round %d: %v", r.Round, err)
 	}
 }

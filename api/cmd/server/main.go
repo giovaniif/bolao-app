@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"time"
@@ -19,6 +20,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+const expoTimeout = 15 * time.Second
 
 func main() {
 	_ = os.Setenv("TZ", "America/Sao_Paulo")
@@ -46,12 +49,14 @@ func main() {
 
 	classificationSvc := service.NewClassificationService(bolaoRepo, matchRepo, predictionRepo, partialRepo)
 	bolaoSvc := service.NewBolaoService(bolaoRepo, matchRepo)
-	var notificationSvc *service.NotificationService
+	var webSender service.PushSender
 	if cfg.VAPIDPublicKey != "" && cfg.VAPIDPrivateKey != "" && cfg.VAPIDSubject != "" {
-		notificationSvc = service.NewNotificationService(pushRepo, push.NewWebPushSender(cfg.VAPIDPublicKey, cfg.VAPIDPrivateKey, cfg.VAPIDSubject))
+		webSender = push.NewWebPushSender(cfg.VAPIDPublicKey, cfg.VAPIDPrivateKey, cfg.VAPIDSubject)
 	} else {
-		log.Print("push notifications disabled: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY or VAPID_SUBJECT not set")
+		log.Print("web push disabled: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY or VAPID_SUBJECT not set")
 	}
+	expoSender := push.NewExpoSender(push.ExpoPushURL, cfg.ExpoAccessToken, &http.Client{Timeout: expoTimeout})
+	notificationSvc := service.NewNotificationService(pushRepo, webSender, expoSender)
 
 	var matchSyncer handler.MatchSyncer
 	if cfg.FootballDataAPIKey != "" {
@@ -72,11 +77,7 @@ func main() {
 	authHandler := handler.NewAuthHandler(userRepo, cfg.JWTSecret)
 	passwordResetHandler := handler.NewPasswordResetHandler(passwordResetSvc)
 	userHandler := handler.NewUserHandler(userRepo, bolaoRepo)
-	var notifier handler.RoundNotifier
-	if notificationSvc != nil {
-		notifier = notificationSvc
-	}
-	pushHandler := handler.NewPushHandler(pushRepo, bolaoRepo, matchRepo, notifier, matchSyncer, cfg.VAPIDPublicKey, cfg.CronSecret)
+	pushHandler := handler.NewPushHandler(pushRepo, bolaoRepo, matchRepo, notificationSvc, matchSyncer, cfg.VAPIDPublicKey, cfg.CronSecret)
 	matchHandler := handler.NewMatchHandler(matchRepo, bolaoRepo, pushHandler)
 	predictionHandler := handler.NewPredictionHandler(predictionRepo, matchRepo, bolaoRepo)
 	partialHandler := handler.NewPartialHandler(matchRepo, partialRepo, bolaoRepo)
@@ -122,6 +123,8 @@ func main() {
 		api.GET("/me", userHandler.GetMe)
 		api.POST("/push/subscriptions", pushHandler.Subscribe)
 		api.DELETE("/push/subscriptions", pushHandler.Unsubscribe)
+		api.POST("/push/expo-tokens", pushHandler.RegisterExpoToken)
+		api.DELETE("/push/expo-tokens", pushHandler.UnregisterExpoToken)
 		api.PUT("/me", userHandler.UpdateMe)
 		api.DELETE("/me", userHandler.DeleteMe)
 		api.GET("/parciais/round/:round", partialHandler.ListByRound)
