@@ -221,7 +221,7 @@ func (h *MatchHandler) UpdateRoundCloses(c *gin.Context) {
 }
 
 func (h *MatchHandler) UpdateMatch(c *gin.Context) {
-	id, err := uuid.Parse(matchIDParam(c))
+	id, err := uuid.Parse(c.Param("match_id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "id inválido"})
 		return
@@ -272,7 +272,7 @@ func (h *MatchHandler) UnlockMatch(c *gin.Context) {
 }
 
 func (h *MatchHandler) DeleteMatch(c *gin.Context) {
-	id, err := uuid.Parse(matchIDParam(c))
+	id, err := uuid.Parse(c.Param("match_id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "id inválido"})
 		return
@@ -338,13 +338,6 @@ func (h *MatchHandler) AdminRoutes(admin *gin.RouterGroup, requireMember gin.Han
 	scoped.PUT("/:match_id", h.UpdateMatch)
 	scoped.DELETE("/:match_id", h.DeleteMatch)
 	scoped.DELETE("/round/:round", h.DeleteRound)
-}
-
-func matchIDParam(c *gin.Context) string {
-	if id, ok := c.Params.Get("match_id"); ok {
-		return id
-	}
-	return c.Param("id")
 }
 
 var errMatchNotInActiveBolao = errors.New("match not in active bolão")
