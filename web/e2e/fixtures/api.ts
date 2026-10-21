@@ -137,6 +137,23 @@ export async function mockApi(page: Page): Promise<string[]> {
     unmocked.push(`${request.method()} ${path}`);
     await route.fulfill({ status: 404, json: { error: 'not mocked' } });
   });
+  await page.route('https://appleid.cdn-apple.com/**', (route: Route) =>
+    route.fulfill({
+      contentType: 'text/javascript',
+      body: 'window.AppleID = { auth: { init() {}, signIn: async () => ({ authorization: { id_token: "apple-e2e" } }) } };',
+    })
+  );
+  await page.route('https://accounts.google.com/gsi/client', (route: Route) =>
+    route.fulfill({
+      contentType: 'text/javascript',
+      body: `window.google = { accounts: { id: { initialize() {}, renderButton(el) {
+        const b = document.createElement('div');
+        b.textContent = 'Continuar com o Google';
+        b.style.cssText = 'height:44px;width:100%;border-radius:22px;background:#131314;color:#e3e3e3;border:1px solid #8e918f;display:flex;align-items:center;justify-content:center;font:500 14px sans-serif';
+        el.appendChild(b);
+      } } } };`,
+    })
+  );
   return unmocked;
 }
 
