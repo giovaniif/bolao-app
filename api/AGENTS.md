@@ -86,7 +86,6 @@ These rules have no unit test, because they live in handlers or SQL that need a 
 - Creating a bolão enrolls every user (`EnrollAllUsers`, `amount_paid` 0). A user created mid-season is enrolled with `AddParticipant`.
 - New users get the bcrypt hash of `123` as password (`auth/password.go`, migration 004). They change it on first login.
 - Migration 006 wraps the data that existed before bolões in one bolão, once. It moves `users.amount_paid` to `bolao_participants`, guarded by `information_schema`.
-- The export CSV starts with a UTF-8 BOM for Excel. Its sections are JOGOS, PALPITES (matches with a result only) and CLASSIFICAÇÃO per round. Predictions are read with a two-value lookup, so a real 0-0 differs from a missing one.
 - `cmd/seed-palpites` reads `palpites.md`: a username line, then one `HxA` line per match. It skips `Home x Away` lines. The match order comes from `round1MatchIDs`.
 
 ### Push

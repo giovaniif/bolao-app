@@ -44,7 +44,6 @@ func main() {
 	membershipRepo := repository.NewMembershipRepository(pool)
 
 	classificationSvc := service.NewClassificationService(bolaoRepo, matchRepo, predictionRepo, partialRepo)
-	exportSvc := service.NewExportService(bolaoRepo, matchRepo, predictionRepo)
 	bolaoSvc := service.NewBolaoService(bolaoRepo, matchRepo)
 	var notificationSvc *service.NotificationService
 	if cfg.VAPIDPublicKey != "" && cfg.VAPIDPrivateKey != "" && cfg.VAPIDSubject != "" {
@@ -72,7 +71,6 @@ func main() {
 	predictionHandler := handler.NewPredictionHandler(predictionRepo, matchRepo, bolaoRepo)
 	partialHandler := handler.NewPartialHandler(matchRepo, partialRepo, bolaoRepo)
 	classificationHandler := handler.NewClassificationHandler(classificationSvc, bolaoRepo)
-	exportHandler := handler.NewExportHandler(exportSvc, bolaoRepo)
 	bolaoHandler := handler.NewBolaoHandler(bolaoSvc, bolaoRepo)
 
 	flushSentry, err := observability.Init(cfg.SentryDSN, cfg.SentryEnvironment, cfg.Release)
@@ -118,8 +116,6 @@ func main() {
 		api.PUT("/parciais/match/:id", partialHandler.SetPartial)
 		api.DELETE("/parciais/match/:id", partialHandler.ClearPartial)
 		api.GET("/parciais/round/:round/classification", classificationHandler.GetByPartials)
-		api.GET("/export/round/:round", exportHandler.ExportRound)
-		api.GET("/export/all", exportHandler.ExportAll)
 		api.GET("/boloes", bolaoHandler.List)
 		api.GET("/boloes/active", bolaoHandler.GetActive)
 		api.GET("/boloes/:id/participants", bolaoHandler.ListParticipants)
@@ -135,8 +131,6 @@ func main() {
 			scoped.POST("/predictions", predictionHandler.UpsertPredictions)
 			scoped.GET("/parciais/round/:round", partialHandler.ListByRound)
 			scoped.GET("/parciais/round/:round/classification", classificationHandler.GetByPartials)
-			scoped.GET("/export/round/:round", exportHandler.ExportRound)
-			scoped.GET("/export/all", exportHandler.ExportAll)
 		}
 
 		handler.NewMemberHandler(membershipRepo, bolaoRepo).Routes(api, handler.RequireMember(membershipRepo))
