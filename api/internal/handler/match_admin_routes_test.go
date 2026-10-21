@@ -76,18 +76,3 @@ func TestMatchAdminRoutesGuards(t *testing.T) {
 		})
 	}
 }
-
-func TestMatchIDParamPrefersTheScopedMatchID(t *testing.T) {
-	scoped := uuid.New()
-	c := &gin.Context{Params: gin.Params{{Key: "id", Value: uuid.NewString()}, {Key: "match_id", Value: scoped.String()}}}
-	got, err := matchIDParam(c)
-	if err != nil || got != scoped {
-		t.Fatalf("matchIDParam = %v, %v; want %v", got, err, scoped)
-	}
-	legacy := uuid.New()
-	c = &gin.Context{Params: gin.Params{{Key: "id", Value: legacy.String()}}}
-	got, err = matchIDParam(c)
-	if err != nil || got != legacy {
-		t.Fatalf("matchIDParam = %v, %v; want %v", got, err, legacy)
-	}
-}

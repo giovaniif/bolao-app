@@ -20,6 +20,7 @@ const (
 var (
 	errBolaoFinished    = errors.New("bolão encerrado")
 	errBolaoNotReadable = errors.New("bolão não encontrado")
+	errBolaoRequired    = errors.New("bolão obrigatório")
 )
 
 func assertReadable(c *gin.Context, bolaoRepo *repository.BolaoRepository, bolaoID uuid.UUID) error {
@@ -90,21 +91,18 @@ func resolveBolaoID(c *gin.Context, bolaoRepo *repository.BolaoRepository) (uuid
 	if id, ok := scopedBolaoID(c); ok {
 		return id, nil
 	}
-	if raw := c.Query("bolao_id"); raw != "" {
-		id, err := uuid.Parse(raw)
-		if err != nil {
-			return uuid.UUID{}, err
-		}
-		if err := assertReadable(c, bolaoRepo, id); err != nil {
-			return uuid.UUID{}, err
-		}
-		return id, nil
+	raw := c.Query("bolao_id")
+	if raw == "" {
+		return uuid.UUID{}, errBolaoRequired
 	}
-	active, err := bolaoRepo.GetActive(c.Request.Context())
+	id, err := uuid.Parse(raw)
 	if err != nil {
 		return uuid.UUID{}, err
 	}
-	return active.ID, nil
+	if err := assertReadable(c, bolaoRepo, id); err != nil {
+		return uuid.UUID{}, err
+	}
+	return id, nil
 }
 
 func writableBolao(c *gin.Context, bolaoRepo *repository.BolaoRepository) (*models.Bolao, error) {
@@ -120,26 +118,4 @@ func writableBolao(c *gin.Context, bolaoRepo *repository.BolaoRepository) (*mode
 		return nil, errBolaoFinished
 	}
 	return bolao, nil
-}
-
-type defaultBolaoGetter interface {
-	GetActive(ctx context.Context) (*models.Bolao, error)
-}
-
-func RequireDefaultMembership(boloes defaultBolaoGetter, memberships membershipGetter) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		if isAdmin, _ := c.Get("is_admin"); isAdmin == true {
-			c.Next()
-			return
-		}
-		bolao, err := boloes.GetActive(c.Request.Context())
-		if err == nil {
-			m, err := memberships.Get(c.Request.Context(), bolao.ID, c.MustGet("user_id").(uuid.UUID))
-			if err == nil && m.Status == models.MemberStatusActive {
-				c.Next()
-				return
-			}
-		}
-		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "você não participa deste bolão"})
-	}
 }

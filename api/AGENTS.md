@@ -58,7 +58,7 @@ See [ADR 0003](../docs/adr/0003-multi-tenancy-by-bolao.md).
 
 - Writes go only to the **active** bolão. Finished bolões are read-only forever.
 - A new repository method that reads or writes domain data takes `bolaoID uuid.UUID`.
-- A new endpoint that returns domain data calls `resolveBolaoID(c, h.bolaoRepo)` (`?bolao_id=` or the active one). Do not write the fallback again.
+- A new endpoint that returns domain data goes under `/boloes/:id` behind `RequireMember` and calls `resolveBolaoID(c, h.bolaoRepo)`. Do not add unscoped routes that act on the active bolão (issue #88 removed them).
 
 ## Migrations
 
@@ -75,7 +75,7 @@ See [ADR 0004](../docs/adr/0004-startup-migrations.md).
 
 These rules have no unit test, because they live in handlers or SQL that need a database. Keep them when you edit the code.
 
-- `resolveBolaoID` reads `?bolao_id=` to browse a finished bolão read-only. Without it, it uses the active bolão.
+- `resolveBolaoID` takes the bolão of the `/boloes/:id` route. On the two unscoped reads that stay (`GET /classification` and `GET /matches/rounds/summary`, for the Hall of Champions), it reads `?bolao_id=` for a readable bolão. Without one of them it returns an error and the handler answers 400.
 - `assertMatchInActiveBolao` returns 403 for a match of a finished bolão. It stops a stale client that edits a match by id.
 - A user can read another user's predictions for a round only after every market in the round closed.
 - The finish-bolão body is optional. No body means `force=false`. `FinishActive` then refuses with `ErrUnresolvedMatches` while a match has no result.
