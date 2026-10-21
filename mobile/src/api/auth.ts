@@ -23,6 +23,10 @@ export function signup(input: SignupInput): Promise<LoginResponse> {
   return api<LoginResponse>('/auth/signup', { method: 'POST', body: JSON.stringify(input) });
 }
 
+export async function forgotPassword(login: string): Promise<void> {
+  await api('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ login }) });
+}
+
 export async function deleteAccount(): Promise<void> {
   await api('/me', { method: 'DELETE' });
 }

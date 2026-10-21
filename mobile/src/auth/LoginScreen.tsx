@@ -32,6 +32,9 @@ export function LoginScreen() {
         </View>
         <TextField label="Usuário" value={username} onChangeText={setUsername} autoCapitalize="none" autoCorrect={false} textContentType="username" />
         <TextField label="Senha" value={password} onChangeText={setPassword} secureTextEntry textContentType="password" />
+        <Link href="/esqueci-senha" style={{ color: colors.primary, textAlign: 'right' }}>
+          Esqueci minha senha
+        </Link>
         {mutation.error && <Text style={{ color: colors.danger }}>{mutation.error.message}</Text>}
         <PrimaryButton title="Entrar" onPress={() => mutation.mutate()} disabled={!username.trim() || !password} loading={mutation.isPending} />
         <Link href="/cadastro" style={{ color: colors.primary, textAlign: 'center', fontWeight: '700', marginTop: 8 }}>
