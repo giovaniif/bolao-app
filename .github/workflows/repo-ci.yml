@@ -69,6 +69,8 @@ jobs:
         env:
           GOPROXY: https://proxy.golang.org,direct
           GOTOOLCHAIN: go1.26.10
+          GOSUMDB: sum.golang.org
+          GOFLAGS: ""
         run: go install github.com/go-gremlins/gremlins/cmd/gremlins@v0.6.0
 
       - name: Mutate the service rules
