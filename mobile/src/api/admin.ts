@@ -2,8 +2,9 @@ import { api } from './client';
 import type { RoundsSummary } from './play';
 
 export const adminKeys = {
-  summary: ['admin', 'rounds'] as const,
-  matches: (round: number) => ['admin', 'matches', round] as const,
+  pending: ['admin', 'rounds'] as const,
+  summary: (bolaoId: string) => ['admin', bolaoId, 'rounds'] as const,
+  matches: (bolaoId: string, round: number) => ['admin', bolaoId, 'matches', round] as const,
   active: ['admin', 'active-bolao'] as const,
   participants: (bolaoId: string) => ['admin', 'participants', bolaoId] as const,
 };
@@ -34,20 +35,28 @@ export interface Participant {
   amount_paid: number;
 }
 
-export function getAdminRoundsSummary(): Promise<RoundsSummary> {
+export function getPendingRoundsSummary(): Promise<RoundsSummary> {
   return api<RoundsSummary>('/matches/rounds/summary');
 }
 
-export function getAdminMatches(round: number): Promise<AdminMatch[]> {
-  return api<AdminMatch[]>(`/matches/round/${round}`);
+export function getAdminRoundsSummary(bolaoId: string): Promise<RoundsSummary> {
+  return api<RoundsSummary>(`/boloes/${bolaoId}/matches/rounds/summary`);
 }
 
-export function setMatchResult(matchId: string, homeGoals: number, awayGoals: number): Promise<AdminMatch> {
-  return api<AdminMatch>(`/matches/${matchId}/results`, { method: 'PUT', body: JSON.stringify({ home_goals: homeGoals, away_goals: awayGoals }) });
+export function getAdminMatches(bolaoId: string, round: number): Promise<AdminMatch[]> {
+  return api<AdminMatch[]>(`/boloes/${bolaoId}/matches/round/${round}`);
 }
 
-export function unlockMatch(matchId: string): Promise<AdminMatch> {
-  return api<AdminMatch>(`/matches/${matchId}/lock`, { method: 'DELETE' });
+export function setMatchResult(bolaoId: string, matchId: string, homeGoals: number, awayGoals: number): Promise<AdminMatch> {
+  return api<AdminMatch>(`/boloes/${bolaoId}/matches/${matchId}/results`, { method: 'PUT', body: JSON.stringify({ home_goals: homeGoals, away_goals: awayGoals }) });
+}
+
+export function unlockMatch(bolaoId: string, matchId: string): Promise<AdminMatch> {
+  return api<AdminMatch>(`/boloes/${bolaoId}/matches/${matchId}/lock`, { method: 'DELETE' });
+}
+
+export function setRoundCloses(bolaoId: string, round: number, closesAt: Date): Promise<AdminMatch[]> {
+  return api<AdminMatch[]>(`/boloes/${bolaoId}/matches/round/${round}/closes`, { method: 'PUT', body: JSON.stringify({ market_closes_at: closesAt.toISOString() }) });
 }
 
 export function getActiveBolao(): Promise<ActiveBolao> {
