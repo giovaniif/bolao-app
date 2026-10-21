@@ -1,174 +1,71 @@
-# Bolão Brasileirão
+<h1 align="center">Bolão Brasileirão</h1>
 
-Prediction pool management app for the Brazilian football championship.
+<p align="center">
+  <strong>O bolão do Brasileirão com a sua galera: palpite, acompanhe as parciais e veja quem manda na resenha.</strong>
+</p>
 
-## Stack
+<p align="center">
+  <em>A prediction pool for the Brazilian football championship. This README is in Portuguese, because the players are Brazilian. Developer docs are in English: <a href="docs/development.md">docs/development.md</a>.</em>
+</p>
 
-- **Frontend**: React + TypeScript + Tailwind + Vite
-- **Backend**: Go + Gin + PostgreSQL
-- **Infra**: Docker Compose (dev), Render (API), Vercel (frontend), Supabase (database), GitHub Actions (CI/CD)
+<p align="center">
+  <a href="https://bolao.giovani.app"><strong>Abrir o app web</strong></a>
+  ·
+  App Store e Google Play: em breve
+</p>
 
-## Local development
+<p align="center">
+  <img src="docs/images/classificacao.png" width="200" alt="Classificação do bolão">
+  <img src="docs/images/palpites.png" width="200" alt="Card de palpite">
+  <img src="docs/images/parciais.png" width="200" alt="Parciais da rodada">
+</p>
+<p align="center">
+  <img src="docs/images/hall-dos-campeoes.png" width="200" alt="Hall dos Campeões">
+  <img src="docs/images/criar-bolao.png" width="200" alt="Regras ao criar um bolão">
+  <img src="docs/images/convite.png" width="200" alt="Convite para um bolão">
+</p>
 
-Run each service individually:
+## O que é
 
-### 1. Database
+O Bolão Brasileirão substitui a planilha do grupo. Cada participante palpita o placar dos jogos de cada rodada. Os jogos e os resultados entram sozinhos, e a classificação sai na hora, sem ninguém precisar fazer conta.
 
-```bash
-docker compose up db -d
-```
+## Como funciona
 
-Starts PostgreSQL on `localhost:5432` (user `postgres`, password `postgres`, database `bolao`).
+- **Crie um bolão.** Dê um nome e pronto: todos os bolões seguem as mesmas regras.
+- **Convide os amigos com um link.** Quem abre o convite pede para entrar, e você aprova. Também dá para entrar com o código do bolão.
+- **Palpite deslizando.** Um card por jogo: ajuste o placar com `+` e `−` e arraste para o próximo. Os palpites fecham no início de cada jogo.
+- **Acompanhe as parciais ao vivo.** Veja como a classificação ficaria com os placares do momento e compare seus palpites com os da galera.
+- **Classificação.** Geral ou por rodada, com placares exatos e resultados certos de cada um.
+- **Hall dos Campeões.** O campeão de cada temporada, o pódio e a classificação final ficam guardados.
+- **Lembretes no celular.** Aviso de rodada nova, 1 dia antes e 10 minutos antes de fechar.
 
-### 2. API
+## Pontuação
 
-```bash
-cd api
-DATABASE_URL=postgres://postgres:postgres@localhost:5432/bolao?sslmode=disable \
-JWT_SECRET=any-secret \
-go run ./cmd/server
-```
+Os pontos de cada jogo somam:
 
-API available at http://localhost:3333. Migrations run automatically on startup.
-
-### 3. Frontend
-
-```bash
-cd web
-npm run dev
-```
-
-Frontend available at http://localhost:5173. The dev server proxies `/api` to
-`http://localhost:3333` by default; set `VITE_API_URL` to point it elsewhere.
-
-## CI
-
-Build and test run as separate actions per area, each only triggering when files in that area
-change (`api/**` or `web/**`):
-
-- **`.github/workflows/backend-ci.yml`**: `build` job (`go build`) and `test` job (`go vet` + `go test -short`,
-  no migrations — the DB-backed integration test already skips itself in `-short` mode).
-- **`.github/workflows/frontend-ci.yml`**: `build` job (`npm run build`) and `test` job (`npm test`).
-
-`gofmt -l` exits 0 even when it lists files. CI fails the build on a non-empty output, not on the exit code.
-
-## CD — dev (staging) and production environments
-
-Same Dockerfile/build used in production; what changes between environments is environment
-variables and the deploy trigger — there's no separate Dockerfile or docker-compose for "dev".
-
-- **Push to `main`** → deploy to the **dev** (staging) environment: `bolao-api-dev` on Render + a
-  "dev" deployment on Vercel, pointing at a Supabase dev database separate from production.
-- **Release tag** (`v*`) → deploy to **production**: `bolao-api` on Render + production
-  deployment on Vercel, pointing at production Supabase.
-
-See `.github/workflows/deploy.yml`. Two details in it:
-
-- Run the Vercel CLI from the repo root, not from `web/`. The Vercel project sets Root Directory to `web`. A CLI started in `web/` looks for `web/web` and fails with `spawn sh ENOENT`.
-- After each dev deploy, the workflow points the `bolao-app-dev.vercel.app` alias at the new deployment. `vercel deploy` makes a new preview URL each run. Without the alias step, the stable URL keeps an old build.
-- In `render.yaml`, prod and dev use the same Dockerfile and build. Only the env vars differ: dev's `DATABASE_URL` points at the dev Supabase project.
-
-### Dev database copy
-
-Every night at 06:00 UTC, `.github/workflows/sync-dev-db.yml` replaces the dev database with a scrubbed copy of prod. Then it redeploys the dev API, so the migrations of `main` run on the new data. See [ADR 0017](docs/adr/0017-nightly-prod-snapshot-into-dev.md).
-
-- Set the secrets `PROD_DATABASE_URL` and `DEV_DATABASE_URL` (session pooler URLs) in the GitHub `dev` environment.
-- Start a copy by hand with `gh workflow run sync-dev-db.yml`.
-- Test the script against two local containers with `cd tools && SYNC_DEV_DB_TEST=1 go test ./syncdevdb`. It needs Docker.
-
-## Production deploy
-
-### Database – Supabase
-
-The database runs on Supabase (managed PostgreSQL). Migrations run automatically on API startup.
-Use the **session pooler** URL (IPv4) to avoid connectivity issues.
-
-### API – Render
-
-The API is deployed on Render via Docker (`render.yaml` at the project root).
-
-Required environment variables on Render:
-
-| Variable | Value |
+| Acerto | Pontos |
 |---|---|
-| `DATABASE_URL` | Supabase session pooler URL |
-| `JWT_SECRET` | Secure random string (e.g. `openssl rand -hex 32`) |
-| `PORT` | `8080` (already set in `render.yaml`) |
-| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | Web Push key pair, one per environment (see below) |
-| `VAPID_SUBJECT` | Contact for push services, e.g. `mailto:you@example.com` |
-| `CRON_SECRET` | Secure random string, shared with the Supabase cron job |
-| `RESEND_API_KEY` | Resend API key for the password reset email |
-| `RESEND_FROM` | Optional. Sender address, default `Bolão <nao-responda@bolao.giovani.app>`. Its domain must be verified in Resend |
-| `APP_URL` | Optional. Web origin for the reset link, default `https://bolao.giovani.app` |
-| `EXPO_ACCESS_TOKEN` | Optional. An Expo access token, needed only when the Expo project has enhanced push security on |
+| Vencedor, ou empate com o placar exato | 9 |
+| Empate, sem acertar o placar | 12 |
+| Gols do mandante | 3 |
+| Gols do visitante | 3 |
+| Placar exato em jogo com até 3 gols | 3 |
+| Placar exato em jogo com 4 gols ou mais | 10 |
+| Total de gols em jogo com 4 gols ou mais | 3 |
+| Total de gols da rodada inteira | 10 |
 
-Password reset emails stay disabled (and the API logs it) until `RESEND_API_KEY` is set.
+Ainda tem bônus por placares exatos diferentes na rodada. As regras completas estão em [SCORING.md](SCORING.md).
 
-Web Push stays disabled (and the API logs it) until all three `VAPID_*` variables
-are set. Expo push for the mobile app needs no keys, so it works without them. Generate a key pair with:
+## Plataformas
 
-```bash
-npx web-push generate-vapid-keys
-```
+- **Web:** [bolao.giovani.app](https://bolao.giovani.app), no navegador do celular ou do computador. Instale na tela inicial para usar como app e receber os lembretes.
+- **iOS e Android:** app nativo, em breve na App Store e no Google Play.
 
-### Push reminders – Supabase pg_cron
+## Privacidade e suporte
 
-Render's free plan sleeps when idle, so the API cannot keep its own timer. Supabase calls
-the tick endpoint every minute instead (which also wakes the API). It sends the "1 day
-before" and "10 minutes before" reminders; "new round" is sent when an admin creates the
-round's matches or sets its close time. Run once per Supabase project, after enabling the
-`pg_cron` and `pg_net` extensions (Database → Extensions):
-
-```sql
-select cron.schedule(
-  'bolao-push-tick',
-  '* * * * *',
-  $$
-  select net.http_post(
-    url := 'https://<render-api-host>/api/internal/notifications/tick',
-    headers := jsonb_build_object('X-Cron-Secret', '<CRON_SECRET>'),
-    timeout_milliseconds := 60000
-  );
-  $$
-);
-```
-
-Inspect recent runs with `select * from net._http_response order by created desc limit 10;`
-and remove the job with `select cron.unschedule('bolao-push-tick');`.
-
-### Frontend – Vercel
-
-The frontend is deployed on Vercel pointing at the `web/` directory.
-
-| Setting | Value |
-|---|---|
-| Root Directory | `web` |
-| Install Command | `npm install` |
-| Build Command | `npm run build` |
-| Output Directory | `dist` |
-
-Required environment variable, scoped per Vercel environment:
-
-| Variable | Environment | Value |
-|---|---|---|
-| `VITE_API_URL` | Preview | `bolao-api-dev` URL on Render |
-| `VITE_API_URL` | Production | `bolao-api` URL on Render |
-
-`VITE_API_URL` must **not** be set for "All Environments" — that is what would make PR
-previews talk to the production API. Verify the scoping with:
-
-```bash
-vercel env ls
-```
-
-Builds fail fast when `VITE_API_URL` is missing, so a misconfigured environment surfaces
-as a failed deploy instead of a bundle that silently requests `/api` on the Vercel domain.
+- Política de privacidade e termos: [bolao.giovani.app/privacidade](https://bolao.giovani.app/privacidade)
+- Suporte: [suporte@giovani.app](mailto:suporte@giovani.app)
 
 ---
 
-## Features
-
-- **Admin**: register users, add matches, set the closing date, fill in results, track payments (R$ 70 total)
-- **Players**: fill in predictions until the closing date
-- **Standings**: based on the criteria defined in `SCORING.md`
-- **Partial rounds**: filter by round to view cumulative standings
+<sub>Para desenvolvedores: [docs/development.md](docs/development.md) (rodar, testar e publicar) e [ARCHITECTURE.md](ARCHITECTURE.md).</sub>

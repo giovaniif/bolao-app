@@ -1,6 +1,6 @@
 # Writing style
 
-Write the prose docs in this repo in ASD-STE100 Simplified Technical English (STE), adapted. This applies to `README.md`, `ARCHITECTURE.md`, `SCORING.md`, every `AGENTS.md`, the docs under `docs/`, Linear issues and PR descriptions. Product copy in the UI stays Portuguese and does not follow these rules.
+Write the prose docs in this repo in ASD-STE100 Simplified Technical English (STE), adapted. This applies to `README.md` (except its Portuguese product copy), `docs/development.md`, `ARCHITECTURE.md`, `SCORING.md`, every `AGENTS.md`, the docs under `docs/`, Linear issues and PR descriptions. Product copy in the UI stays Portuguese and does not follow these rules.
 
 ## Rules
 

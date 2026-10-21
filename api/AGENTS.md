@@ -96,7 +96,7 @@ These rules have no unit test, because they live in handlers or SQL that need a 
 - `NewPushHandler` with a nil notifier means no push at all: Subscribe and the Expo token endpoints return 503, and the tick does nothing. Without VAPID keys only Web Push is off: Subscribe returns 503, but Expo tokens and the tick still work.
 - A reminder goes to Web Push and Expo together. `ClaimUserNotification` claims it per user, per scope (`AudienceOf`: the competition, or the bolão when it has none), per round, kind and deadline (migration 014). So a user in several bolões of one competition gets one reminder per deadline on all devices.
 - The tick covers every active bolão (`ListActive`). An Expo token that answers `DeviceNotRegistered` is deleted, as a Web Push endpoint that answers 404 or 410 is.
-- Supabase `pg_cron` calls the tick every minute (see the README).
+- Supabase `pg_cron` calls the tick every minute (see [docs/development.md](../docs/development.md#push-reminders--supabase-pg_cron)).
 - `AnnounceRound` sends in the background, so the admin request does not wait. It does nothing until the round has a deadline.
 - `Upsert` moves a known endpoint to the new user. A browser that logs in as someone else stops notifying the previous user.
 - `ClaimNotification` races concurrent ticks on the primary key, so exactly one sends. The key holds `closes_at`, so a moved deadline re-arms the reminders (migration 007). A new-round notice keys on the Unix epoch instead, so it is sent once.
