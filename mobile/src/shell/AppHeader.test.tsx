@@ -85,7 +85,7 @@ describe('AppHeader admin entry', () => {
     fakeApi([
       { path: /^\/me\/boloes$/, body: MINE },
       { path: /^\/me$/, body: { display_name: 'Ana Souza' } },
-      { path: /^\/matches\/rounds\/summary$/, body: { rounds: [7], active: 7, pending_results: 3 } },
+      { path: /^\/boloes\/b-1\/matches\/rounds\/summary$/, body: { rounds: [7], active: 7, pending_results: 3 } },
     ])
     await renderWithProviders(<AppHeader title="Palpites" />)
     await fireEvent.press(await screen.findByRole('button', { name: 'Meu perfil' }))
