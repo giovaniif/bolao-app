@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/bolao-app/api/internal/models"
 	"github.com/bolao-app/api/internal/repository"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -50,35 +51,7 @@ func (h *PartialHandler) ListByRound(c *gin.Context) {
 		return
 	}
 
-	type MatchWithPartial struct {
-		ID            string `json:"id"`
-		HomeTeam      string `json:"home_team"`
-		AwayTeam      string `json:"away_team"`
-		HomeGoals     *int   `json:"home_goals,omitempty"`
-		AwayGoals     *int   `json:"away_goals,omitempty"`
-		PartialHome   *int   `json:"partial_home,omitempty"`
-		PartialAway   *int   `json:"partial_away,omitempty"`
-		RealHomeGoals *int   `json:"real_home_goals,omitempty"`
-		RealAwayGoals *int   `json:"real_away_goals,omitempty"`
-	}
-
-	result := make([]MatchWithPartial, 0, len(matches))
-	for _, m := range matches {
-		item := MatchWithPartial{
-			ID:            m.ID.String(),
-			HomeTeam:      m.HomeTeam,
-			AwayTeam:      m.AwayTeam,
-			RealHomeGoals: m.HomeGoals,
-			RealAwayGoals: m.AwayGoals,
-		}
-		if p, ok := partials[m.ID]; ok && p.HomeGoals != nil && p.AwayGoals != nil {
-			item.PartialHome = p.HomeGoals
-			item.PartialAway = p.AwayGoals
-		}
-		result = append(result, item)
-	}
-
-	c.JSON(http.StatusOK, result)
+	c.JSON(http.StatusOK, partialRows(matches, partials))
 }
 
 func (h *PartialHandler) SetPartial(c *gin.Context) {
@@ -122,4 +95,37 @@ func (h *PartialHandler) ClearPartial(c *gin.Context) {
 		return
 	}
 	c.Status(http.StatusNoContent)
+}
+
+type MatchWithPartial struct {
+	ID            string `json:"id"`
+	HomeTeam      string `json:"home_team"`
+	AwayTeam      string `json:"away_team"`
+	Status        string `json:"status"`
+	HomeGoals     *int   `json:"home_goals,omitempty"`
+	AwayGoals     *int   `json:"away_goals,omitempty"`
+	PartialHome   *int   `json:"partial_home,omitempty"`
+	PartialAway   *int   `json:"partial_away,omitempty"`
+	RealHomeGoals *int   `json:"real_home_goals,omitempty"`
+	RealAwayGoals *int   `json:"real_away_goals,omitempty"`
+}
+
+func partialRows(matches []models.Match, partials map[uuid.UUID]models.MatchPartial) []MatchWithPartial {
+	result := make([]MatchWithPartial, 0, len(matches))
+	for _, m := range matches {
+		item := MatchWithPartial{
+			ID:            m.ID.String(),
+			HomeTeam:      m.HomeTeam,
+			AwayTeam:      m.AwayTeam,
+			Status:        m.Status,
+			RealHomeGoals: m.HomeGoals,
+			RealAwayGoals: m.AwayGoals,
+		}
+		if p, ok := partials[m.ID]; ok && p.HomeGoals != nil && p.AwayGoals != nil {
+			item.PartialHome = p.HomeGoals
+			item.PartialAway = p.AwayGoals
+		}
+		result = append(result, item)
+	}
+	return result
 }

@@ -168,8 +168,15 @@ type PushSubscription struct {
 }
 
 type ReconcilePlan struct {
-	Inserts []Match
-	Updates []Match
+	Inserts  []Match
+	Updates  []Match
+	Partials []LivePartial
+}
+
+type LivePartial struct {
+	MatchID   uuid.UUID
+	HomeGoals int
+	AwayGoals int
 }
 
 type SyncTarget struct {

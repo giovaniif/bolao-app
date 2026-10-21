@@ -117,3 +117,55 @@ func TestMatchSyncRepository_FailuresCountUntilASync(t *testing.T) {
 		t.Errorf("MarkFailed after a sync = %d, want 1", got)
 	}
 }
+
+func TestMatchSyncRepository_LivePartialsKeepManualPartials(t *testing.T) {
+	pool := pushTestPool(t)
+	ctx := context.Background()
+	repo := NewMatchSyncRepository(pool)
+	bolao, err := NewBolaoRepository(pool).GetActive(ctx)
+	if err != nil {
+		t.Fatalf("active bolão: %v", err)
+	}
+	competition, err := NewCompetitionRepository(pool).GetByBolao(ctx, bolao.ID)
+	if err != nil {
+		t.Fatalf("competition: %v", err)
+	}
+	var userID uuid.UUID
+	if err := pool.QueryRow(ctx, `SELECT id FROM users LIMIT 1`).Scan(&userID); err != nil {
+		t.Fatalf("user: %v", err)
+	}
+	kickoff := time.Date(2026, 11, 1, 19, 0, 0, 0, time.UTC)
+	auto := models.Match{ID: uuid.New(), BolaoID: bolao.ID, CompetitionID: &competition.ID, Round: 95, HomeTeam: "Bahia", AwayTeam: "Santos", KickoffAt: &kickoff, Status: models.MatchStatusLive}
+	manual := auto
+	manual.ID, manual.HomeTeam = uuid.New(), "Vasco"
+	if err := repo.ApplyPlan(ctx, models.ReconcilePlan{Inserts: []models.Match{auto, manual}}); err != nil {
+		t.Fatalf("insert: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = NewMatchRepository(pool).Delete(ctx, auto.ID)
+		_ = NewMatchRepository(pool).Delete(ctx, manual.ID)
+	})
+	partials := NewPartialRepository(pool)
+	if err := partials.Upsert(ctx, manual.ID, 4, 4, &userID); err != nil {
+		t.Fatalf("manual partial: %v", err)
+	}
+
+	for _, score := range [][2]int{{1, 0}, {2, 0}} {
+		plan := models.ReconcilePlan{Partials: []models.LivePartial{
+			{MatchID: auto.ID, HomeGoals: score[0], AwayGoals: score[1]},
+			{MatchID: manual.ID, HomeGoals: score[0], AwayGoals: score[1]},
+		}}
+		if err := repo.ApplyPlan(ctx, plan); err != nil {
+			t.Fatalf("live partials: %v", err)
+		}
+	}
+
+	got, err := partials.GetByMatch(ctx, auto.ID)
+	if err != nil || *got.HomeGoals != 2 || *got.AwayGoals != 0 || got.UpdatedBy != nil {
+		t.Errorf("auto partial = %+v err = %v, want 2 x 0 set by the sync", got, err)
+	}
+	got, err = partials.GetByMatch(ctx, manual.ID)
+	if err != nil || *got.HomeGoals != 4 || *got.AwayGoals != 4 {
+		t.Errorf("manual partial = %+v err = %v, want 4 x 4 kept", got, err)
+	}
+}
