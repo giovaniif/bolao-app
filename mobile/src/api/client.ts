@@ -36,7 +36,7 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
       data && typeof data === 'object' && 'error' in data && typeof (data as { error: unknown }).error === 'string'
         ? (data as { error: string }).error
         : `Erro ${res.status}`;
-    throw Object.assign(new Error(message), { status: res.status });
+    throw Object.assign(new Error(message), { status: res.status, body: data });
   }
   return data as T;
 }
