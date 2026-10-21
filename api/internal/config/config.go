@@ -18,6 +18,7 @@ type Config struct {
 	ExpoAccessToken string
 
 	FootballDataAPIKey string
+	TheSportsDBAPIKey  string
 
 	AppURL          string
 	ResendAPIKey    string
@@ -44,6 +45,7 @@ func Load() *Config {
 		ExpoAccessToken: os.Getenv("EXPO_ACCESS_TOKEN"),
 
 		FootballDataAPIKey: os.Getenv("FOOTBALL_DATA_API_KEY"),
+		TheSportsDBAPIKey:  os.Getenv("THESPORTSDB_API_KEY"),
 
 		AppURL:          getEnv("APP_URL", "https://bolao.giovani.app"),
 		ResendAPIKey:    os.Getenv("RESEND_API_KEY"),
