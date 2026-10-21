@@ -9,6 +9,8 @@ export interface MyBolao {
   member_count: number;
   visibility?: 'private' | 'public';
   requires_approval?: boolean;
+  started_at?: string;
+  finished_at?: string;
 }
 
 export interface RoundsSummary {
@@ -41,6 +43,7 @@ export interface Standing {
   total_points: number;
   exact_scores: number;
   correct_results: number;
+  rounds_won?: number;
 }
 
 export function getMyBoloes(): Promise<MyBolao[]> {

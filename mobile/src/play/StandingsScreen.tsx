@@ -4,6 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import { getRoundsSummary, getStandings, type Standing } from '../api/play';
 import { useCurrentBolao } from '../bolao/useCurrentBolao';
 import { colors } from '../theme';
+import { ChampionsEntryCard } from '../champions/ChampionsEntryCard';
+import { useSeasons } from '../champions/useSeasons';
 
 function Chip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
   return (
@@ -60,6 +62,7 @@ function StandingRow({ rank, item, leader }: { rank: number; item: Standing; lea
 export function StandingsScreen() {
   const { bolao, isLoading } = useCurrentBolao();
   const bolaoId = bolao?.id ?? '';
+  const { seasons } = useSeasons();
   const [round, setRound] = useState<number | null>(null);
   const summary = useQuery({ queryKey: ['rounds', bolaoId], queryFn: () => getRoundsSummary(bolaoId), enabled: !!bolaoId });
   const standings = useQuery({
@@ -85,6 +88,7 @@ export function StandingsScreen() {
       contentContainerStyle={{ padding: 16, gap: 8, paddingBottom: 32 }}
       ListHeaderComponent={
         <View style={{ gap: 8, marginBottom: 8 }}>
+          {seasons.length > 0 && <ChampionsEntryCard latest={seasons[0]} />}
           <Text style={{ color: colors.muted, fontSize: 13 }}>{round ? `Classificação da Rodada ${round}` : 'Classificação geral'}</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
             <Chip label="Geral" active={round === null} onPress={() => setRound(null)} />
