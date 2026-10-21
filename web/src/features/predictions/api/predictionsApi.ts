@@ -1,4 +1,3 @@
-import { scopedPath } from '../../../shared/api/scopedPath';
 import { api } from '../../../shared/api/client';
 
 export interface Prediction {
@@ -16,14 +15,14 @@ export interface PredictionInput {
 }
 
 export async function getMyPredictions(round: number, scope: string): Promise<Prediction[]> {
-  return api<Prediction[]>(scopedPath(`/predictions?round=${round}`, scope));
+  return api<Prediction[]>(`/boloes/${scope}/predictions?round=${round}`);
 }
 
 export async function savePredictions(
   predictions: PredictionInput[],
   scope: string
 ): Promise<void> {
-  await api(scopedPath('/predictions', scope), {
+  await api(`/boloes/${scope}/predictions`, {
     method: 'POST',
     body: JSON.stringify({ predictions }),
   });

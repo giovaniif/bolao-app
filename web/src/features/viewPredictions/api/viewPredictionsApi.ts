@@ -1,4 +1,3 @@
-import { scopedPath } from '../../../shared/api/scopedPath';
 import { api } from '../../../shared/api/client';
 
 export interface UserOption {
@@ -25,5 +24,5 @@ export async function getPredictionsByUser(
   userId: string,
   scope: string
 ): Promise<Prediction[]> {
-  return api<Prediction[]>(scopedPath(`/predictions/round/${round}/user/${userId}`, scope));
+  return api<Prediction[]>(`/boloes/${scope}/predictions/round/${round}/user/${userId}`);
 }
