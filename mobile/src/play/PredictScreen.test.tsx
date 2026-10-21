@@ -28,17 +28,56 @@ beforeEach(async () => {
 })
 
 describe('PredictScreen', () => {
-  it('shows the active round of the current bolão with its matches', async () => {
+  it('shows one match per card, starting with the first match of the active round', async () => {
     fakeApi(routes())
     await renderWithProviders(<PredictScreen />)
     expect(await screen.findByText('Flamengo')).toBeTruthy()
     expect(screen.getByText('Rodada 32')).toBeTruthy()
-    expect(screen.getByText('Brasileirão 2026')).toBeTruthy()
+    expect(screen.getByText('Jogo 1 de 2')).toBeTruthy()
+    expect(screen.getByText('Arraste para o próximo ou anterior')).toBeTruthy()
+    expect(screen.getByText('Mandante')).toBeTruthy()
+    expect(screen.getByText('Visitante')).toBeTruthy()
+    expect(screen.getByText('Palmeiras')).toBeTruthy()
+    expect(screen.queryByText('Bahia')).toBeNull()
     expect(screen.getByLabelText('Gols de Flamengo').props.children).toBe(0)
-    expect(screen.getByText('Fechado')).toBeTruthy()
   })
 
-  it('saves only the open matches', async () => {
+  it('moves between cards with Próximo and Anterior', async () => {
+    fakeApi(routes())
+    await renderWithProviders(<PredictScreen />)
+    await screen.findByText('Flamengo')
+    expect(screen.getByRole('button', { name: 'Anterior' }).props.accessibilityState).toMatchObject({ disabled: true })
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Próximo' }))
+    expect(screen.getByText('Jogo 2 de 2')).toBeTruthy()
+    expect(screen.getByText('Bahia')).toBeTruthy()
+    expect(screen.getByText('Resultado: 1 × 0')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Próximo' }).props.accessibilityState).toMatchObject({ disabled: true })
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Anterior' }))
+    expect(screen.getByText('Jogo 1 de 2')).toBeTruthy()
+  })
+
+  it('cannot change a closed match', async () => {
+    fakeApi(routes())
+    await renderWithProviders(<PredictScreen />)
+    await screen.findByText('Flamengo')
+    await fireEvent.press(screen.getByRole('button', { name: 'Próximo' }))
+    expect(screen.getByLabelText('Mais um gol de Bahia').props.accessibilityState).toMatchObject({ disabled: true })
+    await fireEvent.press(screen.getByLabelText('Mais um gol de Bahia'))
+    expect(screen.getByLabelText('Gols de Bahia').props.children).toBe(2)
+  })
+
+  it('jumps to a match from the summary', async () => {
+    fakeApi(routes())
+    await renderWithProviders(<PredictScreen />)
+    await screen.findByText('Flamengo')
+    await fireEvent.press(screen.getByRole('button', { name: 'Ver resumo dos jogos' }))
+    await fireEvent.press(screen.getByRole('button', { name: 'Bahia × Santos' }))
+    expect(screen.getByText('Jogo 2 de 2')).toBeTruthy()
+  })
+
+  it('saves only the open matches and then shows the summary', async () => {
     const calls = fakeApi(routes())
     await renderWithProviders(<PredictScreen />)
     await screen.findByText('Flamengo')
@@ -51,13 +90,11 @@ describe('PredictScreen', () => {
     await waitFor(() => expect(screen.getByText('Palpites salvos!')).toBeTruthy())
     const post = calls.find((c) => c.method === 'POST')
     expect(JSON.parse(post!.body!)).toEqual({ predictions: [{ match_id: 'm-1', home_goals: 2, away_goals: 1 }] })
-  })
+    expect(screen.getAllByText('2 × 1')).toHaveLength(2)
+    expect(screen.getByText('Fechado')).toBeTruthy()
 
-  it('cannot change a closed match', async () => {
-    fakeApi(routes())
-    await renderWithProviders(<PredictScreen />)
-    await screen.findByText('Bahia')
-    expect(screen.queryByLabelText('Mais um gol de Bahia')).toBeNull()
+    await fireEvent.press(screen.getByRole('button', { name: 'Editar palpites' }))
+    expect(screen.getByText('Jogo 1 de 2')).toBeTruthy()
   })
 
   it('asks a user without bolões to join one', async () => {
