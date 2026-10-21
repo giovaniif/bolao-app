@@ -89,6 +89,11 @@ Required environment variables on Render:
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | Web Push key pair, one per environment (see below) |
 | `VAPID_SUBJECT` | Contact for push services, e.g. `mailto:you@example.com` |
 | `CRON_SECRET` | Secure random string, shared with the Supabase cron job |
+| `RESEND_API_KEY` | Resend API key for the password reset email |
+| `RESEND_FROM` | Optional. Sender address, default `Bolão <nao-responda@bolao.giovani.app>`. Its domain must be verified in Resend |
+| `APP_URL` | Optional. Web origin for the reset link, default `https://bolao.giovani.app` |
+
+Password reset emails stay disabled (and the API logs it) until `RESEND_API_KEY` is set.
 
 Push notifications stay disabled (and the API logs it) until all three `VAPID_*` variables
 are set. Generate a key pair with:

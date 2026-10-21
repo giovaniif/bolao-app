@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strings"
@@ -13,12 +14,27 @@ import (
 	"github.com/google/uuid"
 )
 
-type UserHandler struct {
-	userRepo  *repository.UserRepository
-	bolaoRepo *repository.BolaoRepository
+type userStore interface {
+	List(ctx context.Context) ([]models.User, error)
+	ListSharingBolaoWith(ctx context.Context, userID uuid.UUID) ([]models.User, error)
+	Create(ctx context.Context, user *models.User) error
+	GetByID(ctx context.Context, id uuid.UUID) (*models.User, error)
+	GetByUsernameExcluding(ctx context.Context, username string, excludeID uuid.UUID) (*models.User, error)
+	Update(ctx context.Context, user *models.User) error
+	DeleteAccount(ctx context.Context, userID uuid.UUID) error
 }
 
-func NewUserHandler(userRepo *repository.UserRepository, bolaoRepo *repository.BolaoRepository) *UserHandler {
+type userBolaoStore interface {
+	GetActive(ctx context.Context) (*models.Bolao, error)
+	AddParticipant(ctx context.Context, bolaoID, userID uuid.UUID) error
+}
+
+type UserHandler struct {
+	userRepo  userStore
+	bolaoRepo userBolaoStore
+}
+
+func NewUserHandler(userRepo userStore, bolaoRepo userBolaoStore) *UserHandler {
 	return &UserHandler{userRepo: userRepo, bolaoRepo: bolaoRepo}
 }
 
@@ -36,6 +52,7 @@ type UpdateUserRequest struct {
 }
 
 type UpdateMeRequest struct {
+	Email        *string `json:"email"`
 	Username     string  `json:"username"`
 	DisplayName  string  `json:"display_name"`
 	FavoriteTeam *string `json:"favorite_team"`
@@ -218,7 +235,21 @@ func (h *UserHandler) UpdateMe(c *gin.Context) {
 		}
 	}
 
-	if err := h.userRepo.Update(c.Request.Context(), user); err != nil {
+	if req.Email != nil {
+		email := strings.ToLower(strings.TrimSpace(*req.Email))
+		if !validEmail(email) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "e-mail inválido"})
+			return
+		}
+		user.Email = &email
+	}
+
+	err = h.userRepo.Update(c.Request.Context(), user)
+	if errors.Is(err, repository.ErrEmailTaken) {
+		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		return
+	}
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

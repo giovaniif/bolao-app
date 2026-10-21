@@ -31,10 +31,10 @@ func (r *UserRepository) Create(ctx context.Context, user *models.User) error {
 
 func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.User, error) {
 	var u models.User
-	query := `SELECT id, username, display_name, favorite_team, is_admin, COALESCE(password_hash, ''), must_change_password, created_at, updated_at
+	query := `SELECT id, username, display_name, favorite_team, email, is_admin, COALESCE(password_hash, ''), must_change_password, created_at, updated_at
 		FROM users WHERE id = $1`
 	err := r.pool.QueryRow(ctx, query, id).Scan(
-		&u.ID, &u.Username, &u.DisplayName, &u.FavoriteTeam, &u.IsAdmin, &u.PasswordHash, &u.MustChangePassword, &u.CreatedAt, &u.UpdatedAt,
+		&u.ID, &u.Username, &u.DisplayName, &u.FavoriteTeam, &u.Email, &u.IsAdmin, &u.PasswordHash, &u.MustChangePassword, &u.CreatedAt, &u.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err
@@ -44,10 +44,10 @@ func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Use
 
 func (r *UserRepository) GetByUsername(ctx context.Context, username string) (*models.User, error) {
 	var u models.User
-	query := `SELECT id, username, display_name, favorite_team, is_admin, COALESCE(password_hash, ''), must_change_password, created_at, updated_at
+	query := `SELECT id, username, display_name, favorite_team, email, is_admin, COALESCE(password_hash, ''), must_change_password, created_at, updated_at
 		FROM users WHERE username = $1`
 	err := r.pool.QueryRow(ctx, query, username).Scan(
-		&u.ID, &u.Username, &u.DisplayName, &u.FavoriteTeam, &u.IsAdmin, &u.PasswordHash, &u.MustChangePassword, &u.CreatedAt, &u.UpdatedAt,
+		&u.ID, &u.Username, &u.DisplayName, &u.FavoriteTeam, &u.Email, &u.IsAdmin, &u.PasswordHash, &u.MustChangePassword, &u.CreatedAt, &u.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err
@@ -83,17 +83,22 @@ func (r *UserRepository) UpdatePassword(ctx context.Context, userID uuid.UUID, p
 
 func (r *UserRepository) Update(ctx context.Context, user *models.User) error {
 	query := `
-		UPDATE users SET username = $2, display_name = $3, favorite_team = $4, updated_at = CURRENT_TIMESTAMP
+		UPDATE users SET username = $2, display_name = $3, favorite_team = $4, email = $5, updated_at = CURRENT_TIMESTAMP
 		WHERE id = $1 RETURNING updated_at`
-	return r.pool.QueryRow(ctx, query, user.ID, user.Username, user.DisplayName, user.FavoriteTeam).Scan(&user.UpdatedAt)
+	err := r.pool.QueryRow(ctx, query, user.ID, user.Username, user.DisplayName, user.FavoriteTeam, user.Email).Scan(&user.UpdatedAt)
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == "23505" && strings.Contains(pgErr.ConstraintName, "email") {
+		return ErrEmailTaken
+	}
+	return err
 }
 
 func (r *UserRepository) GetByUsernameExcluding(ctx context.Context, username string, excludeID uuid.UUID) (*models.User, error) {
 	var u models.User
-	query := `SELECT id, username, display_name, favorite_team, is_admin, COALESCE(password_hash, ''), must_change_password, created_at, updated_at
+	query := `SELECT id, username, display_name, favorite_team, email, is_admin, COALESCE(password_hash, ''), must_change_password, created_at, updated_at
 		FROM users WHERE username = $1 AND id != $2`
 	err := r.pool.QueryRow(ctx, query, username, excludeID).Scan(
-		&u.ID, &u.Username, &u.DisplayName, &u.FavoriteTeam, &u.IsAdmin, &u.PasswordHash, &u.MustChangePassword, &u.CreatedAt, &u.UpdatedAt,
+		&u.ID, &u.Username, &u.DisplayName, &u.FavoriteTeam, &u.Email, &u.IsAdmin, &u.PasswordHash, &u.MustChangePassword, &u.CreatedAt, &u.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err
@@ -107,7 +112,8 @@ var (
 )
 
 func (r *UserRepository) CreateAccount(ctx context.Context, username, displayName, email, passwordHash string) (*models.User, error) {
-	u := models.User{ID: uuid.New(), Username: username, DisplayName: displayName, PasswordHash: passwordHash}
+	normalized := strings.ToLower(strings.TrimSpace(email))
+	u := models.User{ID: uuid.New(), Username: username, DisplayName: displayName, Email: &normalized, PasswordHash: passwordHash}
 	query := `INSERT INTO users (id, username, display_name, email, password_hash, must_change_password)
 		VALUES ($1, $2, $3, lower(trim($4)), $5, false)
 		RETURNING created_at, updated_at`
