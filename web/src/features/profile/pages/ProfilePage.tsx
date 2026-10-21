@@ -19,7 +19,7 @@ export function ProfilePage() {
   const push = usePushSubscription();
   const [teams, setTeams] = useState<string[]>([]);
   const [edits, setEdits] = useState<
-    Partial<{ username: string; display_name: string; favorite_team: string }>
+    Partial<{ username: string; display_name: string; favorite_team: string; email: string }>
   >({});
 
   useEffect(() => {
@@ -30,6 +30,7 @@ export function ProfilePage() {
     username: profile?.username ?? '',
     display_name: profile?.display_name ?? '',
     favorite_team: profile?.favorite_team ?? '',
+    email: profile?.email ?? '',
     ...edits,
   };
 
@@ -40,6 +41,7 @@ export function ProfilePage() {
         username: form.username.trim(),
         display_name: form.display_name.trim(),
         favorite_team: form.favorite_team || null,
+        email: form.email.trim() || undefined,
       });
       updateUser({ username: updated.username });
     } catch (err) {
@@ -70,6 +72,19 @@ export function ProfilePage() {
           onChange={(e) => setEdits((f) => ({ ...f, display_name: e.target.value }))}
           required
         />
+        <div className="space-y-1">
+          <Input
+            label="E-mail"
+            type="email"
+            value={form.email}
+            onChange={(e) => setEdits((f) => ({ ...f, email: e.target.value }))}
+            autoComplete="email"
+            placeholder="voce@exemplo.com"
+          />
+          {!profile?.email && (
+            <p className="text-xs text-[var(--color-text-muted)]">Cadastre um e-mail para recuperar a senha se esquecer.</p>
+          )}
+        </div>
         <div>
           <label className="block text-sm text-[var(--color-text-muted)] mb-1">
             Time do coração

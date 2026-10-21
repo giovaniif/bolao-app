@@ -60,3 +60,17 @@ export async function signup(input: SignupInput): Promise<LoginResponse> {
   }
   return res;
 }
+
+export async function forgotPassword(login: string): Promise<void> {
+  await api('/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ login }),
+  });
+}
+
+export async function resetPassword(token: string, newPassword: string): Promise<void> {
+  await api('/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({ token, new_password: newPassword }),
+  });
+}

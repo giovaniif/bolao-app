@@ -5,6 +5,8 @@ import { AnalyticsGate } from './shared/analytics/AnalyticsGate';
 import { useAuth } from './shared/hooks/useAuth';
 import { LoginPage } from './features/auth/pages/LoginPage';
 import { SignupPage } from './features/auth/pages/SignupPage';
+import { ForgotPasswordPage } from './features/auth/pages/ForgotPasswordPage';
+import { ResetPasswordPage } from './features/auth/pages/ResetPasswordPage';
 import { ChangePasswordPage } from './features/auth/pages/ChangePasswordPage';
 import { ClassificationPage } from './features/classification/pages/ClassificationPage';
 import { PredictionsPage } from './features/predictions/pages/PredictionsPage';
@@ -57,6 +59,8 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/cadastro" element={<SignupPage />} />
+      <Route path="/esqueci-senha" element={<ForgotPasswordPage />} />
+      <Route path="/redefinir-senha" element={<ResetPasswordPage />} />
       <Route
         path="/alterar-senha"
         element={
