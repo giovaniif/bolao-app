@@ -66,6 +66,9 @@ jobs:
           cache-dependency-path: api/go.sum
 
       - name: Install gremlins
+        env:
+          GOPROXY: https://proxy.golang.org,direct
+          GOTOOLCHAIN: go1.26.10
         run: go install github.com/go-gremlins/gremlins/cmd/gremlins@v0.6.0
 
       - name: Mutate the service rules
