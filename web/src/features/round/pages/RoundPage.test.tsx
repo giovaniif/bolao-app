@@ -30,11 +30,13 @@ const MATCHES = [
 ]
 
 let calls: string[] = []
+let myBoloes: unknown[] = []
 
 function mockFetch() {
   return vi.fn(async (url: string) => {
     calls.push(url)
     const body = (() => {
+      if (url.includes('/me/boloes')) return myBoloes
       if (url.includes('/matches/rounds/summary')) return { rounds: [6, 7, 8], active: 7 }
       if (url.includes('/boloes/active')) return BOLAO
       if (url.includes('/participants')) return PARTICIPANTS
@@ -43,7 +45,7 @@ function mockFetch() {
         return MATCHES.map((m) => ({ ...m, partial_home: null, partial_away: null }))
       }
       if (url.includes('/matches/round/')) return MATCHES
-      if (url.includes('/users')) return PARTICIPANTS
+      if (url.includes('/members')) return PARTICIPANTS
       return []
     })()
     return { ok: true, status: 200, text: async () => JSON.stringify(body) }
@@ -52,6 +54,7 @@ function mockFetch() {
 
 beforeEach(() => {
   calls = []
+  myBoloes = [{ ...BOLAO, role: 'participant', member_status: 'active', member_count: 14 }]
   localStorage.setItem('token', 't')
   vi.stubGlobal('fetch', mockFetch())
 })
@@ -70,6 +73,15 @@ function heading(name: string) {
 }
 
 describe('RoundPage', () => {
+  it('asks for no round data when the user is in no bolão', async () => {
+    myBoloes = []
+    renderWithProviders(<RoundPage />, { route: '/rodada' })
+
+    await waitFor(() => expect(calls.some((u) => u.includes('/me/boloes'))).toBe(true))
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    expect(calls.filter((u) => /\/(matches|parciais|predictions|classification|users)/.test(u))).toEqual([])
+  })
+
   it('shows the active round and the participant count', async () => {
     renderWithProviders(<RoundPage />, { route: '/rodada' })
 

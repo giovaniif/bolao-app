@@ -19,14 +19,20 @@ function setUser(isAdmin = false) {
   localStorage.setItem('user', JSON.stringify({ id: 'u1', username: 'gio', is_admin: isAdmin }))
 }
 
-function stubFetch(summary: unknown = { rounds: [1], active: 1, pending_results: 0 }) {
+const MY_BOLOES = [
+  { id: 'b-1', name: 'Brasileirão 2026', status: 'active', role: 'participant', member_status: 'active', member_count: 3 },
+]
+
+function stubFetch(summary: unknown = { rounds: [1], active: 1, pending_results: 0 }, myBoloes: unknown[] = MY_BOLOES) {
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url: string) => ({
       ok: true,
       status: 200,
-      text: async () =>
-        JSON.stringify(url.includes('/matches/rounds/summary') ? summary : []),
+      text: async () => {
+        if (url.includes('/me/boloes')) return JSON.stringify(myBoloes)
+        return JSON.stringify(url.includes('/matches/rounds/summary') ? summary : [])
+      },
     }))
   )
 }
@@ -141,6 +147,16 @@ describe('AppHeader', () => {
     await waitFor(() => expect(fetch).toHaveBeenCalledWith(expect.stringContaining('rounds/summary'), expect.anything()))
     const menu = openMenu()
     expect(await menu.findByText('3')).toBeTruthy()
+  })
+
+  it('asks no bolão for pending results when the admin is in none', async () => {
+    setUser(true)
+    stubFetch({ rounds: [1], active: 1, pending_results: 3 }, [])
+    renderAt('/')
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/me/boloes'), expect.anything()))
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    expect(fetch).not.toHaveBeenCalledWith(expect.stringContaining('rounds/summary'), expect.anything())
+    expect(openMenu().queryByText('3')).toBeNull()
   })
 
   it('signs out from the menu', () => {
