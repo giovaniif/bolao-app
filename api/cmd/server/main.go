@@ -155,6 +155,7 @@ func main() {
 		admin.Use(handler.AdminMiddleware())
 		handler.NewPublicBolaoHandler(membershipRepo, bolaoRepo).Routes(api, admin)
 		matchHandler.AdminRoutes(admin, handler.RequireMember(membershipRepo))
+		bolaoHandler.AdminRoutes(admin, handler.RequireMember(membershipRepo))
 		{
 			admin.POST("/users", userHandler.Create)
 			admin.PUT("/users/:id", userHandler.Update)
