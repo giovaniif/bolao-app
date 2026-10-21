@@ -11,6 +11,8 @@ interface Screen {
 
 const screens: Screen[] = [
   { name: 'login', path: '/login', shows: 'Entrar', signedIn: false },
+  { name: 'esqueci-senha', path: '/esqueci-senha', shows: 'Esqueci minha senha', signedIn: false },
+  { name: 'redefinir-senha', path: '/redefinir-senha?token=abc', shows: 'Nova senha', signedIn: false },
   { name: 'cadastro', path: '/cadastro?voltar=%2Fconvite%2FFIRMA234', shows: 'Criar conta', signedIn: false },
   { name: 'classificacao', path: '/', shows: 'Bruno Lima' },
   { name: 'palpites', path: '/palpites', shows: 'Salvar palpites' },
