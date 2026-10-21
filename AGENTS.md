@@ -2,7 +2,7 @@
 
 A prediction pool for the Brazilian football championship. Players predict the scores of each round, and the app scores the predictions and keeps the standings. A Go API (`api/`) and a React PWA (`web/`) share one PostgreSQL database.
 
-- How to run it locally and deploy it: [README.md](README.md)
+- How to run it locally and deploy it: [docs/development.md](docs/development.md)
 - The stack, the domain and the data flow: [ARCHITECTURE.md](ARCHITECTURE.md)
 - The scoring rules (the specification): [SCORING.md](SCORING.md)
 - Decisions: [docs/adr/](docs/adr/README.md)
@@ -54,7 +54,7 @@ tools/mutate                      # mutation testing on api/internal/service; ne
 3. **`bolão` is the one domain word kept in Portuguese** in identifiers (`bolao`, `Bolao`, `boloes`), because the DB schema and the API contract use it. Use English for all other terms: `round`, `match`, `prediction`, `partial`, `classification`, `participant`. Old names such as `PartiaisPage` and `parciais/` are legacy. Rename them only when you refactor that area.
 4. **No comments, anywhere** ([ADR 0009](docs/adr/0009-no-comments.md)). This covers Go (tests too), TS/TSX, CSS, SQL, YAML, shell and Dockerfiles. Names and tests explain the code.
    - Put a constraint or quirk that the code cannot show into a test named after it, and into the commit message of the workaround.
-   - Put usage and design notes in the scoped `AGENTS.md`, an ADR or the README. Put open work in a GitHub issue.
+   - Put usage and design notes in the scoped `AGENTS.md`, an ADR or `docs/development.md`. Put open work in a GitHub issue.
    - Only tool directives stay: `//go:`, a bare `//nolint:<linters>`, generated-code headers, `/// <reference ...>`, `// eslint-disable-next-line <rule>`, shebangs, `# yaml-language-server:` and Dockerfile `# syntax=`.
    - `tools/lint-comments` fails CI on all other comments.
 5. **Lint clean.** Zero errors and zero warnings in both projects. Do not silence a rule. A single-line disable names the rule, and the commit message gives the reason.

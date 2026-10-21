@@ -45,7 +45,7 @@ See [ADR 0006](docs/adr/0006-web-push-via-pg-cron.md).
 
 - The web is an installable PWA. Its service worker (`web/src/sw.ts`) shows Web Push messages.
 - The API stores subscriptions and sends three reminders per round: new round, 1 day before close and 10 minutes before close. `notification_log` makes each one send at most once.
-- Render's free plan sleeps when idle, so Supabase `pg_cron` calls `POST /api/internal/notifications/tick` every minute with `X-Cron-Secret`. The setup SQL is in [README.md](README.md).
+- Render's free plan sleeps when idle, so Supabase `pg_cron` calls `POST /api/internal/notifications/tick` every minute with `X-Cron-Secret`. The setup SQL is in [docs/development.md](docs/development.md#push-reminders--supabase-pg_cron).
 - iOS delivers push only to the app installed on the Home Screen.
 
 ## Environments
