@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../auth/AuthProvider';
 import { useCurrentBolao } from '../bolao/useCurrentBolao';
 import { getProfile } from '../api/auth';
-import { adminKeys, getPendingRoundsSummary } from '../api/admin';
+import { adminKeys, getAdminRoundsSummary } from '../api/admin';
 import { colors } from '../theme';
 import { initials } from './initials';
 
@@ -41,7 +41,8 @@ export function AppHeader({ title }: { title?: string }) {
   const { bolao, boloes, select } = useCurrentBolao();
   const profile = useQuery({ queryKey: ['me'], queryFn: getProfile, enabled: !!token });
   const isAdmin = !!user?.isAdmin;
-  const pending = useQuery({ queryKey: adminKeys.pending, queryFn: getPendingRoundsSummary, enabled: !!token && isAdmin });
+  const pendingBolaoId = bolao?.id ?? '';
+  const pending = useQuery({ queryKey: adminKeys.summary(pendingBolaoId), queryFn: () => getAdminRoundsSummary(pendingBolaoId), enabled: !!token && isAdmin && !!pendingBolaoId });
   const [menu, setMenu] = useState<'bolao' | 'profile' | null>(null);
   const playable = boloes.filter((b) => b.member_status === 'active');
   const name = profile.data?.display_name ?? user?.username ?? '';
