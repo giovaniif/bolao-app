@@ -27,6 +27,20 @@ export async function forgotPassword(login: string): Promise<void> {
   await api('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ login }) });
 }
 
+export type SocialProvider = 'apple' | 'google';
+
+export function socialLogin(provider: SocialProvider, idToken: string, username?: string): Promise<LoginResponse> {
+  const body: Record<string, string> = { provider, id_token: idToken };
+  if (username) body.username = username;
+  return api<LoginResponse>('/auth/social', { method: 'POST', body: JSON.stringify(body) });
+}
+
+export function needsUsername(err: unknown): boolean {
+  if (!(err instanceof Error) || !('body' in err)) return false;
+  const body = (err as { body: unknown }).body;
+  return body !== null && typeof body === 'object' && (body as { needs_username?: unknown }).needs_username === true;
+}
+
 export async function deleteAccount(): Promise<void> {
   await api('/me', { method: 'DELETE' });
 }

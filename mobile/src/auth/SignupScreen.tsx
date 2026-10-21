@@ -8,6 +8,7 @@ import { useAuth } from './AuthProvider';
 import { TextField } from '../components/TextField';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { colors } from '../theme';
+import { SocialSignIn } from './SocialSignIn';
 import { track } from '../analytics/analytics';
 
 export function SignupScreen() {
@@ -42,6 +43,7 @@ export function SignupScreen() {
         <Link href="/login" style={{ color: colors.primary, textAlign: 'center', fontWeight: '700', marginTop: 8 }}>
           Já tem conta? Entrar
         </Link>
+        <SocialSignIn next={returnTo(voltar, '/meus-boloes')} />
       </ScrollView>
     </KeyboardAvoidingView>
   );

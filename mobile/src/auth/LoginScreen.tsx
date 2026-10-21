@@ -8,6 +8,7 @@ import { useAuth } from './AuthProvider';
 import { TextField } from '../components/TextField';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { colors } from '../theme';
+import { SocialSignIn } from './SocialSignIn';
 
 export function LoginScreen() {
   const [username, setUsername] = useState('');
@@ -40,6 +41,7 @@ export function LoginScreen() {
         <Link href="/cadastro" style={{ color: colors.primary, textAlign: 'center', fontWeight: '700', marginTop: 8 }}>
           Ainda não tem conta? Criar conta
         </Link>
+        <SocialSignIn next={returnTo(voltar, '/')} />
       </ScrollView>
     </KeyboardAvoidingView>
   );
