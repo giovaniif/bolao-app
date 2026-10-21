@@ -2,7 +2,6 @@ import { api } from './client';
 import type { RoundsSummary } from './play';
 
 export const adminKeys = {
-  pending: ['admin', 'rounds'] as const,
   summary: (bolaoId: string) => ['admin', bolaoId, 'rounds'] as const,
   matches: (bolaoId: string, round: number) => ['admin', bolaoId, 'matches', round] as const,
   active: ['admin', 'active-bolao'] as const,
@@ -33,10 +32,6 @@ export interface Participant {
   username: string;
   display_name: string;
   amount_paid: number;
-}
-
-export function getPendingRoundsSummary(): Promise<RoundsSummary> {
-  return api<RoundsSummary>('/matches/rounds/summary');
 }
 
 export function getAdminRoundsSummary(bolaoId: string): Promise<RoundsSummary> {

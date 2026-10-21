@@ -76,7 +76,6 @@ function MatchCard({ bolaoId, match, round }: { bolaoId: string; match: AdminMat
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: adminKeys.matches(bolaoId, round) });
     queryClient.invalidateQueries({ queryKey: adminKeys.summary(bolaoId) });
-    queryClient.invalidateQueries({ queryKey: adminKeys.pending });
   };
   const save = useMutation({
     mutationFn: () => setMatchResult(bolaoId, match.id, home, away),
