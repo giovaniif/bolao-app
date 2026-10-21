@@ -56,3 +56,32 @@ describe('signup', () => {
     expect(res.username).toBe('joao')
   })
 })
+
+describe('socialLogin', () => {
+  it('posts the provider token and leaves out an empty username', async () => {
+    const mockSocial = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      text: () => Promise.resolve(JSON.stringify({ token: 'jwt', user_id: '9', username: 'joao', is_admin: false, must_change_password: false })),
+    })
+    vi.stubGlobal('fetch', mockSocial)
+    const { socialLogin } = await import('./authApi')
+
+    const res = await socialLogin('google', 'id-token')
+
+    expect(mockSocial).toHaveBeenCalledWith(
+      `${API_BASE}/auth/social`,
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({ provider: 'google', id_token: 'id-token' }) })
+    )
+    expect(res.username).toBe('joao')
+  })
+
+  it('tells a missing username apart from other errors', async () => {
+    const { needsUsername } = await import('./authApi')
+    const asked = Object.assign(new Error('escolha'), { status: 409, body: { needs_username: true } })
+    const taken = Object.assign(new Error('em uso'), { status: 409, body: { error: 'em uso' } })
+
+    expect(needsUsername(asked)).toBe(true)
+    expect(needsUsername(taken)).toBe(false)
+    expect(needsUsername('x')).toBe(false)
+  })
+})
