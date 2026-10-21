@@ -1,4 +1,3 @@
-import { scopedPath } from '../../../shared/api/scopedPath';
 import { api } from '../../../shared/api/client';
 
 export interface UserWithStats {
@@ -18,6 +17,6 @@ export async function getClassification(round?: number, bolaoId?: string, scope?
   const params = new URLSearchParams();
   params.set('round', String(round ?? 0));
   if (bolaoId) params.set('bolao_id', bolaoId);
-  const path = bolaoId ? '/classification' : scopedPath('/classification', scope);
+  const path = bolaoId ? '/classification' : `/boloes/${scope}/classification`;
   return api<UserWithStats[]>(`${path}?${params.toString()}`);
 }

@@ -13,8 +13,8 @@ export function usePartialsByRound(round: number) {
   const { bolaoId: scope, isLoading } = useCurrentBolao();
   return useQuery({
     queryKey: queryKeys.partials(round, scope),
-    queryFn: () => getPartialsByRound(round, scope),
-    enabled: round > 0 && !isLoading,
+    queryFn: () => getPartialsByRound(round, scope!),
+    enabled: round > 0 && !isLoading && !!scope,
     refetchInterval: (query) => liveRefetchInterval(query.state.data),
   });
 }
@@ -24,8 +24,8 @@ export function usePartialClassification(round: number) {
   const { data: matches } = usePartialsByRound(round);
   return useQuery({
     queryKey: queryKeys.partialClassification(round, scope),
-    queryFn: () => getPartialClassification(round, scope),
-    enabled: round > 0 && !isLoading,
+    queryFn: () => getPartialClassification(round, scope!),
+    enabled: round > 0 && !isLoading && !!scope,
     refetchInterval: liveRefetchInterval(matches),
   });
 }

@@ -7,8 +7,8 @@ export function useUsers() {
   const { bolaoId: scope, isLoading } = useCurrentBolao();
   return useQuery({
     queryKey: queryKeys.users(scope),
-    queryFn: () => getUsers(scope),
-    enabled: !isLoading,
+    queryFn: () => getUsers(scope!),
+    enabled: !isLoading && !!scope,
   });
 }
 
@@ -16,7 +16,7 @@ export function usePredictionsByUser(round: number, userId: string | null) {
   const { bolaoId: scope, isLoading } = useCurrentBolao();
   return useQuery({
     queryKey: queryKeys.predictionsByUser(round, userId, scope),
-    queryFn: () => getPredictionsByUser(round, userId!, scope),
-    enabled: round > 0 && !!userId && !isLoading,
+    queryFn: () => getPredictionsByUser(round, userId!, scope!),
+    enabled: round > 0 && !!userId && !isLoading && !!scope,
   });
 }

@@ -18,6 +18,12 @@ import {
   unlockMatch,
 } from '../api/adminApi';
 import { queryKeys } from '../../../shared/query/queryKeys';
+import { useCurrentBolao } from '../../../shared/hooks/useCurrentBolao';
+
+function requireBolao(bolaoId: string | undefined): string {
+  if (!bolaoId) throw new Error('Nenhum bolão selecionado');
+  return bolaoId;
+}
 
 export function useUsers() {
   return useQuery({
@@ -36,10 +42,11 @@ export function useTeams() {
 export { useRounds } from '../../matches/hooks/useMatches';
 
 export function useMatchesByRound(round: number) {
+  const { bolaoId } = useCurrentBolao();
   return useQuery({
-    queryKey: queryKeys.matches(round),
-    queryFn: () => getMatchesByRound(round),
-    enabled: round > 0,
+    queryKey: queryKeys.matches(round, bolaoId),
+    queryFn: () => getMatchesByRound(bolaoId!, round),
+    enabled: round > 0 && !!bolaoId,
   });
 }
 
@@ -56,6 +63,7 @@ export function useCreateMatches() {
 
 export function useUpdateMatchResults(round: number) {
   const queryClient = useQueryClient();
+  const { bolaoId } = useCurrentBolao();
   return useMutation({
     mutationFn: ({
       matchId,
@@ -65,7 +73,7 @@ export function useUpdateMatchResults(round: number) {
       matchId: string;
       homeGoals: number;
       awayGoals: number;
-    }) => updateMatchResults(matchId, homeGoals, awayGoals),
+    }) => updateMatchResults(requireBolao(bolaoId), matchId, homeGoals, awayGoals),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.matches(round) });
       queryClient.invalidateQueries({ queryKey: ['classification'] });
@@ -76,8 +84,9 @@ export function useUpdateMatchResults(round: number) {
 
 export function useUnlockMatch(round: number) {
   const queryClient = useQueryClient();
+  const { bolaoId } = useCurrentBolao();
   return useMutation({
-    mutationFn: unlockMatch,
+    mutationFn: (matchId: string) => unlockMatch(requireBolao(bolaoId), matchId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.matches(round) });
     },
@@ -86,8 +95,9 @@ export function useUnlockMatch(round: number) {
 
 export function useUpdateRoundCloses(round: number) {
   const queryClient = useQueryClient();
+  const { bolaoId } = useCurrentBolao();
   return useMutation({
-    mutationFn: (marketClosesAt: string) => updateRoundCloses(round, marketClosesAt),
+    mutationFn: (marketClosesAt: string) => updateRoundCloses(requireBolao(bolaoId), round, marketClosesAt),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.matches(round) });
     },

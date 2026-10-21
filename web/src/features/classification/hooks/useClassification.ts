@@ -9,6 +9,6 @@ export function useClassification(round?: number, bolaoId?: string, enabled = tr
   return useQuery({
     queryKey: queryKeys.classification(bolaoId, round, scope),
     queryFn: () => getClassification(round, bolaoId, scope),
-    enabled: enabled && !isLoading,
+    enabled: enabled && !isLoading && !!(bolaoId || scope),
   });
 }

@@ -8,7 +8,7 @@ export function useRounds(bolaoId?: string) {
   return useQuery({
     queryKey: queryKeys.rounds(bolaoId, scope),
     queryFn: () => getRoundsSummary(bolaoId, scope),
-    enabled: !isLoading,
+    enabled: !isLoading && !!(bolaoId || scope),
     select: (summary) => summary.rounds,
   });
 }
@@ -18,7 +18,7 @@ export function useActiveRound(bolaoId?: string) {
   return useQuery({
     queryKey: queryKeys.rounds(bolaoId, scope),
     queryFn: () => getRoundsSummary(bolaoId, scope),
-    enabled: !isLoading,
+    enabled: !isLoading && !!(bolaoId || scope),
     select: (summary) => summary.active,
   });
 }
@@ -28,7 +28,7 @@ export function usePendingResults(bolaoId?: string) {
   return useQuery({
     queryKey: queryKeys.rounds(bolaoId, scope),
     queryFn: () => getRoundsSummary(bolaoId, scope),
-    enabled: !isLoading,
+    enabled: !isLoading && !!(bolaoId || scope),
     select: (summary) => summary.pending_results,
   });
 }
@@ -37,7 +37,7 @@ export function useMatchesByRound(round: number) {
   const { bolaoId: scope, isLoading } = useCurrentBolao();
   return useQuery({
     queryKey: queryKeys.matches(round, scope),
-    queryFn: () => getMatchesByRound(round, scope),
-    enabled: round > 0 && !isLoading,
+    queryFn: () => getMatchesByRound(round, scope!),
+    enabled: round > 0 && !isLoading && !!scope,
   });
 }
