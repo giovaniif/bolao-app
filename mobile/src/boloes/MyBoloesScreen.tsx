@@ -1,12 +1,7 @@
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useCurrentBolao } from '../bolao/useCurrentBolao';
-import { useAuth } from '../auth/AuthProvider';
 import { PrimaryButton } from '../components/PrimaryButton';
-import { DeleteAccount } from '../auth/DeleteAccount';
-import { PrivacySwitch } from '../analytics/PrivacySwitch';
-import { analyticsEnabled, hasConsent, setConsent } from '../analytics/analytics';
-import { useEffect, useState } from 'react';
 import { colors } from '../theme';
 
 const ROLE: Record<string, string> = { owner: 'Dono', admin: 'Admin', participant: 'Participante' };
@@ -14,11 +9,6 @@ const ROLE: Record<string, string> = { owner: 'Dono', admin: 'Admin', participan
 export function MyBoloesScreen() {
   const router = useRouter();
   const { boloes, bolao: current, select } = useCurrentBolao();
-  const { signOut } = useAuth();
-  const [sharing, setSharing] = useState(false);
-  useEffect(() => {
-    hasConsent().then(setSharing);
-  }, []);
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
@@ -60,18 +50,6 @@ export function MyBoloesScreen() {
           </View>
         );
       })}
-      <View style={{ marginTop: 24, gap: 12 }}>
-        <PrivacySwitch
-          enabled={analyticsEnabled}
-          value={sharing}
-          onChange={async (on) => {
-            setSharing(on);
-            await setConsent(on ? 'granted' : 'denied');
-          }}
-        />
-        <PrimaryButton title="Sair" variant="secondary" onPress={signOut} />
-        <DeleteAccount />
-      </View>
     </ScrollView>
   );
 }

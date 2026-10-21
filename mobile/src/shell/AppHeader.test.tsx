@@ -60,3 +60,13 @@ describe('AppHeader', () => {
     expect(await SecureStore.getItemAsync('token')).toBeNull()
   })
 })
+
+describe('AppHeader profile menu', () => {
+  it('opens Perfil', async () => {
+    fakeApi([{ path: /^\/me\/boloes$/, body: MINE }, { path: /^\/me$/, body: { display_name: 'Ana Souza' } }])
+    await renderWithProviders(<AppHeader title="Palpites" />)
+    await fireEvent.press(await screen.findByRole('button', { name: 'Meu perfil' }))
+    await fireEvent.press(screen.getByRole('menuitem', { name: 'Perfil' }))
+    expect(router.push).toHaveBeenCalledWith('/perfil')
+  })
+})

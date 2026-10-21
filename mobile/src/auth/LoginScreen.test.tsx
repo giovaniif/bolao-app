@@ -24,8 +24,8 @@ beforeEach(() => {
   globalThis.fetch = mockFetch as unknown as typeof fetch
 })
 
-function loginResponse() {
-  return { ok: true, status: 200, text: async () => JSON.stringify({ token: 'jwt', user_id: 'u1', username: 'ana', is_admin: false, must_change_password: false }) }
+function loginResponse(mustChange = false) {
+  return { ok: true, status: 200, text: async () => JSON.stringify({ token: 'jwt', user_id: 'u1', username: 'ana', is_admin: false, must_change_password: mustChange }) }
 }
 
 describe('LoginScreen', () => {
@@ -40,6 +40,17 @@ describe('LoginScreen', () => {
     await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/'))
     expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual({ username: 'ana', password: '123' })
     expect(SecureStore.setItemAsync).toHaveBeenCalledWith('token', 'jwt')
+  })
+
+  it('asks for a new password when the account must change it', async () => {
+    mockFetch.mockResolvedValueOnce(loginResponse(true))
+    await renderWithProviders(<LoginScreen />)
+
+    await fireEvent.changeText(screen.getByLabelText('Usuário'), 'ana')
+    await fireEvent.changeText(screen.getByLabelText('Senha'), 'temporaria')
+    await fireEvent.press(screen.getByRole('button', { name: 'Entrar' }))
+
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/alterar-senha'))
   })
 
   it('goes back to the invite after logging in', async () => {

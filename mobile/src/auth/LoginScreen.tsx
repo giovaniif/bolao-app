@@ -19,7 +19,7 @@ export function LoginScreen() {
     mutationFn: () => login(username.trim(), password),
     onSuccess: async (res) => {
       await signIn(res);
-      router.replace(returnTo(voltar, '/'));
+      router.replace(res.must_change_password ? '/alterar-senha' : returnTo(voltar, '/'));
     },
   });
 
