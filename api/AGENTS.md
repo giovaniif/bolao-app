@@ -81,6 +81,7 @@ These rules have no unit test, because they live in handlers or SQL that need a 
 - Classification `round`: `1`..`998` is that round only. `0` or `999` is cumulative up to the last round that exists.
 - Classification loads the whole bolão in three queries (`ListAllByBolao`, `GetAllForBolao`), not one query per round.
 - A partial score of `NULL` means "not entered" and does not count. An explicit 0×0 partial counts (migration 005).
+- The match sync writes the score of an `IN_PLAY` or `PAUSED` match into `match_partials` with `updated_by` `NULL`. It overwrites only a partial that the sync set or that is empty. A partial that a user entered stays. Live matches sync at most every 5 minutes (`resultsSyncInterval`), inside the daily call budget.
 - `FlexibleTime` accepts RFC3339 with a time zone and stores the time in UTC.
 - One bolão is active at a time. A unique partial index backs the app check, and `Create` returns `ErrActiveBolaoExists` when it loses the race.
 - Creating a bolão enrolls every user (`EnrollAllUsers`, `amount_paid` 0). A user created mid-season is enrolled with `AddParticipant`.

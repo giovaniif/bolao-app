@@ -88,6 +88,18 @@ func (r *MatchSyncRepository) ApplyPlan(ctx context.Context, plan models.Reconci
 			return err
 		}
 	}
+	for _, p := range plan.Partials {
+		if _, err := tx.Exec(ctx, `
+			INSERT INTO match_partials (match_id, home_goals, away_goals, updated_by, updated_at)
+			VALUES ($1, $2, $3, NULL, CURRENT_TIMESTAMP)
+			ON CONFLICT (match_id) DO UPDATE SET
+				home_goals = $2, away_goals = $3, updated_by = NULL, updated_at = CURRENT_TIMESTAMP
+			WHERE match_partials.updated_by IS NULL OR match_partials.home_goals IS NULL OR match_partials.away_goals IS NULL`,
+			p.MatchID, p.HomeGoals, p.AwayGoals,
+		); err != nil {
+			return err
+		}
+	}
 	return tx.Commit(ctx)
 }
 

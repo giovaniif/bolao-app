@@ -105,13 +105,16 @@ func ReconcileMatches(competitionID, bolaoID uuid.UUID, local []models.Match, re
 			continue
 		}
 		if !ok {
-			plan.Inserts = append(plan.Inserts, applyFeed(models.Match{
+			inserted := applyFeed(models.Match{
 				ID:            uuid.New(),
 				BolaoID:       bolaoID,
 				CompetitionID: &competitionID,
-			}, f, round))
+			}, f, round)
+			plan.Inserts = append(plan.Inserts, inserted)
+			plan.Partials = appendLivePartial(plan.Partials, inserted.ID, f)
 			continue
 		}
+		plan.Partials = appendLivePartial(plan.Partials, current.ID, f)
 		if current.Locked {
 			continue
 		}
@@ -120,6 +123,13 @@ func ReconcileMatches(competitionID, bolaoID uuid.UUID, local []models.Match, re
 		}
 	}
 	return plan
+}
+
+func appendLivePartial(partials []models.LivePartial, matchID uuid.UUID, f FeedMatch) []models.LivePartial {
+	if (f.Status != FeedStatusInPlay && f.Status != FeedStatusPaused) || f.HomeGoals == nil || f.AwayGoals == nil {
+		return partials
+	}
+	return append(partials, models.LivePartial{MatchID: matchID, HomeGoals: *f.HomeGoals, AwayGoals: *f.AwayGoals})
 }
 
 func NeedsResultsSync(matches []models.Match, now time.Time) bool {
