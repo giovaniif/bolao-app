@@ -68,6 +68,14 @@ See `.github/workflows/deploy.yml`. Two details in it:
 - After each dev deploy, the workflow points the `bolao-app-dev.vercel.app` alias at the new deployment. `vercel deploy` makes a new preview URL each run. Without the alias step, the stable URL keeps an old build.
 - In `render.yaml`, prod and dev use the same Dockerfile and build. Only the env vars differ: dev's `DATABASE_URL` points at the dev Supabase project.
 
+### Dev database copy
+
+Every night at 06:00 UTC, `.github/workflows/sync-dev-db.yml` replaces the dev database with a scrubbed copy of prod. Then it redeploys the dev API, so the migrations of `main` run on the new data. See [ADR 0017](docs/adr/0017-nightly-prod-snapshot-into-dev.md).
+
+- Set the secrets `PROD_DATABASE_URL` and `DEV_DATABASE_URL` (session pooler URLs) in the GitHub `dev` environment.
+- Start a copy by hand with `gh workflow run sync-dev-db.yml`.
+- Test the script against two local containers with `cd tools && SYNC_DEV_DB_TEST=1 go test ./syncdevdb`. It needs Docker.
+
 ## Production deploy
 
 ### Database – Supabase

@@ -1,0 +1,43 @@
+name: Sync dev DB
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: sync-dev-db
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    name: Copy prod into dev
+    runs-on: ubuntu-latest
+    environment: dev
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check secrets
+        run: |
+          for name in PROD_DATABASE_URL DEV_DATABASE_URL RENDER_DEPLOY_HOOK_DEV; do
+            if [ -z "${!name}" ]; then
+              echo "::error::secret $name is not set"
+              exit 1
+            fi
+          done
+        env:
+          PROD_DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+          DEV_DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
+          RENDER_DEPLOY_HOOK_DEV: ${{ secrets.RENDER_DEPLOY_HOOK_DEV }}
+
+      - name: Copy, scrub and redeploy dev
+        run: tools/sync-dev-db/sync.sh
+        env:
+          PROD_DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+          DEV_DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
+          RENDER_DEPLOY_HOOK_DEV: ${{ secrets.RENDER_DEPLOY_HOOK_DEV }}
+          PG_CLIENT_IMAGE: postgres:17

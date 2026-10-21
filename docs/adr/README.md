@@ -20,3 +20,4 @@ One file per decision, numbered in order. A record does not change after it is a
 | [0014](0014-bolao-as-a-group.md) | A bolão is a group with roles per bolão (supersedes 0003) |
 | [0015](0015-matches-from-football-data.md) | Matches come from football-data.org |
 | [0016](0016-thesportsdb-as-backup-feed.md) | TheSportsDB is the backup feed for results |
+| [0017](0017-nightly-prod-snapshot-into-dev.md) | A nightly prod snapshot, scrubbed, replaces the dev database |
