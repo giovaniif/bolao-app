@@ -59,6 +59,10 @@ describe('RoundScreen', () => {
     const calls = fakeApi(routes())
     await renderWithProviders(<RoundScreen />)
     await fireEvent.press(await screen.findByRole('button', { name: 'Editar parciais' }))
+    expect(screen.getByText('Jogo 1 de 2')).toBeTruthy()
+    expect(screen.getByLabelText('Gols de Flamengo')).toHaveTextContent('2')
+    await fireEvent.press(screen.getByRole('button', { name: 'Próximo' }))
+    expect(screen.getByText('Jogo 2 de 2')).toBeTruthy()
     await fireEvent.press(screen.getByLabelText('Mais um gol de Bahia'))
     await fireEvent.press(screen.getByRole('button', { name: 'Salvar parciais' }))
 
@@ -73,7 +77,8 @@ describe('RoundScreen', () => {
     const calls = fakeApi(routes())
     await renderWithProviders(<RoundScreen />)
     await fireEvent.press(await screen.findByRole('button', { name: 'Editar parciais' }))
-    await fireEvent.press(screen.getByRole('button', { name: 'Limpar parcial de Flamengo x Palmeiras' }))
+    expect(screen.getByText('Jogo 1 de 2')).toBeTruthy()
+    await fireEvent.press(screen.getByRole('button', { name: 'Limpar parcial' }))
     await waitFor(() => expect(calls.some((c) => c.method === 'DELETE' && c.path === '/parciais/match/m-1')).toBe(true))
   })
 
