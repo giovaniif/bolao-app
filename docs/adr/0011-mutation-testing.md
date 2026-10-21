@@ -16,4 +16,4 @@ Status: accepted, 2026-10-13. Adapted from agent-workspace.
 ## Consequences
 
 - Some survivors are equivalent mutants: the score-type cap (`>= 4` and `> 4` both cap at 4) and the sort of rounds with unique numbers. They lower the ceiling below 100%.
-- The CSV export and the classification ordering hold most of the other survivors. Kill them before you raise the floor.
+- The classification ordering holds most of the other survivors. Kill them before you raise the floor.

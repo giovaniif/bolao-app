@@ -1,10 +1,8 @@
-import { useCurrentBolao } from '../../../shared/hooks/useCurrentBolao';
 import { useState } from 'react';
 import { Layout } from '../../../shared/components/Layout';
 import { useClassification } from '../hooks/useClassification';
 import { useRounds } from '../../matches/hooks/useMatches';
 import { useBoloes } from '../../boloes/hooks/useBoloes';
-import { downloadExportRound, downloadExportAll } from '../api/exportApi';
 import { ClassificationRow } from '../components/ClassificationRow';
 import { ChampionsEntryCard } from '../../champions/components/ChampionsEntryCard';
 import { useSeasons } from '../../champions/hooks/useSeasons';
@@ -12,12 +10,10 @@ import { useSeasons } from '../../champions/hooks/useSeasons';
 export function ClassificationPage() {
   const [selectedBolaoId, setSelectedBolaoId] = useState<string>('');
   const [selectedRound, setSelectedRound] = useState<number | ''>('');
-  const [exporting, setExporting] = useState<'round' | 'all' | null>(null);
 
   const { data: boloes = [] } = useBoloes();
   const bolaoId = selectedBolaoId || undefined;
   const { seasons } = useSeasons();
-  const { bolaoId: scope } = useCurrentBolao();
 
   const { data: rounds = [] } = useRounds(bolaoId);
   const maxRound = rounds.length > 0 ? Math.max(...rounds) : 0;
@@ -76,41 +72,6 @@ export function ClassificationPage() {
             </select>
           </div>
         )}
-
-        <div className="flex gap-2">
-          <button
-            onClick={async () => {
-              setExporting('round');
-              try {
-                await downloadExportRound(Number(displayRound) || 1, bolaoId, scope);
-              } catch (e) {
-                alert(e instanceof Error ? e.message : 'Erro ao exportar');
-              } finally {
-                setExporting(null);
-              }
-            }}
-            disabled={exporting !== null || rounds.length === 0}
-            className="text-sm px-3 py-1.5 rounded-lg bg-[var(--color-card)] border border-slate-600 text-[var(--color-primary)] hover:border-[var(--color-primary)] disabled:opacity-50"
-          >
-            {exporting === 'round' ? 'Exportando...' : 'Exportar rodada'}
-          </button>
-          <button
-            onClick={async () => {
-              setExporting('all');
-              try {
-                await downloadExportAll(bolaoId, scope);
-              } catch (e) {
-                alert(e instanceof Error ? e.message : 'Erro ao exportar');
-              } finally {
-                setExporting(null);
-              }
-            }}
-            disabled={exporting !== null || rounds.length === 0}
-            className="text-sm px-3 py-1.5 rounded-lg bg-[var(--color-card)] border border-slate-600 text-[var(--color-primary)] hover:border-[var(--color-primary)] disabled:opacity-50"
-          >
-            {exporting === 'all' ? 'Exportando...' : 'Exportar todas'}
-          </button>
-        </div>
 
         {error && (
           <p className="text-red-400 text-sm text-center py-4">
