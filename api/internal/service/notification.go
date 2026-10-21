@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/bolao-app/api/internal/models"
@@ -111,40 +112,110 @@ func BuildPushPayload(r Reminder) PushPayload {
 
 type PushStore interface {
 	ListForBolao(ctx context.Context, bolaoID uuid.UUID) ([]models.PushSubscription, error)
+	ListExpoTokensForBolao(ctx context.Context, bolaoID uuid.UUID) ([]models.ExpoPushToken, error)
 	DeleteByEndpoint(ctx context.Context, endpoint string) error
+	DeleteExpoToken(ctx context.Context, token string) error
 	ClaimNotification(ctx context.Context, bolaoID uuid.UUID, round int, kind string, closesAt time.Time) (bool, error)
+	ClaimUserNotification(ctx context.Context, userID, scopeID uuid.UUID, round int, kind string, closesAt time.Time) (bool, error)
 }
 
 type PushSender interface {
 	Send(ctx context.Context, sub models.PushSubscription, payload []byte) (int, error)
 }
 
+type ExpoSender interface {
+	Send(ctx context.Context, msgs []models.ExpoMessage) ([]models.ExpoResult, error)
+}
+
+type Audience struct {
+	BolaoID uuid.UUID
+	ScopeID uuid.UUID
+}
+
+func AudienceOf(b models.Bolao) Audience {
+	scope := b.ID
+	if b.CompetitionID != nil {
+		scope = *b.CompetitionID
+	}
+	return Audience{BolaoID: b.ID, ScopeID: scope}
+}
+
 type NotificationService struct {
-	store  PushStore
-	sender PushSender
+	store PushStore
+	web   PushSender
+	expo  ExpoSender
 }
 
-func NewNotificationService(store PushStore, sender PushSender) *NotificationService {
-	return &NotificationService{store: store, sender: sender}
+func NewNotificationService(store PushStore, web PushSender, expo ExpoSender) *NotificationService {
+	return &NotificationService{store: store, web: web, expo: expo}
 }
 
-func (s *NotificationService) Notify(ctx context.Context, bolaoID uuid.UUID, r Reminder) (int, error) {
-	claimed, err := s.store.ClaimNotification(ctx, bolaoID, r.Round, string(r.Kind), claimDeadline(r))
+func (s *NotificationService) Notify(ctx context.Context, a Audience, r Reminder) (int, error) {
+	claimed, err := s.store.ClaimNotification(ctx, a.BolaoID, r.Round, string(r.Kind), claimDeadline(r))
 	if err != nil || !claimed {
 		return 0, err
 	}
-	subs, err := s.store.ListForBolao(ctx, bolaoID)
-	if err != nil {
-		return 0, err
+	var subs []models.PushSubscription
+	if s.web != nil {
+		if subs, err = s.store.ListForBolao(ctx, a.BolaoID); err != nil {
+			return 0, err
+		}
 	}
-	payload, err := json.Marshal(BuildPushPayload(r))
+	var tokens []models.ExpoPushToken
+	if s.expo != nil {
+		if tokens, err = s.store.ListExpoTokensForBolao(ctx, a.BolaoID); err != nil {
+			return 0, err
+		}
+	}
+	users := make([]uuid.UUID, 0, len(subs)+len(tokens))
+	for _, sub := range subs {
+		users = append(users, sub.UserID)
+	}
+	for _, t := range tokens {
+		users = append(users, t.UserID)
+	}
+	due, err := s.claimUsers(ctx, a, r, users)
 	if err != nil {
 		return 0, err
 	}
 
+	payload := BuildPushPayload(r)
+	sent, err := s.sendWeb(ctx, r, payload, subs, due)
+	if err != nil {
+		return sent, err
+	}
+	n, err := s.sendExpo(ctx, r, payload, tokens, due)
+	return sent + n, err
+}
+
+func (s *NotificationService) claimUsers(ctx context.Context, a Audience, r Reminder, users []uuid.UUID) (map[uuid.UUID]bool, error) {
+	due := map[uuid.UUID]bool{}
+	seen := map[uuid.UUID]bool{}
+	for _, u := range users {
+		if seen[u] {
+			continue
+		}
+		seen[u] = true
+		ok, err := s.store.ClaimUserNotification(ctx, u, a.ScopeID, r.Round, string(r.Kind), claimDeadline(r))
+		if err != nil {
+			return nil, err
+		}
+		due[u] = ok
+	}
+	return due, nil
+}
+
+func (s *NotificationService) sendWeb(ctx context.Context, r Reminder, p PushPayload, subs []models.PushSubscription, due map[uuid.UUID]bool) (int, error) {
+	payload, err := json.Marshal(p)
+	if err != nil {
+		return 0, err
+	}
 	sent := 0
 	for _, sub := range subs {
-		status, err := s.sender.Send(ctx, sub, payload)
+		if !due[sub.UserID] {
+			continue
+		}
+		status, err := s.web.Send(ctx, sub, payload)
 		switch {
 		case status == http.StatusNotFound || status == http.StatusGone:
 			if err := s.store.DeleteByEndpoint(ctx, sub.Endpoint); err != nil {
@@ -157,6 +228,45 @@ func (s *NotificationService) Notify(ctx context.Context, bolaoID uuid.UUID, r R
 		}
 	}
 	return sent, nil
+}
+
+func (s *NotificationService) sendExpo(ctx context.Context, r Reminder, p PushPayload, tokens []models.ExpoPushToken, due map[uuid.UUID]bool) (int, error) {
+	var msgs []models.ExpoMessage
+	for _, t := range tokens {
+		if due[t.UserID] {
+			msgs = append(msgs, ExpoMessageFor(t.Token, r, p))
+		}
+	}
+	if len(msgs) == 0 {
+		return 0, nil
+	}
+	results, err := s.expo.Send(ctx, msgs)
+	if err != nil {
+		log.Printf("expo push %s round %d: %v", r.Kind, r.Round, err)
+	}
+	sent := 0
+	for _, res := range results {
+		switch {
+		case res.DeviceNotRegistered:
+			if err := s.store.DeleteExpoToken(ctx, res.Token); err != nil {
+				return sent, err
+			}
+		case res.OK:
+			sent++
+		}
+	}
+	return sent, nil
+}
+
+func ExpoMessageFor(token string, r Reminder, p PushPayload) models.ExpoMessage {
+	return models.ExpoMessage{
+		To:       token,
+		Title:    p.Title,
+		Body:     p.Body,
+		Data:     map[string]string{"url": p.URL, "round": strconv.Itoa(r.Round)},
+		Sound:    "default",
+		Priority: "high",
+	}
 }
 
 func endpointHost(endpoint string) string {
@@ -173,10 +283,10 @@ func claimDeadline(r Reminder) time.Time {
 	return r.ClosesAt
 }
 
-func (s *NotificationService) Tick(ctx context.Context, bolaoID uuid.UUID, rounds []RoundClose, now time.Time) (int, error) {
+func (s *NotificationService) Tick(ctx context.Context, a Audience, rounds []RoundClose, now time.Time) (int, error) {
 	total := 0
 	for _, r := range DueReminders(rounds, now) {
-		n, err := s.Notify(ctx, bolaoID, r)
+		n, err := s.Notify(ctx, a, r)
 		total += n
 		if err != nil {
 			return total, err
