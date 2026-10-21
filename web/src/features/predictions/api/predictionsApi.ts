@@ -15,13 +15,13 @@ export interface PredictionInput {
   away_goals: number;
 }
 
-export async function getMyPredictions(round: number, scope?: string): Promise<Prediction[]> {
+export async function getMyPredictions(round: number, scope: string): Promise<Prediction[]> {
   return api<Prediction[]>(scopedPath(`/predictions?round=${round}`, scope));
 }
 
 export async function savePredictions(
   predictions: PredictionInput[],
-  scope?: string
+  scope: string
 ): Promise<void> {
   await api(scopedPath('/predictions', scope), {
     method: 'POST',

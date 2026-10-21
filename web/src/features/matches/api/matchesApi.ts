@@ -19,9 +19,9 @@ export interface RoundsSummary {
 
 export async function getRoundsSummary(bolaoId?: string, scope?: string): Promise<RoundsSummary> {
   if (bolaoId) return api<RoundsSummary>(`/matches/rounds/summary?bolao_id=${bolaoId}`);
-  return api<RoundsSummary>(scopedPath('/matches/rounds/summary', scope));
+  return api<RoundsSummary>(scopedPath('/matches/rounds/summary', scope!));
 }
 
-export async function getMatchesByRound(round: number, scope?: string): Promise<Match[]> {
+export async function getMatchesByRound(round: number, scope: string): Promise<Match[]> {
   return api<Match[]>(scopedPath(`/matches/round/${round}`, scope));
 }

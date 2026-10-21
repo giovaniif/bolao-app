@@ -22,7 +22,7 @@ export interface UserWithStats {
   correct_results: number;
 }
 
-export async function getPartialsByRound(round: number, scope?: string): Promise<MatchWithPartial[]> {
+export async function getPartialsByRound(round: number, scope: string): Promise<MatchWithPartial[]> {
   return api<MatchWithPartial[]>(scopedPath(`/parciais/round/${round}`, scope));
 }
 
@@ -43,7 +43,7 @@ export async function clearPartial(matchId: string): Promise<void> {
 
 export async function getPartialClassification(
   round: number,
-  scope?: string
+  scope: string
 ): Promise<UserWithStats[]> {
   return api<UserWithStats[]>(scopedPath(`/parciais/round/${round}/classification`, scope));
 }

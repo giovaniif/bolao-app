@@ -1,3 +1,3 @@
-export function scopedPath(path: string, scope?: string): string {
-  return scope ? `/boloes/${scope}${path}` : path;
+export function scopedPath(path: string, scope: string): string {
+  return `/boloes/${scope}${path}`;
 }

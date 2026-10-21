@@ -15,16 +15,15 @@ export interface Prediction {
   away_goals: number;
 }
 
-export async function getUsers(scope?: string): Promise<UserOption[]> {
-  const path = scope ? `/boloes/${scope}/members` : '/users';
-  const list = await api<{ id: string; username: string; display_name: string }[]>(path);
+export async function getUsers(scope: string): Promise<UserOption[]> {
+  const list = await api<{ id: string; username: string; display_name: string }[]>(`/boloes/${scope}/members`);
   return list.map((u) => ({ id: u.id, username: u.username, display_name: u.display_name }));
 }
 
 export async function getPredictionsByUser(
   round: number,
   userId: string,
-  scope?: string
+  scope: string
 ): Promise<Prediction[]> {
   return api<Prediction[]>(scopedPath(`/predictions/round/${round}/user/${userId}`, scope));
 }
