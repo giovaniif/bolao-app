@@ -110,7 +110,7 @@ describe('MembersScreen as participant', () => {
     expect(await screen.findByText('Caio')).toBeTruthy()
     expect(screen.queryByText('Código do bolão')).toBeNull()
     expect(screen.queryByRole('button', { name: 'Remover Caio' })).toBeNull()
-    await fireEvent.press(screen.getByRole('button', { name: 'Sair do bolão' }))
+    await fireEvent.press(await screen.findByRole('button', { name: 'Sair do bolão' }))
     await fireEvent.press(screen.getByRole('button', { name: 'Confirmar saída' }))
     await waitFor(() => expect(calls.some((c) => c.method === 'POST' && c.path.endsWith('/leave'))).toBe(true))
     await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/meus-boloes'))
