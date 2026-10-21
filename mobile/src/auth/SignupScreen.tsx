@@ -25,7 +25,7 @@ export function SignupScreen() {
     onSuccess: async (res) => {
       await signIn(res);
       track('signed_up');
-      router.replace(returnTo(voltar, '/boloes'));
+      router.replace(returnTo(voltar, '/meus-boloes'));
     },
   });
 

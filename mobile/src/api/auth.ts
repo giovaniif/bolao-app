@@ -26,3 +26,15 @@ export function signup(input: SignupInput): Promise<LoginResponse> {
 export async function deleteAccount(): Promise<void> {
   await api('/me', { method: 'DELETE' });
 }
+
+export interface Profile {
+  id: string;
+  username: string;
+  display_name: string;
+  favorite_team?: string;
+  is_admin: boolean;
+}
+
+export function getProfile(): Promise<Profile> {
+  return api<Profile>('/me');
+}

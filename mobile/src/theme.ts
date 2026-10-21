@@ -9,4 +9,5 @@ export const colors = {
   muted: '#94a3b8',
   onPrimary: '#04140b',
   danger: '#f87171',
+  nav: '#131f35',
 };

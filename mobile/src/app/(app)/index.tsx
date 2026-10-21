@@ -1,3 +1,3 @@
-import { PredictScreen } from '../../play/PredictScreen';
+import { StandingsScreen } from '../../play/StandingsScreen';
 
-export default PredictScreen;
+export default StandingsScreen;
