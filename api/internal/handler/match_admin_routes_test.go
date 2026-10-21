@@ -26,6 +26,10 @@ func TestMatchAdminRoutesRegisterScopedOverrides(t *testing.T) {
 		"PUT /api/boloes/:id/matches/:match_id/results":   false,
 		"DELETE /api/boloes/:id/matches/:match_id/lock":   false,
 		"PUT /api/boloes/:id/matches/round/:round/closes": false,
+		"POST /api/boloes/:id/matches":                    false,
+		"PUT /api/boloes/:id/matches/:match_id":           false,
+		"DELETE /api/boloes/:id/matches/:match_id":        false,
+		"DELETE /api/boloes/:id/matches/round/:round":     false,
 	}
 	for _, route := range r.Routes() {
 		key := route.Method + " " + route.Path
@@ -61,6 +65,14 @@ func TestMatchAdminRoutesGuards(t *testing.T) {
 		{"the platform admin gets a bad request for a bad match id on results", platform, true, http.MethodPut, base + "nope/results", `{"home_goals":1,"away_goals":0}`, http.StatusBadRequest, "id inválido"},
 		{"the platform admin gets a bad request for a bad match id on unlock", platform, true, http.MethodDelete, base + "nope/lock", "", http.StatusBadRequest, "id inválido"},
 		{"the platform admin gets a bad request for a bad round", platform, true, http.MethodPut, base + "round/x/closes", `{"market_closes_at":"2026-10-21T20:00:00Z"}`, http.StatusBadRequest, "rodada inválida"},
+		{"a bolão owner who is not platform admin cannot create matches", member, false, http.MethodPost, strings.TrimSuffix(base, "/"), `{"round":1,"matches":[]}`, http.StatusForbidden, ""},
+		{"a bolão owner who is not platform admin cannot edit a match", member, false, http.MethodPut, base + uuid.NewString(), `{"home_team":"a","away_team":"b"}`, http.StatusForbidden, ""},
+		{"a bolão owner who is not platform admin cannot delete a match", member, false, http.MethodDelete, base + uuid.NewString(), "", http.StatusForbidden, ""},
+		{"a bolão owner who is not platform admin cannot delete a round", member, false, http.MethodDelete, base + "round/3", "", http.StatusForbidden, ""},
+		{"the platform admin gets a bad request for an unknown team on create", platform, true, http.MethodPost, strings.TrimSuffix(base, "/"), `{"round":1,"matches":[{"home_team":"Nope FC","away_team":"Flamengo"}]}`, http.StatusBadRequest, "time inválido"},
+		{"the platform admin gets a bad request for a bad match id on edit", platform, true, http.MethodPut, base + "nope", `{"home_team":"Flamengo","away_team":"Palmeiras"}`, http.StatusBadRequest, "id inválido"},
+		{"the platform admin gets a bad request for a bad match id on delete", platform, true, http.MethodDelete, base + "nope", "", http.StatusBadRequest, "id inválido"},
+		{"the platform admin gets a bad request for a bad round on delete", platform, true, http.MethodDelete, base + "round/x", "", http.StatusBadRequest, "rodada inválida"},
 		{"a bad bolão id is a bad request", platform, true, http.MethodDelete, "/api/boloes/nope/matches/" + uuid.NewString() + "/lock", "", http.StatusBadRequest, "id inválido"},
 	}
 	r := adminScopedRouter(memberships)

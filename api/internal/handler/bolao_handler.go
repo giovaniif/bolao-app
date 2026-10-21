@@ -101,25 +101,44 @@ func (h *BolaoHandler) FinishActive(c *gin.Context) {
 	_ = c.ShouldBindJSON(&req)
 
 	bolao, err := h.bolaoSvc.FinishActive(c.Request.Context(), req.Force)
-	if err != nil {
-		var unresolved *service.ErrUnresolvedMatches
-		if errors.As(err, &unresolved) {
-			c.JSON(http.StatusConflict, gin.H{
-				"error":  "existem jogos sem resultado definido",
-				"rounds": unresolved.Rounds,
-				"count":  unresolved.Count,
-			})
-			return
-		}
-		if errors.Is(err, service.ErrNoActiveBolao) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "nenhum bolão ativo encontrado"})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	respondFinish(c, bolao, err)
+}
+
+func (h *BolaoHandler) Finish(c *gin.Context) {
+	var req FinishBolaoRequest
+	_ = c.ShouldBindJSON(&req)
+
+	bolaoID, _ := scopedBolaoID(c)
+	bolao, err := h.bolaoSvc.Finish(c.Request.Context(), bolaoID, req.Force)
+	respondFinish(c, bolao, err)
+}
+
+func (h *BolaoHandler) AdminRoutes(admin *gin.RouterGroup, requireMember gin.HandlerFunc) {
+	admin.POST("/boloes/:id/finish", requireMember, h.Finish)
+}
+
+func respondFinish(c *gin.Context, bolao *models.Bolao, err error) {
+	if err == nil {
+		c.JSON(http.StatusOK, bolao)
 		return
 	}
-
-	c.JSON(http.StatusOK, bolao)
+	var unresolved *service.ErrUnresolvedMatches
+	switch {
+	case errors.As(err, &unresolved):
+		c.JSON(http.StatusConflict, gin.H{
+			"error":  "existem jogos sem resultado definido",
+			"rounds": unresolved.Rounds,
+			"count":  unresolved.Count,
+		})
+	case errors.Is(err, service.ErrBolaoFinished):
+		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+	case errors.Is(err, service.ErrNoActiveBolao):
+		c.JSON(http.StatusNotFound, gin.H{"error": "nenhum bolão ativo encontrado"})
+	case errors.Is(err, service.ErrBolaoNotFound):
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+	default:
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	}
 }
 
 func (h *BolaoHandler) UpdateParticipantAmountPaid(c *gin.Context) {
