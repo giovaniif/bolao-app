@@ -2,6 +2,7 @@ import { Redirect, Tabs } from 'expo-router';
 import { useAuth } from '../../auth/AuthProvider';
 import { colors } from '../../theme';
 import { AnalyticsGate } from '../../analytics/AnalyticsGate';
+import { PushGate } from '../../notifications/PushGate';
 import { AppHeader } from '../../shell/AppHeader';
 import { BottomBar, type TabName } from '../../shell/BottomBar';
 
@@ -39,6 +40,7 @@ export default function AppLayout() {
         <Tabs.Screen name="rodada" />
       </Tabs>
       <AnalyticsGate />
+      <PushGate />
     </>
   );
 }
