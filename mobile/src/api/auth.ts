@@ -38,3 +38,21 @@ export interface Profile {
 export function getProfile(): Promise<Profile> {
   return api<Profile>('/me');
 }
+
+export interface ProfileUpdate {
+  username: string;
+  display_name: string;
+  favorite_team: string | null;
+}
+
+export function updateProfile(input: ProfileUpdate): Promise<Profile> {
+  return api<Profile>('/me', { method: 'PUT', body: JSON.stringify(input) });
+}
+
+export function getTeams(): Promise<string[]> {
+  return api<string[]>('/teams');
+}
+
+export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  await api('/auth/change-password', { method: 'POST', body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }) });
+}

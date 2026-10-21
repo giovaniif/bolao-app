@@ -28,6 +28,8 @@ export default function RootLayout() {
           <Stack.Screen name="criar-bolao" options={{ title: 'Criar bolão' }} />
           <Stack.Screen name="entrar" options={{ title: 'Entrar com código' }} />
           <Stack.Screen name="meus-boloes" options={{ title: 'Meus bolões' }} />
+          <Stack.Screen name="perfil" options={{ title: 'Meu perfil' }} />
+          <Stack.Screen name="alterar-senha" options={{ title: 'Alterar senha' }} />
           <Stack.Screen name="membros" options={{ title: 'Participantes' }} />
           <Stack.Screen name="convite/[code]" options={{ title: 'Convite' }} />
         </Stack>

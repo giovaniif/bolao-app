@@ -41,7 +41,7 @@ export function AppHeader({ title }: { title?: string }) {
   const name = profile.data?.display_name ?? user?.username ?? '';
   const menuTop = insets.top + 56;
 
-  function go(path: '/meus-boloes') {
+  function go(path: '/meus-boloes' | '/perfil') {
     setMenu(null);
     router.push(path);
   }
@@ -80,6 +80,7 @@ export function AppHeader({ title }: { title?: string }) {
       </Dropdown>
       <Dropdown visible={menu === 'profile'} onClose={() => setMenu(null)} top={menuTop} align="right">
         <MenuItem label="Meus bolões" onPress={() => go('/meus-boloes')} />
+        <MenuItem label="Perfil" onPress={() => go('/perfil')} />
         <MenuItem
           label="Sair"
           onPress={async () => {
