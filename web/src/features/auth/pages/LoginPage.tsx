@@ -63,6 +63,11 @@ export function LoginPage() {
             placeholder="Sua senha"
             autoComplete="current-password"
           />
+          <p className="text-sm text-right">
+            <Link to="/esqueci-senha" className="text-[var(--color-primary)]">
+              Esqueci minha senha
+            </Link>
+          </p>
           {error && (
             <p className="text-red-400 text-sm text-center">{error}</p>
           )}

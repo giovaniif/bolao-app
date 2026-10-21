@@ -10,6 +10,7 @@ export interface Profile {
   display_name: string;
   favorite_team: string | null;
   is_admin: boolean;
+  email?: string;
 }
 
 export async function getProfile(): Promise<Profile> {
@@ -20,6 +21,7 @@ export async function updateProfile(data: {
   username: string;
   display_name: string;
   favorite_team?: string | null;
+  email?: string;
 }): Promise<Profile> {
   return api<Profile>('/me', {
     method: 'PUT',
@@ -27,6 +29,7 @@ export async function updateProfile(data: {
       username: data.username,
       display_name: data.display_name,
       favorite_team: data.favorite_team ?? null,
+      ...(data.email ? { email: data.email } : {}),
     }),
   });
 }
