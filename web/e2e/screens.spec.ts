@@ -10,10 +10,10 @@ interface Screen {
 }
 
 const screens: Screen[] = [
-  { name: 'login', path: '/login', shows: 'Entrar', signedIn: false },
+  { name: 'login', path: '/login', shows: 'Continuar com o Google', signedIn: false },
   { name: 'esqueci-senha', path: '/esqueci-senha', shows: 'Esqueci minha senha', signedIn: false },
   { name: 'redefinir-senha', path: '/redefinir-senha?token=abc', shows: 'Nova senha', signedIn: false },
-  { name: 'cadastro', path: '/cadastro?voltar=%2Fconvite%2FFIRMA234', shows: 'Criar conta', signedIn: false },
+  { name: 'cadastro', path: '/cadastro?voltar=%2Fconvite%2FFIRMA234', shows: 'Continuar com a Apple', signedIn: false },
   { name: 'classificacao', path: '/', shows: 'Bruno Lima' },
   { name: 'palpites', path: '/palpites', shows: 'Salvar palpites' },
   { name: 'rodada-parciais', path: '/rodada?aba=parciais', shows: 'Flamengo' },

@@ -25,6 +25,10 @@ export default defineConfig({
     url: `http://127.0.0.1:${port}`,
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
-    env: { VITE_API_URL: `http://127.0.0.1:${port}/api` },
+    env: {
+      VITE_API_URL: `http://127.0.0.1:${port}/api`,
+      VITE_APPLE_SERVICE_ID: 'web.e2e',
+      VITE_GOOGLE_CLIENT_ID: 'google-e2e',
+    },
   },
 });
