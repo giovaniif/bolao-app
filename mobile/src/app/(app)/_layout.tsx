@@ -2,6 +2,10 @@ import { Redirect, Tabs } from 'expo-router';
 import { useAuth } from '../../auth/AuthProvider';
 import { colors } from '../../theme';
 import { AnalyticsGate } from '../../analytics/AnalyticsGate';
+import { AppHeader } from '../../shell/AppHeader';
+import { BottomBar, type TabName } from '../../shell/BottomBar';
+
+const TITLES: Record<TabName, string> = { index: 'Classificação', palpitar: 'Palpites', rodada: '' };
 
 export default function AppLayout() {
   const { ready, token } = useAuth();
@@ -13,21 +17,28 @@ export default function AppLayout() {
   }
   return (
     <>
-    <Tabs
-      screenOptions={{
-        headerStyle: { backgroundColor: colors.bg },
-        headerTintColor: colors.text,
-        tabBarStyle: { backgroundColor: '#131f35', borderTopColor: colors.card },
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.muted,
-        sceneStyle: { backgroundColor: colors.bg },
-      }}
-    >
-      <Tabs.Screen name="index" options={{ title: 'Palpitar' }} />
-      <Tabs.Screen name="classificacao" options={{ title: 'Classificação' }} />
-      <Tabs.Screen name="boloes" options={{ title: 'Meus bolões' }} />
-    </Tabs>
-    <AnalyticsGate />
+      <Tabs
+        tabBar={({ state, navigateToTab }) => (
+          <BottomBar
+            active={state.routes[state.index].name}
+            onNavigate={(tab) => {
+              const route = state.routes.find((r) => r.name === tab);
+              if (route) {
+                navigateToTab(route.key);
+              }
+            }}
+          />
+        )}
+        screenOptions={({ route }) => ({
+          header: () => <AppHeader title={TITLES[route.name as TabName] || undefined} />,
+          sceneStyle: { backgroundColor: colors.bg },
+        })}
+      >
+        <Tabs.Screen name="index" />
+        <Tabs.Screen name="palpitar" />
+        <Tabs.Screen name="rodada" />
+      </Tabs>
+      <AnalyticsGate />
     </>
   );
 }

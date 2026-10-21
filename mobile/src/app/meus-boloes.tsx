@@ -1,3 +1,3 @@
-import { MyBoloesScreen } from '../../boloes/MyBoloesScreen';
+import { MyBoloesScreen } from '../boloes/MyBoloesScreen';
 
 export default MyBoloesScreen;
