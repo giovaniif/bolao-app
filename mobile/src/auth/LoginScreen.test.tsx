@@ -82,7 +82,7 @@ describe('SignupScreen', () => {
     await fireEvent.changeText(screen.getByLabelText('Senha'), 'segredo123')
     await fireEvent.press(screen.getByRole('button', { name: 'Criar conta' }))
 
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/boloes'))
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/meus-boloes'))
     expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual({ username: 'ana', display_name: 'Ana Souza', email: 'ana@example.com', password: 'segredo123' })
   })
 })
