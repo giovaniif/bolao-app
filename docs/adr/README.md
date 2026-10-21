@@ -19,3 +19,4 @@ One file per decision, numbered in order. A record does not change after it is a
 | [0013](0013-ui-screenshots-on-prs.md) | Playwright screenshots on every UI PR |
 | [0014](0014-bolao-as-a-group.md) | A bolão is a group with roles per bolão (supersedes 0003) |
 | [0015](0015-matches-from-football-data.md) | Matches come from football-data.org |
+| [0016](0016-thesportsdb-as-backup-feed.md) | TheSportsDB is the backup feed for results |
