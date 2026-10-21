@@ -22,6 +22,12 @@
       "env": {
         "EXPO_PUBLIC_API_URL": "https://bolao-app-mcc8.onrender.com/api"
       }
+    },
+    "testflight-dev": {
+      "extends": "production",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://bolao-app-dev.onrender.com/api"
+      }
     }
   },
   "submit": {
@@ -30,6 +36,9 @@
         "ascAppId": "6825092951",
         "appleTeamId": "827UMZ89C2"
       }
+    },
+    "testflight-dev": {
+      "extends": "production"
     }
   }
 }
