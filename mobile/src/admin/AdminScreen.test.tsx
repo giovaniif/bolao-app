@@ -9,9 +9,8 @@ const MATCHES = [
   { id: 'm-2', round: 7, home_team: 'Bahia', away_team: 'Santos', home_goals: 0, away_goals: 0, provider_match_id: 12, locked: true },
   { id: 'm-3', round: 7, home_team: 'Ceará', away_team: 'Vitória', locked: false },
 ]
-const ACTIVE = { id: 'b-1', name: 'Bolão 2026', status: 'active', started_at: '2026-04-01T00:00:00Z' }
 const MINE = [
-  { id: 'b-1', name: 'Bolão 2026', status: 'active', role: 'participant', member_status: 'active', member_count: 9 },
+  { id: 'b-1', name: 'Bolão 2026', status: 'active', role: 'participant', member_status: 'active', member_count: 9, started_at: '2026-04-01T00:00:00Z' },
   { id: 'b-2', name: 'Liga do Trabalho', status: 'active', role: 'owner', member_status: 'active', member_count: 4 },
   { id: 'b-3', name: 'Bolão 2025', status: 'finished', role: 'participant', member_status: 'active', member_count: 9 },
 ]
@@ -24,8 +23,8 @@ function routes(extra: Route[] = []): Route[] {
     { path: /^\/boloes\/b-[12]\/matches\/rounds\/summary$/, body: { rounds: [6, 7], active: 7, pending_results: 1 } },
     { path: /^\/boloes\/b-1\/matches\/round\/7$/, body: MATCHES },
     { path: /^\/boloes\/b-2\/matches\/round\/7$/, body: [{ id: 'm-9', round: 7, home_team: 'Grêmio', away_team: 'Inter', locked: false }] },
-    { path: /^\/boloes\/active$/, body: ACTIVE },
     { path: /^\/boloes\/b-1\/participants$/, body: PARTICIPANTS },
+    { path: /^\/boloes\/b-2\/participants$/, body: [{ ...PARTICIPANTS[0], id: 'u-3', display_name: 'Carla Dias' }] },
     { method: 'PUT', path: /^\/boloes\/b-1\/matches\/m-3\/results$/, body: { ...MATCHES[2], home_goals: 1, away_goals: 0, locked: true } },
     { method: 'DELETE', path: /^\/boloes\/b-1\/matches\/m-2\/lock$/, body: { ...MATCHES[1], locked: false } },
     { method: 'PUT', path: /^\/boloes\/b-2\/matches\/m-9\/results$/, body: { id: 'm-9', round: 7, home_team: 'Grêmio', away_team: 'Inter', home_goals: 1, away_goals: 0, locked: true } },
@@ -109,16 +108,38 @@ describe('AdminScreen', () => {
 
   it('finishes the bolão after a confirmation, forcing when matches lack results', async () => {
     const calls = fakeApi(routes([
-      { method: 'POST', path: /^\/boloes\/active\/finish$/, status: 409, body: { error: 'jogos sem resultado', rounds: [7], count: 1 } },
+      { method: 'POST', path: /^\/boloes\/b-1\/finish$/, status: 409, body: { error: 'jogos sem resultado', rounds: [7], count: 1 } },
     ]))
     await renderWithProviders(<AdminScreen />)
     await fireEvent.press(await screen.findByRole('tab', { name: 'Bolão' }))
-    expect(await screen.findByText('Bolão 2026')).toBeTruthy()
+    expect(await screen.findByText(/^Iniciado em /)).toBeTruthy()
     await fireEvent.press(screen.getByRole('button', { name: 'Finalizar bolão' }))
     await fireEvent.press(screen.getByRole('button', { name: 'Confirmar finalização' }))
     expect(await screen.findByText('Há jogos sem resultado definido.')).toBeTruthy()
     await fireEvent.press(screen.getByRole('button', { name: 'Finalizar mesmo assim' }))
     await waitFor(() => expect(calls.filter((c) => c.method === 'POST')).toHaveLength(2))
     expect(JSON.parse(calls.filter((c) => c.method === 'POST')[1].body!)).toEqual({ force: true })
+    expect(calls.filter((c) => c.method === 'POST').map((c) => c.path)).toEqual(['/boloes/b-1/finish', '/boloes/b-1/finish'])
+  })
+
+  it('finishes the picked bolão, not the default active one', async () => {
+    const calls = fakeApi(routes([
+      { method: 'POST', path: /^\/boloes\/b-2\/finish$/, body: { ...MINE[1], status: 'finished' } },
+    ]))
+    await renderWithProviders(<AdminScreen />)
+    await fireEvent.press(await screen.findByRole('button', { name: 'Bolão Liga do Trabalho' }))
+    await fireEvent.press(screen.getByRole('tab', { name: 'Bolão' }))
+    await fireEvent.press(await screen.findByRole('button', { name: 'Finalizar bolão' }))
+    await fireEvent.press(screen.getByRole('button', { name: 'Confirmar finalização' }))
+    await waitFor(() => expect(calls.some((c) => c.method === 'POST')).toBe(true))
+    expect(calls.filter((c) => c.method === 'POST').map((c) => c.path)).toEqual(['/boloes/b-2/finish'])
+  })
+
+  it('lists the participants of the picked bolão', async () => {
+    fakeApi(routes())
+    await renderWithProviders(<AdminScreen />)
+    await fireEvent.press(await screen.findByRole('button', { name: 'Bolão Liga do Trabalho' }))
+    await fireEvent.press(screen.getByRole('tab', { name: 'Participantes' }))
+    expect(await screen.findByText('Carla Dias')).toBeTruthy()
   })
 })
