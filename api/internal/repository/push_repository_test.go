@@ -223,3 +223,39 @@ func TestPushRepository_ClaimUserNotificationOnce(t *testing.T) {
 		}
 	}
 }
+
+func TestBolaoRepository_ListActiveSkipsFinishedBoloes(t *testing.T) {
+	pool := pushTestPool(t)
+	ctx := context.Background()
+	repo := NewBolaoRepository(pool)
+	owner := &models.User{ID: uuid.New(), Username: "push_" + uuid.NewString()[:8], DisplayName: "Push"}
+	if err := NewUserRepository(pool).Create(ctx, owner); err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+	open, err := repo.CreateOwned(ctx, "push open "+uuid.NewString()[:8], owner.ID)
+	if err != nil {
+		t.Fatalf("CreateOwned: %v", err)
+	}
+	done, err := repo.CreateOwned(ctx, "push done "+uuid.NewString()[:8], owner.ID)
+	if err != nil {
+		t.Fatalf("CreateOwned: %v", err)
+	}
+	if err := repo.Finish(ctx, done.ID); err != nil {
+		t.Fatalf("Finish: %v", err)
+	}
+
+	active, err := repo.ListActive(ctx)
+	if err != nil {
+		t.Fatalf("ListActive: %v", err)
+	}
+	listed := map[uuid.UUID]bool{}
+	for _, b := range active {
+		listed[b.ID] = true
+		if b.Status != "active" {
+			t.Errorf("listed bolão %s with status %s", b.ID, b.Status)
+		}
+	}
+	if !listed[open.ID] || listed[done.ID] {
+		t.Errorf("open listed = %v, finished listed = %v; want only the open bolão", listed[open.ID], listed[done.ID])
+	}
+}
