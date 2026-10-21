@@ -4,6 +4,7 @@ export interface MatchWithPartial {
   id: string;
   home_team: string;
   away_team: string;
+  status?: string;
   partial_home?: number;
   partial_away?: number;
   real_home_goals?: number;

@@ -5,6 +5,7 @@ import { clearPartial, getPartials, getPartialStandings, setPartial, type MatchW
 import { PrimaryButton } from '../components/PrimaryButton';
 import { PredictCard } from '../play/PredictCard';
 import { colors } from '../theme';
+import { liveRefetchInterval } from './liveRefetch';
 
 type Partial = { h: number | null; a: number | null };
 
@@ -27,8 +28,18 @@ export function PartialsPanel({ bolaoId, round }: { bolaoId: string; round: numb
 
   const matchesKey = ['partials', bolaoId, round];
   const standingsKey = ['partials', bolaoId, round, 'classification'];
-  const matches = useQuery({ queryKey: matchesKey, queryFn: () => getPartials(bolaoId, round), enabled: round > 0 });
-  const standings = useQuery({ queryKey: standingsKey, queryFn: () => getPartialStandings(bolaoId, round), enabled: round > 0 });
+  const matches = useQuery({
+    queryKey: matchesKey,
+    queryFn: () => getPartials(bolaoId, round),
+    enabled: round > 0,
+    refetchInterval: (query) => liveRefetchInterval(query.state.data),
+  });
+  const standings = useQuery({
+    queryKey: standingsKey,
+    queryFn: () => getPartialStandings(bolaoId, round),
+    enabled: round > 0,
+    refetchInterval: liveRefetchInterval(matches.data),
+  });
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ['partials', bolaoId, round] });
   };
