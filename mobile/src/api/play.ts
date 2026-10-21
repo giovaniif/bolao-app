@@ -35,6 +35,7 @@ export interface Standing {
   id: string;
   username: string;
   display_name: string;
+  favorite_team?: string;
   total_points: number;
   exact_scores: number;
   correct_results: number;
@@ -60,6 +61,6 @@ export async function savePredictions(bolaoId: string, predictions: Prediction[]
   await api(`/boloes/${bolaoId}/predictions`, { method: 'POST', body: JSON.stringify({ predictions }) });
 }
 
-export function getStandings(bolaoId: string): Promise<Standing[]> {
-  return api<Standing[]>(`/boloes/${bolaoId}/classification`);
+export function getStandings(bolaoId: string, round?: number): Promise<Standing[]> {
+  return api<Standing[]>(`/boloes/${bolaoId}/classification${round ? `?round=${round}` : ''}`);
 }
