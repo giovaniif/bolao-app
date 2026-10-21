@@ -2,7 +2,10 @@ import { fireEvent, screen } from '@testing-library/react-native'
 import * as SecureStore from 'expo-secure-store'
 import { renderWithProviders } from '../test/render'
 import { fakeApi } from '../test/fakeApi'
+import { router } from '../test/routerMock'
 import { StandingsScreen } from './StandingsScreen'
+
+jest.mock('expo-router', () => jest.requireActual('../test/routerMock').routerModule())
 
 const MINE = [{ id: 'b-1', name: 'Firma', status: 'active', role: 'owner', member_status: 'active', member_count: 3 }]
 const OVERALL = [
@@ -48,5 +51,25 @@ describe('StandingsScreen', () => {
     expect(await screen.findByText('21')).toBeTruthy()
     expect(screen.queryByText('Ana')).toBeNull()
     expect(calls.some((c) => c.path === '/boloes/b-1/classification?round=3')).toBe(true)
+  })
+
+  it('links to the Hall dos Campeões with the latest champion when a bolão has finished', async () => {
+    const finished = { id: 'b-0', name: 'Brasileirão 2025', status: 'finished', role: 'participant', member_status: 'active', member_count: 3, started_at: '2025-03-01T00:00:00Z', finished_at: '2025-12-01T00:00:00Z' }
+    fakeApi([
+      { path: /^\/me\/boloes$/, body: [...MINE, finished] },
+      { path: /^\/boloes\/b-0\/classification$/, body: [{ id: 'u-9', username: 'maria', display_name: 'Maria Silva', total_points: 1240, exact_scores: 21, correct_results: 40, rounds_won: 7 }] },
+      ...routes().slice(1),
+    ])
+    await renderWithProviders(<StandingsScreen />)
+    expect(await screen.findByText('Último: Maria Silva · 2025')).toBeTruthy()
+    await fireEvent.press(screen.getByRole('link', { name: /Hall dos Campeões/ }))
+    expect(router.push).toHaveBeenCalledWith('/campeoes')
+  })
+
+  it('hides the Hall dos Campeões card when no bolão has finished', async () => {
+    fakeApi(routes())
+    await renderWithProviders(<StandingsScreen />)
+    await screen.findByText('Ana')
+    expect(screen.queryByRole('link', { name: /Hall dos Campeões/ })).toBeNull()
   })
 })
