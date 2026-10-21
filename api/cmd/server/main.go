@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/bolao-app/api/internal/auth"
 	"github.com/bolao-app/api/internal/config"
 	"github.com/bolao-app/api/internal/database"
 	"github.com/bolao-app/api/internal/footballdata"
@@ -75,6 +76,7 @@ func main() {
 	passwordResetSvc := service.NewPasswordResetService(repository.NewPasswordResetRepository(pool), mailer, cfg.AppURL, time.Now, service.RandomResetToken)
 
 	authHandler := handler.NewAuthHandler(userRepo, cfg.JWTSecret)
+	socialAuthHandler := handler.NewSocialAuthHandler(repository.NewIdentityRepository(pool), socialVerifiers(cfg), cfg.JWTSecret)
 	passwordResetHandler := handler.NewPasswordResetHandler(passwordResetSvc)
 	userHandler := handler.NewUserHandler(userRepo, bolaoRepo)
 	pushHandler := handler.NewPushHandler(pushRepo, bolaoRepo, matchRepo, notificationSvc, matchSyncer, cfg.VAPIDPublicKey, cfg.CronSecret)
@@ -99,6 +101,7 @@ func main() {
 	r.POST("/api/auth/signup", authHandler.Signup)
 	r.POST("/api/auth/forgot-password", passwordResetHandler.Forgot)
 	r.POST("/api/auth/reset-password", passwordResetHandler.Reset)
+	r.POST("/api/auth/social", socialAuthHandler.Login)
 	r.GET("/api/teams", userHandler.GetTeams)
 	r.GET("/api/rules", handler.GetRules)
 	r.GET("/api/competitions", handler.NewCompetitionHandler(repository.NewCompetitionRepository(pool)).List)
@@ -190,7 +193,7 @@ func corsMiddleware() gin.HandlerFunc {
 }
 
 func runMigrations(ctx context.Context, pool *pgxpool.Pool) error {
-	for _, name := range []string{"001_init.sql", "002_timestamptz.sql", "003_match_partials.sql", "004_passwords.sql", "005_partials_nullable.sql", "006_boloes.sql", "007_push_notifications.sql", "008_competitions.sql", "009_match_sync.sql", "010_bolao_members.sql", "011_many_active_boloes.sql", "012_hidden_boloes.sql", "013_bolao_first_round.sql", "014_password_reset.sql", "015_expo_push_tokens.sql"} {
+	for _, name := range []string{"001_init.sql", "002_timestamptz.sql", "003_match_partials.sql", "004_passwords.sql", "005_partials_nullable.sql", "006_boloes.sql", "007_push_notifications.sql", "008_competitions.sql", "009_match_sync.sql", "010_bolao_members.sql", "011_many_active_boloes.sql", "012_hidden_boloes.sql", "013_bolao_first_round.sql", "014_password_reset.sql", "015_expo_push_tokens.sql", "016_user_identities.sql"} {
 		path := filepath.Join("migrations", name)
 		content, err := os.ReadFile(path)
 		if err != nil {
@@ -213,4 +216,15 @@ func runMigrations(ctx context.Context, pool *pgxpool.Pool) error {
 		}
 	}
 	return nil
+}
+
+func socialVerifiers(cfg *config.Config) map[string]handler.IDTokenVerifier {
+	verifiers := map[string]handler.IDTokenVerifier{}
+	if len(cfg.AppleClientIDs) > 0 {
+		verifiers["apple"] = auth.NewIDTokenVerifier(auth.AppleJWKSURL, auth.AppleIssuers, cfg.AppleClientIDs, nil)
+	}
+	if len(cfg.GoogleClientIDs) > 0 {
+		verifiers["google"] = auth.NewIDTokenVerifier(auth.GoogleJWKSURL, auth.GoogleIssuers, cfg.GoogleClientIDs, nil)
+	}
+	return verifiers
 }

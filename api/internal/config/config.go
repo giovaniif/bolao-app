@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"strings"
 )
 
 type Config struct {
@@ -18,9 +19,11 @@ type Config struct {
 
 	FootballDataAPIKey string
 
-	AppURL       string
-	ResendAPIKey string
-	ResendFrom   string
+	AppURL          string
+	ResendAPIKey    string
+	ResendFrom      string
+	AppleClientIDs  []string
+	GoogleClientIDs []string
 
 	SentryDSN         string
 	SentryEnvironment string
@@ -42,9 +45,11 @@ func Load() *Config {
 
 		FootballDataAPIKey: os.Getenv("FOOTBALL_DATA_API_KEY"),
 
-		AppURL:       getEnv("APP_URL", "https://bolao.giovani.app"),
-		ResendAPIKey: os.Getenv("RESEND_API_KEY"),
-		ResendFrom:   getEnv("RESEND_FROM", "Bolão <nao-responda@bolao.giovani.app>"),
+		AppURL:          getEnv("APP_URL", "https://bolao.giovani.app"),
+		ResendAPIKey:    os.Getenv("RESEND_API_KEY"),
+		ResendFrom:      getEnv("RESEND_FROM", "Bolão <nao-responda@bolao.giovani.app>"),
+		AppleClientIDs:  getList("APPLE_CLIENT_IDS"),
+		GoogleClientIDs: getList("GOOGLE_CLIENT_IDS"),
 
 		SentryDSN:         os.Getenv("SENTRY_DSN"),
 		SentryEnvironment: getEnv("SENTRY_ENVIRONMENT", "dev"),
@@ -57,4 +62,14 @@ func getEnv(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+func getList(key string) []string {
+	var values []string
+	for _, v := range strings.Split(os.Getenv(key), ",") {
+		if v = strings.TrimSpace(v); v != "" {
+			values = append(values, v)
+		}
+	}
+	return values
 }
