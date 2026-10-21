@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { useCurrentBolao } from '../../../shared/hooks/useCurrentBolao';
 import { useTeams, useCreateUser } from '../hooks/useAdmin';
-import { useActiveBolao, useBolaoParticipants, useUpdateParticipantAmountPaid } from '../../boloes/hooks/useBoloes';
+import { useBolaoParticipants, useUpdateParticipantAmountPaid } from '../../boloes/hooks/useBoloes';
 import type { Participant } from '../../boloes/api/boloesApi';
 import { Button } from '../../../shared/components/Button';
 import { Input } from '../../../shared/components/Input';
@@ -18,8 +19,8 @@ export function AdminUsers() {
   const [editingPayment, setEditingPayment] = useState<string | null>(null);
   const [paymentAmount, setPaymentAmount] = useState('');
 
-  const { data: activeBolao } = useActiveBolao();
-  const { data: users = [], isLoading } = useBolaoParticipants(activeBolao?.id);
+  const { bolao: currentBolao } = useCurrentBolao();
+  const { data: users = [], isLoading } = useBolaoParticipants(currentBolao?.id);
   const { data: teams = [] } = useTeams();
   const createUserMutation = useCreateUser();
   const updatePaymentMutation = useUpdateParticipantAmountPaid();
@@ -40,9 +41,9 @@ export function AdminUsers() {
 
   async function handleUpdatePayment(userId: string) {
     const amount = parseFloat(paymentAmount);
-    if (isNaN(amount) || amount < 0 || !activeBolao) return;
+    if (isNaN(amount) || amount < 0 || !currentBolao) return;
     try {
-      await updatePaymentMutation.mutateAsync({ bolaoId: activeBolao.id, userId, amountPaid: amount });
+      await updatePaymentMutation.mutateAsync({ bolaoId: currentBolao.id, userId, amountPaid: amount });
       setEditingPayment(null);
       setPaymentAmount('');
     } catch (err) {

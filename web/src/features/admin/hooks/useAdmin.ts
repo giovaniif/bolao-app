@@ -52,8 +52,9 @@ export function useMatchesByRound(round: number) {
 
 export function useCreateMatches() {
   const queryClient = useQueryClient();
+  const { bolaoId } = useCurrentBolao();
   return useMutation({
-    mutationFn: createMatches,
+    mutationFn: (data: Parameters<typeof createMatches>[1]) => createMatches(requireBolao(bolaoId), data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.rounds() });
       queryClient.invalidateQueries({ queryKey: queryKeys.matches(variables.round) });
@@ -106,6 +107,7 @@ export function useUpdateRoundCloses(round: number) {
 
 export function useUpdateMatch(round: number) {
   const queryClient = useQueryClient();
+  const { bolaoId } = useCurrentBolao();
   return useMutation({
     mutationFn: ({
       matchId,
@@ -115,7 +117,7 @@ export function useUpdateMatch(round: number) {
       matchId: string;
       home_team: string;
       away_team: string;
-    }) => updateMatch(matchId, { home_team, away_team }),
+    }) => updateMatch(requireBolao(bolaoId), matchId, { home_team, away_team }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.matches(round) });
     },
@@ -124,8 +126,9 @@ export function useUpdateMatch(round: number) {
 
 export function useDeleteMatch(round: number) {
   const queryClient = useQueryClient();
+  const { bolaoId } = useCurrentBolao();
   return useMutation({
-    mutationFn: deleteMatch,
+    mutationFn: (matchId: string) => deleteMatch(requireBolao(bolaoId), matchId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.rounds() });
       queryClient.invalidateQueries({ queryKey: queryKeys.matches(round) });
@@ -135,8 +138,9 @@ export function useDeleteMatch(round: number) {
 
 export function useDeleteRound() {
   const queryClient = useQueryClient();
+  const { bolaoId } = useCurrentBolao();
   return useMutation({
-    mutationFn: deleteRound,
+    mutationFn: (round: number) => deleteRound(requireBolao(bolaoId), round),
     onSuccess: (_, roundNum) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.rounds() });
       queryClient.invalidateQueries({ queryKey: queryKeys.matches(roundNum) });

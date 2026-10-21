@@ -102,7 +102,6 @@ const routes: [string, RegExp, Handler][] = [
   ]],
   ['GET', /^\/boloes\/[^/]+\/invite$/, () => ({ code: 'FIRMA234' })],
   ['GET', /^\/invites\/[^/]+$/, () => ({ name: 'Bolão da Firma', member_count: 7, max_members: 50, joins: 'request' })],
-  ['GET', /^\/boloes\/active$/, () => activeBolao],
   ['GET', /^\/boloes$/, () => [activeBolao, finishedBolao]],
   ['GET', /^\/boloes\/[^/]+\/participants$/, () => people.map((p) => ({ ...p, amount_paid: 50, joined_at: '2026-04-01T00:00:00Z' }))],
   ['GET', /^\/matches\/rounds\/summary$/, () => ({ rounds: [1, 2, 3, 4, 5], active: ACTIVE_ROUND, pending_results: 0 })],
