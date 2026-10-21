@@ -6,6 +6,7 @@ export interface Bolao {
   status: 'active' | 'finished';
   started_at: string;
   finished_at?: string;
+  owner_id?: string;
 }
 
 export interface Participant {
@@ -32,14 +33,6 @@ export async function getBoloes(): Promise<Bolao[]> {
   return api<Bolao[]>('/boloes');
 }
 
-export async function getActiveBolao(): Promise<Bolao | null> {
-  try {
-    return await api<Bolao>('/boloes/active');
-  } catch {
-    return null;
-  }
-}
-
 export async function getBolaoParticipants(bolaoId: string): Promise<Participant[]> {
   return api<Participant[]>(`/boloes/${bolaoId}/participants`);
 }
@@ -51,9 +44,9 @@ export async function createBolao(name: string): Promise<Bolao> {
   });
 }
 
-export async function finishActiveBolao(force = false): Promise<Bolao> {
+export async function finishBolao(bolaoId: string, force = false): Promise<Bolao> {
   try {
-    return await api<Bolao>('/boloes/active/finish', {
+    return await api<Bolao>(`/boloes/${bolaoId}/finish`, {
       method: 'POST',
       body: JSON.stringify({ force }),
     });

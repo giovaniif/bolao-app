@@ -21,7 +21,6 @@ export const queryKeys = {
   members: (bolaoId: string) => ['boloes', bolaoId, 'members'] as const,
   inviteCode: (bolaoId: string) => ['boloes', bolaoId, 'invite'] as const,
   boloes: ['boloes'] as const,
-  activeBolao: ['boloes', 'active'] as const,
   bolaoParticipants: (bolaoId: string) => ['boloes', bolaoId, 'participants'] as const,
   pushStatus: ['push', 'status'] as const,
 };

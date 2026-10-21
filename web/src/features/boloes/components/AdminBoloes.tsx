@@ -1,20 +1,18 @@
 import { useState } from 'react';
-import {
-  useBoloes,
-  useActiveBolao,
-  useCreateBolao,
-  useFinishActiveBolao,
-} from '../hooks/useBoloes';
+import { useBoloes, useCreateBolao, useFinishBolao } from '../hooks/useBoloes';
 import { UnresolvedMatchesError } from '../api/boloesApi';
 import { Button } from '../../../shared/components/Button';
 import { Input } from '../../../shared/components/Input';
 import { formatDateTime } from '../../../shared/utils/date';
+import { useCurrentBolao } from '../../../shared/hooks/useCurrentBolao';
 
 export function AdminBoloes() {
   const { data: boloes = [], isLoading } = useBoloes();
-  const { data: active } = useActiveBolao();
+  const { bolaoId } = useCurrentBolao();
+  const active = boloes.find((b) => b.id === bolaoId && b.status === 'active');
+  const platformActive = boloes.some((b) => b.status === 'active' && !b.owner_id);
   const createMutation = useCreateBolao();
-  const finishMutation = useFinishActiveBolao();
+  const finishMutation = useFinishBolao();
 
   const [confirmFinish, setConfirmFinish] = useState(false);
   const [unresolved, setUnresolved] = useState<UnresolvedMatchesError | null>(null);
@@ -27,7 +25,8 @@ export function AdminBoloes() {
   async function handleFinish(force: boolean) {
     setError(null);
     try {
-      await finishMutation.mutateAsync(force);
+      if (!active) return;
+      await finishMutation.mutateAsync({ bolaoId: active.id, force });
       setConfirmFinish(false);
       setUnresolved(null);
     } catch (err) {
@@ -116,7 +115,7 @@ export function AdminBoloes() {
         </div>
       )}
 
-      {!active && (
+      {!platformActive && (
         <>
           <Button onClick={() => setShowCreate(!showCreate)}>
             {showCreate ? 'Cancelar' : '+ Criar novo bolão'}

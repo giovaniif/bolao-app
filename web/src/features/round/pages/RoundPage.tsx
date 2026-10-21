@@ -1,11 +1,12 @@
 import { useState } from 'react';
+import { useCurrentBolao } from '../../../shared/hooks/useCurrentBolao';
 import { Layout } from '../../../shared/components/Layout';
 import { ChipRow } from '../../../shared/components/ChipRow';
 import { SegmentedControl } from '../../../shared/components/SegmentedControl';
 import { useRoundInUrl } from '../../../shared/hooks/useRoundInUrl';
 import { useTabInUrl } from '../../../shared/hooks/useTabInUrl';
 import { useRounds, useActiveRound } from '../../matches/hooks/useMatches';
-import { useActiveBolao, useBolaoParticipants } from '../../boloes/hooks/useBoloes';
+import { useBolaoParticipants } from '../../boloes/hooks/useBoloes';
 import { PartialsPanel } from '../../parciais/components/PartialsPanel';
 import { PlayerPredictionsPanel } from '../../viewPredictions/components/PlayerPredictionsPanel';
 
@@ -23,8 +24,8 @@ export function RoundPage() {
   const [round, setRound] = useRoundInUrl(rounds, activeRound);
   const [tab, setTab] = useTabInUrl<RoundTab>('aba', TABS, 'parciais');
 
-  const { data: activeBolao } = useActiveBolao();
-  const { data: participants } = useBolaoParticipants(activeBolao?.id);
+  const { bolao: currentBolao } = useCurrentBolao();
+  const { data: participants } = useBolaoParticipants(currentBolao?.id);
 
   const [visited, setVisited] = useState<ReadonlySet<RoundTab>>(() => new Set([tab]));
   if (!visited.has(tab)) {

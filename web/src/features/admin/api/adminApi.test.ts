@@ -1,5 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { getMatchesByRound, unlockMatch, updateMatchResults, updateRoundCloses } from './adminApi'
+import {
+  createMatches,
+  deleteMatch,
+  deleteRound,
+  getMatchesByRound,
+  unlockMatch,
+  updateMatch,
+  updateMatchResults,
+  updateRoundCloses,
+} from './adminApi'
 import { API_BASE } from '../../../shared/api/client'
 
 const mockFetch = vi.fn()
@@ -44,6 +53,39 @@ describe('adminApi', () => {
     expect(mockFetch).toHaveBeenCalledWith(
       `${API_BASE}/boloes/b-1/matches/round/7/closes`,
       expect.objectContaining({ method: 'PUT' })
+    )
+  })
+
+  it('creates the matches of a round in the current bolão', async () => {
+    const data = { round: 7, matches: [{ home_team: 'Flamengo', away_team: 'Palmeiras' }] }
+    await createMatches('b-1', data)
+    expect(mockFetch).toHaveBeenCalledWith(
+      `${API_BASE}/boloes/b-1/matches`,
+      expect.objectContaining({ method: 'POST', body: JSON.stringify(data) })
+    )
+  })
+
+  it('edits the teams of a match in the current bolão', async () => {
+    await updateMatch('b-1', 'm1', { home_team: 'Flamengo', away_team: 'Palmeiras' })
+    expect(mockFetch).toHaveBeenCalledWith(
+      `${API_BASE}/boloes/b-1/matches/m1`,
+      expect.objectContaining({ method: 'PUT' })
+    )
+  })
+
+  it('deletes a match of the current bolão', async () => {
+    await deleteMatch('b-1', 'm1')
+    expect(mockFetch).toHaveBeenCalledWith(
+      `${API_BASE}/boloes/b-1/matches/m1`,
+      expect.objectContaining({ method: 'DELETE' })
+    )
+  })
+
+  it('deletes a round of the current bolão', async () => {
+    await deleteRound('b-1', 7)
+    expect(mockFetch).toHaveBeenCalledWith(
+      `${API_BASE}/boloes/b-1/matches/round/7`,
+      expect.objectContaining({ method: 'DELETE' })
     )
   })
 })

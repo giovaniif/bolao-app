@@ -54,12 +54,12 @@ export async function getMatchesByRound(bolaoId: string, round: number): Promise
   return api<Match[]>(`/boloes/${bolaoId}/matches/round/${round}`);
 }
 
-export async function createMatches(data: {
+export async function createMatches(bolaoId: string, data: {
   round: number;
   market_closes_at?: string;
   matches: { home_team: string; away_team: string }[];
 }): Promise<Match[]> {
-  return api<Match[]>('/matches', {
+  return api<Match[]>(`/boloes/${bolaoId}/matches`, {
     method: 'POST',
     body: JSON.stringify(data),
   });
@@ -89,21 +89,22 @@ export async function updateRoundCloses(
 }
 
 export async function updateMatch(
+  bolaoId: string,
   matchId: string,
   data: { home_team: string; away_team: string }
 ): Promise<Match> {
-  return api<Match>(`/matches/${matchId}`, {
+  return api<Match>(`/boloes/${bolaoId}/matches/${matchId}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   });
 }
 
-export async function deleteMatch(matchId: string): Promise<void> {
-  await api(`/matches/${matchId}`, { method: 'DELETE' });
+export async function deleteMatch(bolaoId: string, matchId: string): Promise<void> {
+  await api(`/boloes/${bolaoId}/matches/${matchId}`, { method: 'DELETE' });
 }
 
-export async function deleteRound(round: number): Promise<void> {
-  await api(`/matches/round/${round}`, { method: 'DELETE' });
+export async function deleteRound(bolaoId: string, round: number): Promise<void> {
+  await api(`/boloes/${bolaoId}/matches/round/${round}`, { method: 'DELETE' });
 }
 
 export async function unlockMatch(bolaoId: string, matchId: string): Promise<Match> {
