@@ -10,13 +10,16 @@ import {
   getParticipants,
   setAmountPaid,
   setMatchResult,
+  setRoundCloses,
   unlockMatch,
   type AdminMatch,
   type Participant,
 } from '../api/admin';
+import { useCurrentBolao } from '../bolao/useCurrentBolao';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { TextField } from '../components/TextField';
 import { colors } from '../theme';
+import { formatCloseTime, parseCloseTime } from './closeTime';
 
 type Tab = 'jogos' | 'participantes' | 'bolao';
 
@@ -65,23 +68,24 @@ function FeedBadge({ match, onUnlock, unlocking }: { match: AdminMatch; onUnlock
   );
 }
 
-function MatchCard({ match, round }: { match: AdminMatch; round: number }) {
+function MatchCard({ bolaoId, match, round }: { bolaoId: string; match: AdminMatch; round: number }) {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [home, setHome] = useState(match.home_goals ?? 0);
   const [away, setAway] = useState(match.away_goals ?? 0);
   const refresh = () => {
-    queryClient.invalidateQueries({ queryKey: adminKeys.matches(round) });
-    queryClient.invalidateQueries({ queryKey: adminKeys.summary });
+    queryClient.invalidateQueries({ queryKey: adminKeys.matches(bolaoId, round) });
+    queryClient.invalidateQueries({ queryKey: adminKeys.summary(bolaoId) });
+    queryClient.invalidateQueries({ queryKey: adminKeys.pending });
   };
   const save = useMutation({
-    mutationFn: () => setMatchResult(match.id, home, away),
+    mutationFn: () => setMatchResult(bolaoId, match.id, home, away),
     onSuccess: () => {
       setEditing(false);
       refresh();
     },
   });
-  const unlock = useMutation({ mutationFn: () => unlockMatch(match.id), onSuccess: refresh });
+  const unlock = useMutation({ mutationFn: () => unlockMatch(bolaoId, match.id), onSuccess: refresh });
   const hasResult = match.home_goals != null && match.away_goals != null;
   const label = `${match.home_team} x ${match.away_team}`;
 
@@ -116,14 +120,80 @@ function MatchCard({ match, round }: { match: AdminMatch; round: number }) {
   );
 }
 
+function RoundCloses({ bolaoId, round, matches }: { bolaoId: string; round: number; matches: AdminMatch[] }) {
+  const queryClient = useQueryClient();
+  const current = matches.find((m) => m.market_closes_at)?.market_closes_at;
+  const currentDate = current ? new Date(current) : null;
+  const [text, setText] = useState(currentDate ? formatCloseTime(currentDate) : '');
+  const closesAt = parseCloseTime(text, (currentDate ?? new Date()).getFullYear());
+  const save = useMutation({
+    mutationFn: (date: Date) => setRoundCloses(bolaoId, round, date),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.matches(bolaoId, round) });
+      queryClient.invalidateQueries({ queryKey: adminKeys.summary(bolaoId) });
+    },
+  });
+
+  return (
+    <View style={{ backgroundColor: colors.card, borderRadius: 12, padding: 14, gap: 8, borderWidth: 1, borderColor: colors.border }}>
+      <TextField label="Fechamento da rodada (dd/mm hh:mm)" value={text} onChangeText={setText} keyboardType="numbers-and-punctuation" />
+      {save.error && <Text style={{ color: colors.danger }}>{save.error.message}</Text>}
+      {save.isSuccess && <Text style={{ color: colors.primary }}>Fechamento salvo.</Text>}
+      <PrimaryButton title="Salvar fechamento" loading={save.isPending} disabled={!closesAt} onPress={() => closesAt && save.mutate(closesAt)} />
+    </View>
+  );
+}
+
+function BolaoPicker({ selected, onSelect }: { selected: string; onSelect: (id: string) => void }) {
+  const { boloes } = useCurrentBolao();
+  const options = boloes.filter((b) => b.member_status === 'active' && b.status === 'active');
+  if (options.length < 2) {
+    return null;
+  }
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+      {options.map((b) => (
+        <Pressable
+          key={b.id}
+          accessibilityRole="button"
+          accessibilityLabel={`Bolão ${b.name}`}
+          accessibilityState={{ selected: b.id === selected }}
+          onPress={() => onSelect(b.id)}
+          style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: b.id === selected ? colors.primary : colors.border, backgroundColor: colors.card }}
+        >
+          <Text style={{ color: b.id === selected ? colors.primary : colors.text, fontWeight: '700' }}>{b.name}</Text>
+        </Pressable>
+      ))}
+    </ScrollView>
+  );
+}
+
 function MatchesPanel() {
+  const { bolao, boloes, isLoading } = useCurrentBolao();
+  const [pickedBolao, setPickedBolao] = useState<string | null>(null);
+  const fallback = bolao?.status === 'active' ? bolao.id : boloes.find((b) => b.member_status === 'active' && b.status === 'active')?.id;
+  const bolaoId = pickedBolao ?? fallback ?? '';
   const [chosen, setChosen] = useState<number | null>(null);
-  const summary = useQuery({ queryKey: adminKeys.summary, queryFn: getAdminRoundsSummary });
+  const summary = useQuery({ queryKey: adminKeys.summary(bolaoId), queryFn: () => getAdminRoundsSummary(bolaoId), enabled: !!bolaoId });
   const round = chosen ?? summary.data?.active ?? 0;
-  const matches = useQuery({ queryKey: adminKeys.matches(round), queryFn: () => getAdminMatches(round), enabled: round > 0 });
+  const matches = useQuery({ queryKey: adminKeys.matches(bolaoId, round), queryFn: () => getAdminMatches(bolaoId, round), enabled: !!bolaoId && round > 0 });
+
+  if (isLoading) {
+    return <ActivityIndicator color={colors.primary} />;
+  }
+  if (!bolaoId) {
+    return <Text style={{ color: colors.muted }}>Nenhum bolão ativo no momento.</Text>;
+  }
 
   return (
     <View style={{ gap: 12 }}>
+      <BolaoPicker
+        selected={bolaoId}
+        onSelect={(id) => {
+          setPickedBolao(id);
+          setChosen(null);
+        }}
+      />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
         {(summary.data?.rounds ?? []).map((r) => (
           <Pressable
@@ -139,8 +209,9 @@ function MatchesPanel() {
         ))}
       </ScrollView>
       {(summary.isLoading || matches.isLoading) && <ActivityIndicator color={colors.primary} />}
+      {matches.data && <RoundCloses key={`${bolaoId}-${round}`} bolaoId={bolaoId} round={round} matches={matches.data} />}
       {(matches.data ?? []).map((m) => (
-        <MatchCard key={m.id} match={m} round={round} />
+        <MatchCard key={m.id} bolaoId={bolaoId} match={m} round={round} />
       ))}
     </View>
   );
