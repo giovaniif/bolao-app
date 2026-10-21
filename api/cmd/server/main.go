@@ -18,6 +18,7 @@ import (
 	"github.com/bolao-app/api/internal/push"
 	"github.com/bolao-app/api/internal/repository"
 	"github.com/bolao-app/api/internal/service"
+	"github.com/bolao-app/api/internal/thesportsdb"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -61,7 +62,10 @@ func main() {
 
 	var matchSyncer handler.MatchSyncer
 	if cfg.FootballDataAPIKey != "" {
-		feed := footballdata.NewClient(footballdata.DefaultBaseURL, cfg.FootballDataAPIKey)
+		var feed service.MatchFeed = footballdata.NewClient(footballdata.DefaultBaseURL, cfg.FootballDataAPIKey)
+		if cfg.TheSportsDBAPIKey != "" {
+			feed = service.NewFallbackFeed(feed, thesportsdb.NewClient(thesportsdb.DefaultBaseURL, cfg.TheSportsDBAPIKey), time.Now)
+		}
 		matchSyncer = service.NewMatchSyncService(feed, repository.NewMatchSyncRepository(pool), time.Now)
 	} else {
 		log.Print("match sync disabled: FOOTBALL_DATA_API_KEY not set")
