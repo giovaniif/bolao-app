@@ -40,6 +40,7 @@ Data collection: **Yes**. Tracking (across apps of other companies): **No**. No 
 | Contact info: Email address | Yes, optional (password reset) | Yes | App functionality |
 | User content: Other user content | Yes (predictions, favorite team, bolões) | Yes | App functionality |
 | Identifiers: User ID | Yes (username, internal id) | Yes | App functionality, Analytics |
+| Identifiers: Device ID | Yes (Expo push token, only after the user allows notifications) | Yes | App functionality |
 | Usage data: Product interaction | Yes, only after consent (PostHog) | Yes (`identify` with the user id) | Analytics |
 | Diagnostics: Crash data | Yes (Sentry) | No | App functionality |
 | Diagnostics: Performance data | Yes (Sentry) | No | App functionality |
@@ -51,7 +52,8 @@ Notes:
 
 - Sentry runs with `sendDefaultPii: false`, and `scrubEvent` removes headers, cookies, request bodies and emails, and keeps only the user id. If Sentry gets the user id, change crash data to "Linked to the user".
 - PostHog starts opted out (`defaultOptIn: false`). It sends events only after the user accepts, and the profile has a switch to stop it.
-- The mobile app does not use push notifications yet (no `expo-notifications`). The web keeps push subscriptions. When the mobile app adds push, add "Identifiers: Device ID" (push token), linked, for app functionality.
+- The mobile app registers an Expo push token after the user allows notifications, and deletes it at sign out. The token is linked to the user and is used only for round reminders.
+- Sign in with Apple and Google sends an ID token to the API. The API keeps the provider, the subject id and the email of the token, linked to the user.
 
 ## Google Play data safety
 
@@ -67,6 +69,7 @@ Notes:
 | Personal info: Name | Yes | No | App functionality, Account management |
 | Personal info: Email address | Yes | Yes | Account management |
 | Personal info: User IDs | Yes | No | App functionality, Analytics, Account management |
+| Device or other IDs | Yes | Yes (notifications permission) | App functionality |
 | App activity: App interactions | Yes | Yes (consent) | Analytics |
 | App activity: Other user-generated content | Yes (predictions) | No | App functionality |
 | App info and performance: Crash logs | Yes | No | App functionality |
