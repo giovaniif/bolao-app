@@ -6,6 +6,7 @@ interface Screen {
   path: string;
   shows: string;
   signedIn?: boolean;
+  setup?: (page: Page) => Promise<void>;
   act?: (page: Page) => Promise<void>;
 }
 
@@ -44,6 +45,15 @@ const screens: Screen[] = [
     },
   },
   { name: 'meus-boloes', path: '/meus-boloes', shows: 'Bolão da Firma' },
+  { name: 'meus-boloes-explorar', path: '/meus-boloes?aba=explorar', shows: 'Pelada de Quinta' },
+  {
+    name: 'inicio-sem-bolao',
+    path: '/',
+    shows: 'Escolha um bolão para jogar',
+    setup: async (page) => {
+      await page.route('**/api/me/boloes', (route) => route.fulfill({ json: [] }));
+    },
+  },
   {
     name: 'criar-bolao-regras',
     path: '/criar-bolao',
@@ -83,6 +93,7 @@ for (const screen of screens) {
     await page.clock.setFixedTime(NOW);
     if (screen.signedIn !== false) await signIn(page);
 
+    if (screen.setup) await screen.setup(page);
     await page.goto(screen.path);
     await expect(page.getByText(screen.shows).first()).toBeVisible();
     if (screen.act) await screen.act(page);
