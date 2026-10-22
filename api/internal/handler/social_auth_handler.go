@@ -23,6 +23,7 @@ type socialAccountStore interface {
 	UserIDByEmail(ctx context.Context, email string) (uuid.UUID, error)
 	LinkIdentity(ctx context.Context, userID uuid.UUID, provider, subject, email string) error
 	CreateSocialAccount(ctx context.Context, username, email, provider, subject string) (*models.User, error)
+	UsernameExists(ctx context.Context, username string) (bool, error)
 }
 
 var socialProviders = map[string]bool{"apple": true, "google": true}
@@ -41,6 +42,7 @@ type SocialLoginRequest struct {
 	Provider string `json:"provider" binding:"required"`
 	IDToken  string `json:"id_token" binding:"required"`
 	Username string `json:"username"`
+	Name     string `json:"name"`
 }
 
 func (h *SocialAuthHandler) Login(c *gin.Context) {
@@ -93,7 +95,16 @@ func (h *SocialAuthHandler) Login(c *gin.Context) {
 
 	username := strings.ToLower(strings.TrimSpace(req.Username))
 	if username == "" {
-		c.JSON(http.StatusConflict, gin.H{"needs_username": true, "error": "escolha um nome de usuário"})
+		email := ""
+		if identity.EmailVerified {
+			email = identity.Email
+		}
+		suggested, err := suggestUsername(ctx, usernameBase(email, req.Name), h.store.UsernameExists)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusConflict, gin.H{"needs_username": true, "error": "escolha um nome de usuário", "suggested_username": suggested})
 		return
 	}
 	if !usernamePattern.MatchString(username) {
@@ -117,6 +128,21 @@ func (h *SocialAuthHandler) Login(c *gin.Context) {
 		return
 	}
 	h.respond(c, http.StatusCreated, user)
+}
+
+func (h *SocialAuthHandler) UsernameAvailable(c *gin.Context) {
+	username := strings.ToLower(strings.TrimSpace(c.Query("username")))
+	valid := usernamePattern.MatchString(username)
+	available := false
+	if valid {
+		exists, err := h.store.UsernameExists(c.Request.Context(), username)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		available = !exists
+	}
+	c.JSON(http.StatusOK, gin.H{"valid": valid, "available": available})
 }
 
 func (h *SocialAuthHandler) login(c *gin.Context, status int, userID uuid.UUID) {

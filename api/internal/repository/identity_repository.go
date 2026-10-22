@@ -41,6 +41,12 @@ func (r *IdentityRepository) UserIDByEmail(ctx context.Context, email string) (u
 	return id, err
 }
 
+func (r *IdentityRepository) UsernameExists(ctx context.Context, username string) (bool, error) {
+	var exists bool
+	err := r.pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM users WHERE username = $1)`, username).Scan(&exists)
+	return exists, err
+}
+
 func (r *IdentityRepository) LinkIdentity(ctx context.Context, userID uuid.UUID, provider, subject, email string) error {
 	_, err := r.pool.Exec(ctx, `
 		INSERT INTO user_identities (provider, subject, user_id, email)

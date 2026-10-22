@@ -106,6 +106,7 @@ func main() {
 	r.POST("/api/auth/forgot-password", passwordResetHandler.Forgot)
 	r.POST("/api/auth/reset-password", passwordResetHandler.Reset)
 	r.POST("/api/auth/social", socialAuthHandler.Login)
+	r.GET("/api/auth/username-available", socialAuthHandler.UsernameAvailable)
 	r.GET("/api/teams", userHandler.GetTeams)
 	r.GET("/api/rules", handler.GetRules)
 	r.GET("/api/competitions", handler.NewCompetitionHandler(repository.NewCompetitionRepository(pool)).List)
