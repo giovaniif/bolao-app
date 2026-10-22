@@ -4,7 +4,8 @@ import { useAuth } from '../../../shared/hooks/useAuth';
 import { appleServiceId, googleClientId, requestAppleIdToken } from '../api/socialProviders';
 import { useSocialSignIn } from '../hooks/useSocialSignIn';
 import { GoogleButton } from './GoogleButton';
-import { UsernameStep } from './UsernameStep';
+import { UsernameOnboarding } from './UsernameOnboarding';
+import { TeamOnboarding } from './TeamOnboarding';
 
 interface SocialSignInProps {
   next: string;
@@ -14,23 +15,37 @@ export function SocialSignIn({ next }: SocialSignInProps) {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [providerError, setProviderError] = useState('');
-  const social = useSocialSignIn((res) => {
+  const [choosingTeam, setChoosingTeam] = useState(false);
+  const social = useSocialSignIn((res, isNewAccount) => {
     login(res.token, { id: res.user_id, username: res.username, is_admin: res.is_admin, must_change_password: res.must_change_password });
-    navigate(next);
+    if (isNewAccount) setChoosingTeam(true);
+    else navigate(next);
   });
   const apple = appleServiceId() !== '';
   const google = googleClientId() !== '';
 
   if (!apple && !google) return null;
 
+  if (choosingTeam) {
+    return <TeamOnboarding onDone={() => navigate(next)} />;
+  }
+
   if (social.pending) {
-    return <UsernameStep loading={social.loading} error={social.error} onSubmit={social.chooseUsername} />;
+    return (
+      <UsernameOnboarding
+        suggested={social.pending.suggested}
+        loading={social.loading}
+        error={social.error}
+        onSubmit={social.chooseUsername}
+      />
+    );
   }
 
   async function handleApple() {
     setProviderError('');
     try {
-      social.signIn('apple', await requestAppleIdToken());
+      const identity = await requestAppleIdToken();
+      social.signIn('apple', identity.idToken, identity.name);
     } catch (err) {
       const code =
         err !== null && typeof err === 'object' && 'error' in err ? String((err as { error: unknown }).error) : '';

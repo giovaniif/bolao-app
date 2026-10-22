@@ -1,27 +1,35 @@
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { needsUsername, socialLogin } from '../api/authApi';
+import { needsUsername, socialLogin, suggestedUsername } from '../api/authApi';
 import type { LoginResponse, SocialProvider } from '../api/authApi';
 
-interface PendingIdentity {
+interface Identity {
   provider: SocialProvider;
   idToken: string;
+  name?: string;
 }
 
-interface SocialSignInVars extends PendingIdentity {
+interface PendingIdentity extends Identity {
+  suggested: string;
+}
+
+interface SocialSignInVars extends Identity {
   username?: string;
 }
 
-export function useSocialSignIn(onSignedIn: (res: LoginResponse) => void) {
+export function useSocialSignIn(onSignedIn: (res: LoginResponse, isNewAccount: boolean) => void) {
   const [pending, setPending] = useState<PendingIdentity | null>(null);
   const mutation = useMutation({
-    mutationFn: ({ provider, idToken, username }: SocialSignInVars) => socialLogin(provider, idToken, username),
-    onSuccess: (res) => {
+    mutationFn: ({ provider, idToken, username, name }: SocialSignInVars) =>
+      socialLogin(provider, idToken, { username, name }),
+    onSuccess: (res, vars) => {
       setPending(null);
-      onSignedIn(res);
+      onSignedIn(res, vars.username !== undefined);
     },
     onError: (err, vars) => {
-      if (needsUsername(err)) setPending({ provider: vars.provider, idToken: vars.idToken });
+      if (needsUsername(err)) {
+        setPending({ provider: vars.provider, idToken: vars.idToken, name: vars.name, suggested: suggestedUsername(err) });
+      }
     },
   });
 
@@ -31,9 +39,10 @@ export function useSocialSignIn(onSignedIn: (res: LoginResponse) => void) {
     pending,
     error,
     loading: mutation.isPending,
-    signIn: (provider: SocialProvider, idToken: string) => mutation.mutate({ provider, idToken }),
+    signIn: (provider: SocialProvider, idToken: string, name?: string) =>
+      mutation.mutate({ provider, idToken, name: name || undefined }),
     chooseUsername: (username: string) => {
-      if (pending) mutation.mutate({ ...pending, username });
+      if (pending) mutation.mutate({ provider: pending.provider, idToken: pending.idToken, name: pending.name, username });
     },
   };
 }
