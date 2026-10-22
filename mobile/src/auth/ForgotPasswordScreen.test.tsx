@@ -20,9 +20,14 @@ beforeEach(() => {
 })
 
 describe('ForgotPasswordScreen', () => {
-  it('is linked from the login screen', async () => {
+  it('is linked from the login screen after a wrong password', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 401, text: async () => JSON.stringify({ error: 'usuário ou senha inválidos' }) })
     await renderWithProviders(<LoginScreen />)
-    expect(screen.getByTestId('link:/esqueci-senha')).toHaveTextContent('Esqueci minha senha')
+    expect(screen.queryByTestId('link:/esqueci-senha')).toBeNull()
+    await fireEvent.changeText(screen.getByLabelText('Usuário'), 'ana')
+    await fireEvent.changeText(screen.getByLabelText('Senha'), 'x')
+    await fireEvent.press(screen.getByRole('button', { name: 'Entrar' }))
+    expect(await screen.findByTestId('link:/esqueci-senha')).toHaveTextContent('Esqueci minha senha')
   })
 
   it('sends the login and says to check the email', async () => {

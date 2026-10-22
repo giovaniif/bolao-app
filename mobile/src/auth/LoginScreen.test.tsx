@@ -80,6 +80,22 @@ describe('LoginScreen', () => {
     await fireEvent.changeText(screen.getByLabelText('Senha'), 'x')
     await fireEvent.press(screen.getByRole('button', { name: 'Entrar' }))
     expect(await screen.findByText('usuário ou senha inválidos')).toBeTruthy()
+    expect(screen.getByText('Esqueci minha senha')).toBeTruthy()
+  })
+
+  it('hides the forgot password link before a failed login', async () => {
+    await renderWithProviders(<LoginScreen />)
+    expect(screen.queryByText('Esqueci minha senha')).toBeNull()
+  })
+
+  it('keeps the forgot password link hidden when the login fails for another reason', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 500, text: async () => JSON.stringify({ error: 'erro interno' }) })
+    await renderWithProviders(<LoginScreen />)
+    await fireEvent.changeText(screen.getByLabelText('Usuário'), 'ana')
+    await fireEvent.changeText(screen.getByLabelText('Senha'), 'x')
+    await fireEvent.press(screen.getByRole('button', { name: 'Entrar' }))
+    expect(await screen.findByText('erro interno')).toBeTruthy()
+    expect(screen.queryByText('Esqueci minha senha')).toBeNull()
   })
 })
 
