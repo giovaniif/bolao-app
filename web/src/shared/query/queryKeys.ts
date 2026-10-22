@@ -8,6 +8,7 @@ export const queryKeys = {
     scoped(['classification', bolaoId ?? 'active', round ?? 'all'] as const, scope),
   users: (scope?: string) => scoped(['users'] as const, scope),
   teams: ['teams'] as const,
+  usernameAvailable: (username: string) => ['auth', 'username-available', username] as const,
   predictions: (round: number, scope?: string) => scoped(['predictions', round] as const, scope),
   partials: (round: number, scope?: string) => scoped(['parciais', round] as const, scope),
   partialClassification: (round: number, scope?: string) =>

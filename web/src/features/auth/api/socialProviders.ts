@@ -1,5 +1,11 @@
 interface AppleSignInResponse {
   authorization: { id_token: string };
+  user?: { name?: { firstName?: string; lastName?: string } };
+}
+
+export interface AppleIdentity {
+  idToken: string;
+  name: string;
 }
 
 interface AppleIDGlobal {
@@ -60,13 +66,14 @@ function loadScript(src: string): Promise<void> {
   return promise;
 }
 
-export async function requestAppleIdToken(): Promise<string> {
+export async function requestAppleIdToken(): Promise<AppleIdentity> {
   if (!window.AppleID) await loadScript(APPLE_SCRIPT);
   const appleID = window.AppleID;
   if (!appleID) throw new Error('Não foi possível carregar o login da Apple.');
-  appleID.auth.init({ clientId: appleServiceId(), scope: 'email', redirectURI: window.location.origin, usePopup: true });
+  appleID.auth.init({ clientId: appleServiceId(), scope: 'name email', redirectURI: window.location.origin, usePopup: true });
   const res = await appleID.auth.signIn();
-  return res.authorization.id_token;
+  const name = [res.user?.name?.firstName, res.user?.name?.lastName].filter(Boolean).join(' ');
+  return { idToken: res.authorization.id_token, name };
 }
 
 export async function renderGoogleButton(el: HTMLElement, onToken: (idToken: string) => void): Promise<void> {

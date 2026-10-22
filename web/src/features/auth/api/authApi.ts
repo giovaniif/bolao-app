@@ -45,9 +45,15 @@ export async function changePassword(
 
 export type SocialProvider = 'apple' | 'google';
 
-export async function socialLogin(provider: SocialProvider, idToken: string, username?: string): Promise<LoginResponse> {
+export interface SocialLoginExtras {
+  username?: string;
+  name?: string;
+}
+
+export async function socialLogin(provider: SocialProvider, idToken: string, extras: SocialLoginExtras = {}): Promise<LoginResponse> {
   const body: Record<string, string> = { provider, id_token: idToken };
-  if (username) body.username = username;
+  if (extras.username) body.username = extras.username;
+  if (extras.name) body.name = extras.name;
   const res = await api<LoginResponse>('/auth/social', {
     method: 'POST',
     body: JSON.stringify(body),
@@ -56,6 +62,23 @@ export async function socialLogin(provider: SocialProvider, idToken: string, use
     throw new Error('Resposta de login inválida. Tente novamente.');
   }
   return res;
+}
+
+export interface UsernameAvailability {
+  valid: boolean;
+  available: boolean;
+}
+
+export async function checkUsername(username: string): Promise<UsernameAvailability> {
+  return api<UsernameAvailability>(`/auth/username-available?${new URLSearchParams({ username })}`);
+}
+
+export function suggestedUsername(err: unknown): string {
+  if (!(err instanceof Error) || !('body' in err)) return '';
+  const body = (err as { body: unknown }).body;
+  if (body === null || typeof body !== 'object') return '';
+  const suggested = (body as { suggested_username?: unknown }).suggested_username;
+  return typeof suggested === 'string' ? suggested : '';
 }
 
 export function needsUsername(err: unknown): boolean {
