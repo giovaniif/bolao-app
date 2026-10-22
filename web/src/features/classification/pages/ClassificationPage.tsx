@@ -6,6 +6,8 @@ import { useBoloes } from '../../boloes/hooks/useBoloes';
 import { ClassificationRow } from '../components/ClassificationRow';
 import { ChampionsEntryCard } from '../../champions/components/ChampionsEntryCard';
 import { useSeasons } from '../../champions/hooks/useSeasons';
+import { useMyBoloes } from '../../../shared/hooks/useCurrentBolao';
+import { ExplorePage } from '../../boloes/pages/ExplorePage';
 
 export function ClassificationPage() {
   const [selectedBolaoId, setSelectedBolaoId] = useState<string>('');
@@ -22,6 +24,11 @@ export function ClassificationPage() {
   const isCumulative = selectedRound === '';
 
   const { data: classification = [], isLoading, error } = useClassification(roundForQuery, bolaoId);
+  const { data: myBoloes, isLoading: loadingMine } = useMyBoloes();
+
+  if (!loadingMine && myBoloes && myBoloes.every((b) => b.member_status === 'pending')) {
+    return <ExplorePage />;
+  }
 
   return (
     <Layout title="Classificação">
