@@ -47,6 +47,32 @@ function stubGoogle(credential = 'google-token') {
   return { initialize, renderButton }
 }
 
+function onboardingApi({ taken = [] as string[], createError = '' } = {}) {
+  const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+    const method = init?.method ?? 'GET'
+    if (url.endsWith('/auth/social')) {
+      const body = JSON.parse(String(init?.body)) as { username?: string }
+      if (!body.username) {
+        return respond(409, { needs_username: true, error: 'escolha um nome de usuário', suggested_username: 'joao.silva' })
+      }
+      if (createError) return respond(409, { error: createError })
+      return respond(201, { ...loginBody, username: body.username })
+    }
+    if (url.includes('/auth/username-available')) {
+      const username = new URL(url, 'http://x').searchParams.get('username') ?? ''
+      return respond(200, { valid: true, available: !taken.includes(username) })
+    }
+    if (url.endsWith('/teams')) return respond(200, ['Flamengo', 'Palmeiras', 'Corinthians'])
+    if (url.endsWith('/me') && method === 'GET') {
+      return respond(200, { id: '9', username: 'joao.silva', display_name: 'João Silva', favorite_team: null, is_admin: false })
+    }
+    if (url.endsWith('/me') && method === 'PUT') return respond(200, {})
+    return respond(404, { error: 'not mocked' })
+  })
+  vi.stubGlobal('fetch', fetchMock)
+  return fetchMock
+}
+
 afterEach(() => {
   localStorage.clear()
   vi.unstubAllGlobals()
@@ -81,45 +107,119 @@ describe('SocialSignIn', () => {
     expect(localStorage.getItem('token')).toBe('jwt')
   })
 
-  it('asks for a username on the first social login and creates the account', async () => {
+  it('asks for a username on the first social login, then the favorite team', async () => {
     vi.stubEnv('VITE_APPLE_SERVICE_ID', '')
     vi.stubEnv('VITE_GOOGLE_CLIENT_ID', 'google-web-id')
     const google = stubGoogle()
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(respond(409, { needs_username: true, error: 'escolha um nome de usuário' }))
-      .mockResolvedValueOnce(respond(201, loginBody))
-    vi.stubGlobal('fetch', fetchMock)
+    const fetchMock = onboardingApi()
     renderSignIn()
 
     fireEvent.click(await screen.findByRole('button', { name: 'Continuar com o Google' }))
-    fireEvent.change(await screen.findByLabelText('Nome de usuário'), { target: { value: 'joao' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Criar conta' }))
+
+    expect(await screen.findByRole('heading', { name: 'Como você quer aparecer no bolão?' })).toBeTruthy()
+    expect(screen.getByText('Passo 1 de 2')).toBeTruthy()
+    expect(screen.getByText('É o nome que todo mundo vê na classificação. Você também entra com ele.')).toBeTruthy()
+    const input = screen.getByLabelText('Nome de usuário') as HTMLInputElement
+    expect(input.value).toBe('joao.silva')
+    expect(await screen.findByText('Disponível')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Continuar' }))
+
+    expect(await screen.findByRole('heading', { name: 'Pra qual time você torce?' })).toBeTruthy()
+    expect(screen.getByText('Passo 2 de 2')).toBeTruthy()
+    expect(google.initialize).toHaveBeenCalledWith(expect.objectContaining({ client_id: 'google-web-id' }))
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringMatching(/\/auth\/social$/),
+      expect.objectContaining({ body: JSON.stringify({ provider: 'google', id_token: 'google-token', username: 'joao.silva' }) })
+    )
+    expect(localStorage.getItem('token')).toBe('jwt')
+
+    fireEvent.change(screen.getByPlaceholderText('Buscar time'), { target: { value: 'pal' } })
+    expect(screen.queryByRole('button', { name: 'Flamengo' })).toBeNull()
+    fireEvent.click(await screen.findByRole('button', { name: 'Palmeiras' }))
+    expect(screen.getByRole('button', { name: 'Palmeiras' }).getAttribute('aria-pressed')).toBe('true')
+    fireEvent.click(screen.getByRole('button', { name: 'Começar' }))
 
     await waitFor(() => expect(screen.getByText('em /')).toBeTruthy())
-    expect(google.initialize).toHaveBeenCalledWith(expect.objectContaining({ client_id: 'google-web-id' }))
-    expect(fetchMock).toHaveBeenLastCalledWith(
-      expect.stringMatching(/\/auth\/social$/),
-      expect.objectContaining({ body: JSON.stringify({ provider: 'google', id_token: 'google-token', username: 'joao' }) })
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringMatching(/\/me$/),
+      expect.objectContaining({
+        method: 'PUT',
+        body: JSON.stringify({ username: 'joao.silva', display_name: 'João Silva', favorite_team: 'Palmeiras' }),
+      })
     )
   })
 
-  it('keeps the username form open and shows the error when the name is taken', async () => {
+  it('lets the user skip the favorite team', async () => {
+    vi.stubEnv('VITE_APPLE_SERVICE_ID', '')
+    vi.stubEnv('VITE_GOOGLE_CLIENT_ID', 'google-web-id')
+    stubGoogle()
+    const fetchMock = onboardingApi()
+    renderSignIn('/palpites')
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Continuar com o Google' }))
+    await screen.findByText('Disponível')
+    fireEvent.click(screen.getByRole('button', { name: 'Continuar' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Pular por agora' }))
+
+    await waitFor(() => expect(screen.getByText('em /palpites')).toBeTruthy())
+    expect(fetchMock).not.toHaveBeenCalledWith(expect.stringMatching(/\/me$/), expect.objectContaining({ method: 'PUT' }))
+  })
+
+  it('says when the username is taken and blocks Continuar', async () => {
+    vi.stubEnv('VITE_APPLE_SERVICE_ID', '')
+    vi.stubEnv('VITE_GOOGLE_CLIENT_ID', 'google-web-id')
+    stubGoogle()
+    onboardingApi({ taken: ['joao.silva'] })
+    renderSignIn()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Continuar com o Google' }))
+
+    expect(await screen.findByText('Em uso')).toBeTruthy()
+    expect((screen.getByRole('button', { name: 'Continuar' }) as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.change(screen.getByLabelText('Nome de usuário'), { target: { value: 'jo' } })
+    expect(await screen.findByText('Use de 3 a 30 letras, números, ponto ou _')).toBeTruthy()
+    expect((screen.getByRole('button', { name: 'Continuar' }) as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('sends the name Apple gave on both requests', async () => {
     vi.stubEnv('VITE_APPLE_SERVICE_ID', 'web.example')
     vi.stubEnv('VITE_GOOGLE_CLIENT_ID', '')
-    stubApple()
-    vi.stubGlobal(
-      'fetch',
-      vi
-        .fn()
-        .mockResolvedValueOnce(respond(409, { needs_username: true, error: 'escolha um nome de usuário' }))
-        .mockResolvedValueOnce(respond(409, { error: 'este nome de usuário já está em uso' }))
-    )
+    vi.stubGlobal('AppleID', {
+      auth: {
+        init: vi.fn(),
+        signIn: vi.fn(async () => ({
+          authorization: { id_token: 'apple-token' },
+          user: { name: { firstName: 'João', lastName: 'Silva' } },
+        })),
+      },
+    })
+    const fetchMock = onboardingApi()
     renderSignIn()
 
     fireEvent.click(screen.getByRole('button', { name: 'Continuar com a Apple' }))
-    fireEvent.change(await screen.findByLabelText('Nome de usuário'), { target: { value: 'joao' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Criar conta' }))
+    await screen.findByText('Disponível')
+    fireEvent.click(screen.getByRole('button', { name: 'Continuar' }))
+    await screen.findByRole('heading', { name: 'Pra qual time você torce?' })
+
+    const bodies = fetchMock.mock.calls
+      .filter(([url]) => String(url).endsWith('/auth/social'))
+      .map(([, init]) => (init as RequestInit).body)
+    expect(bodies).toEqual([
+      JSON.stringify({ provider: 'apple', id_token: 'apple-token', name: 'João Silva' }),
+      JSON.stringify({ provider: 'apple', id_token: 'apple-token', username: 'joao.silva', name: 'João Silva' }),
+    ])
+  })
+
+  it('keeps the username step open and shows the error when the name is taken at the end', async () => {
+    vi.stubEnv('VITE_APPLE_SERVICE_ID', 'web.example')
+    vi.stubEnv('VITE_GOOGLE_CLIENT_ID', '')
+    stubApple()
+    onboardingApi({ createError: 'este nome de usuário já está em uso' })
+    renderSignIn()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Continuar com a Apple' }))
+    await screen.findByText('Disponível')
+    fireEvent.click(screen.getByRole('button', { name: 'Continuar' }))
 
     expect(await screen.findByText('este nome de usuário já está em uso')).toBeTruthy()
     expect(screen.getByLabelText('Nome de usuário')).toBeTruthy()

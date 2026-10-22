@@ -85,3 +85,43 @@ describe('socialLogin', () => {
     expect(needsUsername('x')).toBe(false)
   })
 })
+
+describe('social onboarding', () => {
+  it('sends the name Apple gave with the provider token', async () => {
+    const mockSocial = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      text: () => Promise.resolve(JSON.stringify({ token: 'jwt', user_id: '9', username: 'joao', is_admin: false, must_change_password: false })),
+    })
+    vi.stubGlobal('fetch', mockSocial)
+    const { socialLogin } = await import('./authApi')
+
+    await socialLogin('apple', 'id-token', { username: 'joao', name: 'João Silva' })
+
+    expect(mockSocial).toHaveBeenCalledWith(
+      `${API_BASE}/auth/social`,
+      expect.objectContaining({ body: JSON.stringify({ provider: 'apple', id_token: 'id-token', username: 'joao', name: 'João Silva' }) })
+    )
+  })
+
+  it('reads the suggested username from the 409 answer', async () => {
+    const { suggestedUsername } = await import('./authApi')
+    const asked = Object.assign(new Error('escolha'), { status: 409, body: { needs_username: true, suggested_username: 'joao.silva' } })
+
+    expect(suggestedUsername(asked)).toBe('joao.silva')
+    expect(suggestedUsername(new Error('x'))).toBe('')
+  })
+
+  it('checks whether a username is free', async () => {
+    const mockCheck = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      text: () => Promise.resolve(JSON.stringify({ valid: true, available: false })),
+    })
+    vi.stubGlobal('fetch', mockCheck)
+    const { checkUsername } = await import('./authApi')
+
+    const res = await checkUsername('joão silva')
+
+    expect(mockCheck).toHaveBeenCalledWith(`${API_BASE}/auth/username-available?username=jo%C3%A3o+silva`, expect.anything())
+    expect(res).toEqual({ valid: true, available: false })
+  })
+})
