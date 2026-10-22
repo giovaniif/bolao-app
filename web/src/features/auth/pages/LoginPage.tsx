@@ -11,6 +11,7 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [wrongPassword, setWrongPassword] = useState(false);
   const { login: doLogin } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -32,6 +33,7 @@ export function LoginPage() {
       navigate(res.must_change_password ? '/alterar-senha' : next);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao entrar');
+      setWrongPassword(err instanceof Error && 'status' in err && err.status === 401);
     } finally {
       setLoading(false);
     }
@@ -64,11 +66,13 @@ export function LoginPage() {
             placeholder="Sua senha"
             autoComplete="current-password"
           />
-          <p className="text-sm text-right">
-            <Link to="/esqueci-senha" className="text-[var(--color-primary)]">
-              Esqueci minha senha
-            </Link>
-          </p>
+          {wrongPassword && (
+            <p className="text-sm text-right">
+              <Link to="/esqueci-senha" className="text-[var(--color-primary)]">
+                Esqueci minha senha
+              </Link>
+            </p>
+          )}
           {error && (
             <p className="text-red-400 text-sm text-center">{error}</p>
           )}

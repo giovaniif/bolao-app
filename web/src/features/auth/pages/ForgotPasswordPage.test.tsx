@@ -20,9 +20,14 @@ function renderAt(route: string) {
 }
 
 describe('ForgotPasswordPage', () => {
-  it('is linked from the login page', () => {
+  it('is linked from the login page after a wrong password', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 401, text: async () => JSON.stringify({ error: 'Senha incorreta' }) })))
     renderAt('/login')
-    fireEvent.click(screen.getByRole('link', { name: 'Esqueci minha senha' }))
+    expect(screen.queryByRole('link', { name: 'Esqueci minha senha' })).toBeNull()
+    fireEvent.change(screen.getByLabelText('Usuário'), { target: { value: 'maria' } })
+    fireEvent.change(screen.getByLabelText('Senha'), { target: { value: 'errada' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Entrar' }))
+    fireEvent.click(await screen.findByRole('link', { name: 'Esqueci minha senha' }))
     expect(screen.getByRole('heading', { name: 'Esqueci minha senha' })).toBeTruthy()
   })
 
