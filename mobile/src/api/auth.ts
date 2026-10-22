@@ -29,9 +29,10 @@ export async function forgotPassword(login: string): Promise<void> {
 
 export type SocialProvider = 'apple' | 'google';
 
-export function socialLogin(provider: SocialProvider, idToken: string, username?: string): Promise<LoginResponse> {
+export function socialLogin(provider: SocialProvider, idToken: string, username?: string, name?: string): Promise<LoginResponse> {
   const body: Record<string, string> = { provider, id_token: idToken };
   if (username) body.username = username;
+  if (name) body.name = name;
   return api<LoginResponse>('/auth/social', { method: 'POST', body: JSON.stringify(body) });
 }
 
@@ -39,6 +40,22 @@ export function needsUsername(err: unknown): boolean {
   if (!(err instanceof Error) || !('body' in err)) return false;
   const body = (err as { body: unknown }).body;
   return body !== null && typeof body === 'object' && (body as { needs_username?: unknown }).needs_username === true;
+}
+
+export function suggestedUsername(err: unknown): string {
+  if (!(err instanceof Error) || !('body' in err)) return '';
+  const body = (err as { body: unknown }).body;
+  const value = body !== null && typeof body === 'object' ? (body as { suggested_username?: unknown }).suggested_username : undefined;
+  return typeof value === 'string' ? value : '';
+}
+
+export interface UsernameAvailability {
+  valid: boolean;
+  available: boolean;
+}
+
+export function usernameAvailable(username: string): Promise<UsernameAvailability> {
+  return api<UsernameAvailability>(`/auth/username-available?username=${encodeURIComponent(username)}`);
 }
 
 export async function deleteAccount(): Promise<void> {

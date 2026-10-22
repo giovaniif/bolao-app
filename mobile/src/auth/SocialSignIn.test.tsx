@@ -3,10 +3,12 @@ import { fireEvent, screen, waitFor } from '@testing-library/react-native'
 import * as SecureStore from 'expo-secure-store'
 import { renderWithProviders } from '../test/render'
 import { SocialSignIn } from './SocialSignIn'
+import { getPendingSignup } from '../onboarding/pendingSignup'
 
 const mockReplace = jest.fn()
+const mockPush = jest.fn()
 jest.mock('expo-router', () => ({
-  useRouter: () => ({ replace: mockReplace, push: jest.fn() }),
+  useRouter: () => ({ replace: mockReplace, push: mockPush }),
 }))
 
 let mockConfig = { googleWebClientId: '', googleIosClientId: '' }
@@ -21,7 +23,7 @@ jest.mock('expo-apple-authentication', () => {
   return {
     isAvailableAsync: () => mockAppleAvailable(),
     signInAsync: (options: unknown) => mockAppleSignIn(options),
-    AppleAuthenticationScope: { EMAIL: 1 },
+    AppleAuthenticationScope: { FULL_NAME: 0, EMAIL: 1 },
     AppleAuthenticationButtonType: { CONTINUE: 1 },
     AppleAuthenticationButtonStyle: { WHITE: 0 },
     AppleAuthenticationButton: ({ onPress }: { onPress: () => void }) => (
@@ -53,6 +55,7 @@ const loginBody = { token: 'jwt', user_id: 'u1', username: 'ana', is_admin: fals
 beforeEach(() => {
   mockConfig = { googleWebClientId: '', googleIosClientId: '' }
   mockReplace.mockReset()
+  mockPush.mockReset()
   mockFetch.mockReset()
   mockAppleAvailable.mockReset().mockResolvedValue(false)
   mockAppleSignIn.mockReset()
@@ -100,21 +103,31 @@ describe('SocialSignIn', () => {
     expect(screen.queryByRole('button', { name: 'Continuar com o Google' })).toBeNull()
   })
 
-  it('asks for a username on the first Google login and creates the account', async () => {
+  it('opens the onboarding with the suggested username on the first Google login', async () => {
     mockConfig = { googleWebClientId: 'web-id', googleIosClientId: 'ios-id' }
-    mockGoogleSignIn.mockResolvedValue({ type: 'success', data: { idToken: 'google-token' } })
-    mockFetch
-      .mockResolvedValueOnce(respond(409, { needs_username: true, error: 'escolha um nome de usuário' }))
-      .mockResolvedValueOnce(respond(201, loginBody))
+    mockGoogleSignIn.mockResolvedValue({ type: 'success', data: { idToken: 'google-token', user: { name: 'Ana Souza' } } })
+    mockFetch.mockResolvedValueOnce(respond(409, { needs_username: true, error: 'escolha um nome de usuário', suggested_username: 'ana.souza' }))
     await renderWithProviders(<SocialSignIn next="/meus-boloes" />)
 
     await fireEvent.press(await screen.findByRole('button', { name: 'Continuar com o Google' }))
-    await fireEvent.changeText(await screen.findByLabelText('Nome de usuário'), 'Ana')
-    await fireEvent.press(screen.getByRole('button', { name: 'Criar conta' }))
 
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/meus-boloes'))
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/boas-vindas'))
     expect(mockGoogleConfigure).toHaveBeenCalledWith(expect.objectContaining({ webClientId: 'web-id', iosClientId: 'ios-id' }))
-    expect(JSON.parse(mockFetch.mock.calls[1][1].body)).toEqual({ provider: 'google', id_token: 'google-token', username: 'ana' })
+    expect(getPendingSignup()).toEqual({ provider: 'google', idToken: 'google-token', suggestedUsername: 'ana.souza', name: 'Ana Souza', next: '/meus-boloes' })
+    expect(mockReplace).not.toHaveBeenCalled()
+  })
+
+  it('asks Apple for the name and passes it to the onboarding', async () => {
+    mockAppleAvailable.mockResolvedValue(true)
+    mockAppleSignIn.mockResolvedValue({ identityToken: 'apple-token', fullName: { givenName: 'João', familyName: 'Silva' } })
+    mockFetch.mockResolvedValueOnce(respond(409, { needs_username: true, error: 'escolha um nome de usuário' }))
+    await renderWithProviders(<SocialSignIn next="/" />)
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Continuar com a Apple' }))
+
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/boas-vindas'))
+    expect(mockAppleSignIn).toHaveBeenCalledWith({ requestedScopes: [0, 1] })
+    expect(getPendingSignup()).toEqual({ provider: 'apple', idToken: 'apple-token', suggestedUsername: 'joao.silva', name: 'João Silva', next: '/' })
   })
 
   it('does nothing when the user cancels Google', async () => {

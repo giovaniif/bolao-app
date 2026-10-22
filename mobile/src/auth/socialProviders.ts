@@ -11,12 +11,19 @@ export async function appleAvailable(): Promise<boolean> {
   }
 }
 
-export async function appleIdToken(): Promise<string | null> {
+export interface ProviderCredential {
+  idToken: string;
+  name?: string;
+}
+
+export async function appleIdToken(): Promise<ProviderCredential | null> {
   try {
     const credential = await AppleAuthentication.signInAsync({
-      requestedScopes: [AppleAuthentication.AppleAuthenticationScope.EMAIL],
+      requestedScopes: [AppleAuthentication.AppleAuthenticationScope.FULL_NAME, AppleAuthentication.AppleAuthenticationScope.EMAIL],
     });
-    return credential.identityToken ?? null;
+    if (!credential.identityToken) return null;
+    const name = [credential.fullName?.givenName, credential.fullName?.familyName].filter(Boolean).join(' ');
+    return name ? { idToken: credential.identityToken, name } : { idToken: credential.identityToken };
   } catch (err) {
     if (err instanceof Error && 'code' in err && (err as { code: unknown }).code === 'ERR_REQUEST_CANCELED') return null;
     throw new Error('Não foi possível entrar com a Apple. Tente de novo.');
@@ -29,7 +36,7 @@ export function googleAvailable(): boolean {
   return Platform.OS === 'android' && googleWebClientId !== '';
 }
 
-export async function googleIdToken(): Promise<string | null> {
+export async function googleIdToken(): Promise<ProviderCredential | null> {
   const { googleWebClientId, googleIosClientId } = socialConfig();
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { GoogleSignin } = require('@react-native-google-signin/google-signin') as typeof import('@react-native-google-signin/google-signin');
@@ -38,7 +45,9 @@ export async function googleIdToken(): Promise<string | null> {
     await GoogleSignin.hasPlayServices();
     const res = await GoogleSignin.signIn();
     if (res.type !== 'success') return null;
-    return res.data.idToken;
+    if (!res.data.idToken) return null;
+    const name = res.data.user?.name;
+    return name ? { idToken: res.data.idToken, name } : { idToken: res.data.idToken };
   } catch {
     throw new Error('Não foi possível entrar com o Google. Tente de novo.');
   }
