@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, fireEvent } from '@testing-library/react'
 import { renderWithProviders } from '../../../test/renderWithProviders'
 import { MyBoloesPage } from './MyBoloesPage'
 
@@ -7,7 +7,8 @@ function stub(mine: unknown[]) {
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url: string) => {
-      const body = url.endsWith('/me/boloes') ? mine : []
+      const open = [{ id: 'b-9', name: 'Pelada de Quinta', requires_approval: false, max_members: 50, member_count: 12 }]
+      const body = url.endsWith('/me/boloes') ? mine : url.includes('/boloes/public') ? open : []
       return { ok: true, status: 200, text: async () => JSON.stringify(body) }
     })
   )
@@ -43,5 +44,18 @@ describe('MyBoloesPage', () => {
     await waitFor(() => expect(screen.getByText('Você ainda não participa de nenhum bolão.')).toBeTruthy())
     expect(screen.getAllByRole('link', { name: 'Criar bolão' })[0].getAttribute('href')).toBe('/criar-bolao')
     expect(screen.getAllByRole('link', { name: 'Entrar com código' })[0].getAttribute('href')).toBe('/entrar')
+  })
+
+  it('explores the open bolões in a second tab', async () => {
+    stub([{ id: 'b-1', name: 'Brasileirão 2026', status: 'active', role: 'participant', member_status: 'active', member_count: 20 }])
+    renderWithProviders(<MyBoloesPage />, { route: '/meus-boloes' })
+
+    await waitFor(() => expect(screen.getByText('Brasileirão 2026')).toBeTruthy())
+    expect(screen.getByRole('tab', { name: 'Meus bolões' }).getAttribute('aria-selected')).toBe('true')
+    fireEvent.click(screen.getByRole('tab', { name: 'Explorar' }))
+
+    expect(await screen.findByText('Pelada de Quinta')).toBeTruthy()
+    expect(screen.getByText('12 de 50 participantes')).toBeTruthy()
+    expect(screen.queryByText('Brasileirão 2026')).toBeNull()
   })
 })

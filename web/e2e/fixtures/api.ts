@@ -70,6 +70,13 @@ const myBoloes = [
   { id: 'b-familia', name: 'Família', status: 'active', started_at: '2026-09-10T00:00:00Z', role: 'participant', member_status: 'pending', member_count: 9 },
 ];
 
+const publicBoloes = [
+  { id: 'b-amigos', name: 'Brasileirão dos Amigos', requires_approval: false, max_members: 50, member_count: 38 },
+  { id: 'b-firma-2026', name: 'Firma 2026', requires_approval: true, max_members: 50, member_count: 21 },
+  { id: 'b-pelada', name: 'Pelada de Quinta', requires_approval: false, max_members: 50, member_count: 12 },
+  { id: 'b-firma-x', name: 'Firma X', requires_approval: false, max_members: 50, member_count: 50 },
+];
+
 const routes: [string, RegExp, Handler][] = [
   ['GET', /^\/me\/boloes$/, () => myBoloes],
   ['GET', /^\/competitions$/, () => [{ id: 'c-bsa', name: 'Brasileirão Série A 2026', provider_code: 'BSA', season: 2026, status: 'active' }]],
@@ -103,6 +110,7 @@ const routes: [string, RegExp, Handler][] = [
   ['GET', /^\/boloes\/[^/]+\/invite$/, () => ({ code: 'FIRMA234' })],
   ['GET', /^\/invites\/[^/]+$/, () => ({ name: 'Bolão da Firma', member_count: 7, max_members: 50, joins: 'request' })],
   ['GET', /^\/boloes$/, () => [activeBolao, finishedBolao]],
+  ['GET', /^\/boloes\/public$/, () => publicBoloes],
   ['GET', /^\/boloes\/[^/]+\/participants$/, () => people.map((p) => ({ ...p, amount_paid: 50, joined_at: '2026-04-01T00:00:00Z' }))],
   ['GET', /^\/matches\/rounds\/summary$/, () => ({ rounds: [1, 2, 3, 4, 5], active: ACTIVE_ROUND, pending_results: 0 })],
   ['GET', /^\/matches\/round\/(\d+)$/, (_, m) => matchesOf(Number(m[1]))],
