@@ -38,6 +38,22 @@ func TestIdentityRepository_CreateSocialAccountAndFindIt(t *testing.T) {
 	}
 }
 
+func TestIdentityRepository_UsernameExists(t *testing.T) {
+	pool := pushTestPool(t)
+	ctx := context.Background()
+	repo := NewIdentityRepository(pool)
+	name := "ex_" + uuid.NewString()[:8]
+	if _, err := repo.CreateSocialAccount(ctx, name, "", "google", "sub-"+uuid.NewString()); err != nil {
+		t.Fatalf("CreateSocialAccount: %v", err)
+	}
+	if got, err := repo.UsernameExists(ctx, name); err != nil || !got {
+		t.Errorf("UsernameExists(%q) = %v, %v; want true", name, got, err)
+	}
+	if got, err := repo.UsernameExists(ctx, name+"_free"); err != nil || got {
+		t.Errorf("UsernameExists(free) = %v, %v; want false", got, err)
+	}
+}
+
 func TestIdentityRepository_LinkIdentityIsIdempotent(t *testing.T) {
 	pool := pushTestPool(t)
 	ctx := context.Background()

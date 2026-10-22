@@ -85,10 +85,21 @@ func (f *fakeSocialStore) CreateSocialAccount(_ context.Context, username, email
 	return u, nil
 }
 
+func (f *fakeSocialStore) UsernameExists(_ context.Context, username string) (bool, error) {
+	for _, u := range f.users {
+		if u.Username == username {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 func socialRouter(store *fakeSocialStore, verifiers map[string]IDTokenVerifier) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
-	r.POST("/api/auth/social", NewSocialAuthHandler(store, verifiers, testJWTSecret).Login)
+	h := NewSocialAuthHandler(store, verifiers, testJWTSecret)
+	r.POST("/api/auth/social", h.Login)
+	r.GET("/api/auth/username-available", h.UsernameAvailable)
 	return r
 }
 
@@ -102,10 +113,12 @@ func postSocial(r *gin.Engine, body string) *httptest.ResponseRecorder {
 
 func googleVerifier() map[string]IDTokenVerifier {
 	return map[string]IDTokenVerifier{"google": fakeVerifier{identities: map[string]auth.Identity{
-		"known":      {Subject: "g-known", Email: "known@example.com", EmailVerified: true},
-		"by-email":   {Subject: "g-new", Email: "existing@example.com", EmailVerified: true},
-		"unverified": {Subject: "g-unverified", Email: "existing@example.com", EmailVerified: false},
-		"fresh":      {Subject: "g-fresh", Email: "fresh@example.com", EmailVerified: true},
+		"known":       {Subject: "g-known", Email: "known@example.com", EmailVerified: true},
+		"by-email":    {Subject: "g-new", Email: "existing@example.com", EmailVerified: true},
+		"unverified":  {Subject: "g-unverified", Email: "existing@example.com", EmailVerified: false},
+		"fresh":       {Subject: "g-fresh", Email: "fresh@example.com", EmailVerified: true},
+		"taken-local": {Subject: "g-taken", Email: "existing@elsewhere.com", EmailVerified: true},
+		"no-email":    {Subject: "g-no-email"},
 	}}}
 }
 
