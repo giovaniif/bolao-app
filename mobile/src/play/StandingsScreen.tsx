@@ -1,32 +1,13 @@
 import { useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, ScrollView, Text, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { getRoundsSummary, getStandings, type Standing } from '../api/play';
 import { useCurrentBolao } from '../bolao/useCurrentBolao';
 import { colors } from '../theme';
 import { ChampionsEntryCard } from '../champions/ChampionsEntryCard';
 import { useSeasons } from '../champions/useSeasons';
-
-function Chip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityState={{ selected: active }}
-      onPress={onPress}
-      style={{
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 999,
-        borderWidth: 1,
-        borderColor: active ? colors.primary : 'transparent',
-        backgroundColor: active ? 'rgba(0,166,81,0.15)' : colors.card,
-      }}
-    >
-      <Text style={{ color: active ? colors.primary : colors.muted, fontWeight: '800', fontSize: 13 }}>{label}</Text>
-    </Pressable>
-  );
-}
+import { Chip } from '../components/Chip';
+import { ExploreScreen } from '../boloes/ExploreScreen';
 
 function StandingRow({ rank, item, leader }: { rank: number; item: Standing; leader: boolean }) {
   return (
@@ -75,7 +56,7 @@ export function StandingsScreen() {
     return <ActivityIndicator style={{ marginTop: 48 }} color={colors.primary} />;
   }
   if (!bolao) {
-    return <Text style={{ color: colors.muted, textAlign: 'center', marginTop: 48 }}>Entre em um bolão para ver a classificação.</Text>;
+    return <ExploreScreen />;
   }
 
   const rounds = summary.data?.rounds ?? [];

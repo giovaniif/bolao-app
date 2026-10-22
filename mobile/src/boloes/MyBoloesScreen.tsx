@@ -1,15 +1,31 @@
+import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useCurrentBolao } from '../bolao/useCurrentBolao';
 import { PrimaryButton } from '../components/PrimaryButton';
+import { Chip } from '../components/Chip';
 import { colors } from '../theme';
+import { ExploreScreen } from './ExploreScreen';
 
 const ROLE: Record<string, string> = { owner: 'Dono', admin: 'Admin', participant: 'Participante' };
 
 export function MyBoloesScreen() {
+  const [tab, setTab] = useState<'mine' | 'explore'>('mine');
+
+  return (
+    <View style={{ flex: 1 }}>
+      <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 16 }}>
+        <Chip label="Meus bolões" active={tab === 'mine'} onPress={() => setTab('mine')} />
+        <Chip label="Explorar" active={tab === 'explore'} onPress={() => setTab('explore')} />
+      </View>
+      {tab === 'explore' ? <ExploreScreen /> : <MyBoloesList />}
+    </View>
+  );
+}
+
+function MyBoloesList() {
   const router = useRouter();
   const { boloes, bolao: current, select } = useCurrentBolao();
-
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
       <View style={{ flexDirection: 'row', gap: 8 }}>

@@ -65,3 +65,15 @@ export const updateBolaoSettings = (bolaoId: string, settings: BolaoSettings) =>
   api(`/boloes/${bolaoId}`, { method: 'PATCH', body: JSON.stringify(settings) });
 export const reviewRequest =(bolaoId: string, userId: string, decision: 'approve' | 'reject') =>
   api(`/boloes/${bolaoId}/members/${userId}/${decision}`, { method: 'POST' });
+
+export interface PublicBolao {
+  id: string;
+  name: string;
+  requires_approval: boolean;
+  max_members: number;
+  member_count: number;
+}
+
+export const listPublicBoloes = (q: string) => api<PublicBolao[]>(q ? `/boloes/public?q=${encodeURIComponent(q)}` : '/boloes/public');
+export const joinPublicBolao = (id: string) =>
+  api<{ bolao_id: string; status: 'active' | 'pending' }>(`/boloes/${id}/join`, { method: 'POST' });
