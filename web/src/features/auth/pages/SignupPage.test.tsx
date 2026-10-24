@@ -55,6 +55,14 @@ describe('SignupPage', () => {
     expect((screen.getByRole('button', { name: 'Criar conta' }) as HTMLButtonElement).disabled).toBe(true)
   })
 
+  it('keeps the password and username rules visible after the user types', () => {
+    renderAt('/cadastro')
+    fill('1234567')
+    expect(screen.getByLabelText('Senha').getAttribute('aria-describedby')).toBeTruthy()
+    expect(screen.getByText('Pelo menos 8 caracteres')).toBeTruthy()
+    expect(screen.getByText('Pelo menos 3 caracteres')).toBeTruthy()
+  })
+
   it('shows the API error, like a taken username', async () => {
     vi.stubGlobal(
       'fetch',
