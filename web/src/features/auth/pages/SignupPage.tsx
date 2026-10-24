@@ -9,11 +9,12 @@ import { SocialSignIn } from '../components/SocialSignIn';
 const fieldClass =
   'w-full px-3 py-2 rounded-lg bg-card border border-slate-600 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary';
 
-function Field({ id, label, ...props }: { id: string; label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
+function Field({ id, label, hint, ...props }: { id: string; label: string; hint?: string } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <div className="space-y-1">
       <label htmlFor={id} className="block text-sm text-text-muted">{label}</label>
-      <input id={id} className={fieldClass} {...props} />
+      <input id={id} className={fieldClass} aria-describedby={hint ? `${id}-hint` : undefined} {...props} />
+      {hint && <p id={`${id}-hint`} className="text-xs text-text-muted">{hint}</p>}
     </div>
   );
 }
@@ -53,9 +54,9 @@ export function SignupPage() {
       <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4">
         <h1 className="text-2xl font-bold text-center text-primary">Criar conta</h1>
         <Field id="signup-name" label="Seu nome" value={displayName} onChange={(e) => setDisplayName(e.target.value)} autoComplete="name" />
-        <Field id="signup-username" label="Nome de usuário" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" autoCapitalize="none" placeholder="joao.silva" />
+        <Field id="signup-username" label="Nome de usuário" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" autoCapitalize="none" placeholder="joao.silva" hint="Pelo menos 3 caracteres" />
         <Field id="signup-email" label="E-mail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
-        <Field id="signup-password" label="Senha" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" placeholder="Pelo menos 8 caracteres" />
+        <Field id="signup-password" label="Senha" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" hint="Pelo menos 8 caracteres" />
         {error && <p className="text-sm text-red-400">{error}</p>}
         <Button type="submit" className="w-full" disabled={!ready || loading}>Criar conta</Button>
         <p className="text-sm text-center text-text-muted">
