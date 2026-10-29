@@ -5,6 +5,16 @@ on:
     branches: [main]
     tags: ['v*']
 
+# API host during the move off Render (ADR 0018). Repo variable API_HOST:
+# render (default), both, or cloudrun.
+env:
+  GCP_REGION: ${{ vars.GCP_REGION || 'us-central1' }}
+  GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   deploy-dev:
     name: Deploy dev (staging)
@@ -18,7 +28,26 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Trigger Render deploy (bolao-api-dev)
+        if: vars.API_HOST != 'cloudrun'
         run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_DEV }}"
+
+      - name: Authenticate to Google Cloud
+        if: vars.API_HOST == 'both' || vars.API_HOST == 'cloudrun'
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SA }}
+
+      - name: Deploy bolao-api-dev to Cloud Run
+        if: vars.API_HOST == 'both' || vars.API_HOST == 'cloudrun'
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: bolao-api-dev
+          region: ${{ env.GCP_REGION }}
+          project_id: ${{ env.GCP_PROJECT_ID }}
+          source: ./api
+          env_vars: RENDER_GIT_COMMIT=${{ github.sha }}
+          env_vars_update_strategy: merge
 
       - uses: actions/setup-node@v4
         with:
@@ -62,7 +91,26 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Trigger Render deploy (bolao-api)
+        if: vars.API_HOST != 'cloudrun'
         run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_PROD }}"
+
+      - name: Authenticate to Google Cloud
+        if: vars.API_HOST == 'both' || vars.API_HOST == 'cloudrun'
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SA }}
+
+      - name: Deploy bolao-api to Cloud Run
+        if: vars.API_HOST == 'both' || vars.API_HOST == 'cloudrun'
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: bolao-api
+          region: ${{ env.GCP_REGION }}
+          project_id: ${{ env.GCP_PROJECT_ID }}
+          source: ./api
+          env_vars: RENDER_GIT_COMMIT=${{ github.sha }}
+          env_vars_update_strategy: merge
 
       - uses: actions/setup-node@v4
         with:

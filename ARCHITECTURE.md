@@ -6,7 +6,7 @@ See [ADR 0001](docs/adr/0001-go-api-and-react-pwa.md) and [ADR 0005](docs/adr/00
 
 | Area | Stack | Path | Hosting |
 |---|---|---|---|
-| API | Go 1.23, Gin, pgx/v5 | `api/` | Render (Docker, free plan) |
+| API | Go 1.23, Gin, pgx/v5 | `api/` | Render (Docker, free plan), moving to Cloud Run ([ADR 0018](docs/adr/0018-api-on-cloud-run.md)) |
 | Web | React 19, TypeScript, Vite, TanStack Query, Tailwind v4, PWA | `web/` | Vercel |
 | DB | PostgreSQL | `api/migrations/` | Supabase (`pg_cron`, `pg_net`) |
 | CI/CD | GitHub Actions | `.github/workflows/` | |
