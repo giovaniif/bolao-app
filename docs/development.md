@@ -87,7 +87,7 @@ Use the **session pooler** URL (IPv4) to avoid connectivity issues.
 
 The API is moving from Render to Cloud Run ([ADR 0018](adr/0018-api-on-cloud-run.md)). The repo variable `API_HOST` picks the host in `deploy.yml` and `sync-dev-db.yml`: `render` (default), `both` or `cloudrun`.
 
-Repo variables for Cloud Run: `GCP_PROJECT_ID`, `GCP_REGION` (default `us-central1`), `GCP_WIF_PROVIDER`, `GCP_DEPLOY_SA`. Set the runtime env vars from the Render table below once per service, for example:
+Repo variables for Cloud Run: `GCP_PROJECT_ID`, `GCP_REGION` (default `us-central1`), `GCP_WIF_PROVIDER`, `GCP_DEPLOY_SA`, `GCP_RUNTIME_SA` (the service runs as this account, which has no roles). Set the runtime env vars from the Render table below once per service, for example:
 
 ```bash
 gcloud run services update bolao-api-dev --region us-central1 \

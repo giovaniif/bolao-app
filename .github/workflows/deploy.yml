@@ -46,6 +46,7 @@ jobs:
           source: ./api
           env_vars: RENDER_GIT_COMMIT=${{ github.sha }}
           env_vars_update_strategy: merge
+          flags: --service-account=${{ vars.GCP_RUNTIME_SA }}
 
       - uses: actions/setup-node@v4
         with:
@@ -109,6 +110,7 @@ jobs:
           source: ./api
           env_vars: RENDER_GIT_COMMIT=${{ github.sha }}
           env_vars_update_strategy: merge
+          flags: --service-account=${{ vars.GCP_RUNTIME_SA }}
 
       - uses: actions/setup-node@v4
         with:
