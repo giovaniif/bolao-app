@@ -8,13 +8,13 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://bolao-app-dev.onrender.com/api"
+        "EXPO_PUBLIC_API_URL": "https://bolao-api-dev-1030775803263.us-central1.run.app/api"
       }
     },
     "preview": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://bolao-app-dev.onrender.com/api"
+        "EXPO_PUBLIC_API_URL": "https://bolao-api-dev-1030775803263.us-central1.run.app/api"
       }
     },
     "production": {
@@ -26,7 +26,7 @@
     "testflight-dev": {
       "extends": "production",
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://bolao-app-dev.onrender.com/api"
+        "EXPO_PUBLIC_API_URL": "https://bolao-api-dev-1030775803263.us-central1.run.app/api"
       }
     }
   },

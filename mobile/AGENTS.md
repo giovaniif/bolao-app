@@ -22,7 +22,7 @@ npx expo-doctor         # find dependency and config problems
 ```
 
 - Add packages with `npx expo install`, not `npm install`.
-- `EXPO_PUBLIC_API_URL` sets the API. Without it, the app uses the dev API (`https://bolao-app-dev.onrender.com/api`).
+- `EXPO_PUBLIC_API_URL` sets the API. Without it, the app uses the dev API (`https://bolao-api-dev-1030775803263.us-central1.run.app/api`).
 
 ## Layout
 

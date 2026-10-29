@@ -1,4 +1,4 @@
-export const API_BASE = (process.env.EXPO_PUBLIC_API_URL ?? 'https://bolao-app-dev.onrender.com/api').replace(/\/$/, '');
+export const API_BASE = (process.env.EXPO_PUBLIC_API_URL ?? 'https://bolao-api-dev-1030775803263.us-central1.run.app/api').replace(/\/$/, '');
 
 let currentToken: string | null = null;
 
