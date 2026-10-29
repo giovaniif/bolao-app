@@ -47,16 +47,16 @@ jobs:
           PG_CLIENT_IMAGE: postgres:17
 
       - name: Authenticate to Google Cloud
-        if: vars.API_HOST == 'both' || vars.API_HOST == 'cloudrun'
+        if: vars.GCP_PROJECT_ID != ''
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
           service_account: ${{ vars.GCP_DEPLOY_SA }}
 
       - name: Restart bolao-api-dev on Cloud Run so its migrations run
-        if: vars.API_HOST == 'both' || vars.API_HOST == 'cloudrun'
+        if: vars.GCP_PROJECT_ID != ''
         uses: google-github-actions/setup-gcloud@v2
-      - if: vars.API_HOST == 'both' || vars.API_HOST == 'cloudrun'
+      - if: vars.GCP_PROJECT_ID != ''
         run: >
           gcloud run services update bolao-api-dev
           --project "${{ vars.GCP_PROJECT_ID }}"
