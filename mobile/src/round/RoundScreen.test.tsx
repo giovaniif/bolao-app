@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react-native'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react-native'
 import * as SecureStore from 'expo-secure-store'
 import { renderWithProviders } from '../test/render'
 import { fakeApi, type Route } from '../test/fakeApi'
@@ -99,5 +99,26 @@ describe('RoundScreen', () => {
     await fireEvent.press(await screen.findByRole('tab', { name: 'Galera' }))
     expect(await screen.findByText(/O mercado desta rodada ainda não fechou/)).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Bruno Lima' })).toBeNull()
+  })
+
+  it('refetches the round and its partials on pull to refresh', async () => {
+    const calls = fakeApi(routes())
+    await renderWithProviders(<RoundScreen />)
+    await screen.findByText('2 × 1')
+    const count = (path: string) => calls.filter((c) => c.path === path).length
+    const partials = count('/boloes/b-1/parciais/round/5')
+    const standings = count('/boloes/b-1/parciais/round/5/classification')
+    const members = count('/boloes/b-1/members')
+
+    const control = screen.getByTestId('round-scroll').props.refreshControl
+    expect(control.props.refreshing).toBe(false)
+    await act(async () => {
+      await control.props.onRefresh()
+    })
+
+    await waitFor(() => expect(count('/boloes/b-1/parciais/round/5')).toBe(partials + 1))
+    expect(count('/boloes/b-1/parciais/round/5/classification')).toBe(standings + 1)
+    expect(count('/boloes/b-1/members')).toBe(members + 1)
+    expect(screen.getByTestId('round-scroll').props.refreshControl.props.refreshing).toBe(false)
   })
 })
