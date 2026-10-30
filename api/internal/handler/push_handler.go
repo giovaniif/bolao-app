@@ -43,6 +43,7 @@ type MatchSyncer interface {
 const (
 	announceTimeout  = 30 * time.Second
 	matchSyncTimeout = 2 * time.Minute
+	tickSyncWait     = 50 * time.Second
 )
 
 type PushHandler struct {
@@ -53,6 +54,7 @@ type PushHandler struct {
 	publicKey  string
 	syncer     MatchSyncer
 	syncing    atomic.Bool
+	syncWait   time.Duration
 	cronSecret string
 	now        func() time.Time
 }
@@ -66,6 +68,7 @@ func NewPushHandler(store pushSubscriptionStore, bolaos activeBolaoLister, match
 		notifier:   notifier,
 		publicKey:  publicKey,
 		cronSecret: cronSecret,
+		syncWait:   tickSyncWait,
 		now:        time.Now,
 	}
 }
@@ -182,7 +185,7 @@ func (h *PushHandler) Tick(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "não autorizado"})
 		return
 	}
-	h.startMatchSync()
+	defer h.waitForSync(h.startMatchSync())
 	if !h.notifying() {
 		c.JSON(http.StatusOK, gin.H{"sent": 0})
 		return
@@ -225,11 +228,23 @@ func (h *PushHandler) announce(a service.Audience, r service.Reminder) {
 	}
 }
 
-func (h *PushHandler) startMatchSync() {
-	if h.syncer == nil || !h.syncing.CompareAndSwap(false, true) {
+func (h *PushHandler) waitForSync(done <-chan struct{}) {
+	if done == nil {
 		return
 	}
+	select {
+	case <-done:
+	case <-time.After(h.syncWait):
+	}
+}
+
+func (h *PushHandler) startMatchSync() <-chan struct{} {
+	if h.syncer == nil || !h.syncing.CompareAndSwap(false, true) {
+		return nil
+	}
+	done := make(chan struct{})
 	go func() {
+		defer close(done)
 		defer h.syncing.Store(false)
 		ctx, cancel := context.WithTimeout(context.Background(), matchSyncTimeout)
 		defer cancel()
@@ -238,4 +253,5 @@ func (h *PushHandler) startMatchSync() {
 			observability.Capture(err)
 		}
 	}()
+	return done
 }

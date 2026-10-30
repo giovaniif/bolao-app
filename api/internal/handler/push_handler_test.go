@@ -445,6 +445,7 @@ func TestPushHandlerTickWithAWrongSecretDoesNotSync(t *testing.T) {
 func TestPushHandlerTickSkipsASyncWhileOneRuns(t *testing.T) {
 	syncer := &fakeSyncer{ran: make(chan struct{}, 2), release: make(chan struct{})}
 	h := NewPushHandler(&fakePushStore{}, fakeBolaos{}, fakeMatches{}, nil, syncer, "", testCronSecret)
+	h.syncWait = 10 * time.Millisecond
 	r := pushRouter(h)
 	headers := map[string]string{"X-Cron-Secret": testCronSecret}
 
@@ -457,4 +458,49 @@ func TestPushHandlerTickSkipsASyncWhileOneRuns(t *testing.T) {
 	case <-time.After(50 * time.Millisecond):
 	}
 	close(syncer.release)
+}
+
+func TestPushHandlerTickRespondsAfterTheMatchSyncEnds(t *testing.T) {
+	syncer := &fakeSyncer{ran: make(chan struct{}, 1), release: make(chan struct{})}
+	h := NewPushHandler(&fakePushStore{}, fakeBolaos{}, fakeMatches{}, nil, syncer, "", testCronSecret)
+	done := make(chan int, 1)
+	go func() {
+		w := do(t, pushRouter(h), http.MethodPost, "/api/internal/notifications/tick", "", map[string]string{"X-Cron-Secret": testCronSecret})
+		done <- w.Code
+	}()
+	<-syncer.ran
+	select {
+	case <-done:
+		t.Fatal("the tick responded before the match sync ended")
+	case <-time.After(50 * time.Millisecond):
+	}
+	close(syncer.release)
+	select {
+	case code := <-done:
+		if code != http.StatusOK {
+			t.Fatalf("status = %d, want 200", code)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("the tick did not respond after the match sync ended")
+	}
+}
+
+func TestPushHandlerTickStopsWaitingForASlowMatchSync(t *testing.T) {
+	syncer := &fakeSyncer{ran: make(chan struct{}, 1), release: make(chan struct{})}
+	defer close(syncer.release)
+	h := NewPushHandler(&fakePushStore{}, fakeBolaos{}, fakeMatches{}, nil, syncer, "", testCronSecret)
+	h.syncWait = 20 * time.Millisecond
+	done := make(chan int, 1)
+	go func() {
+		w := do(t, pushRouter(h), http.MethodPost, "/api/internal/notifications/tick", "", map[string]string{"X-Cron-Secret": testCronSecret})
+		done <- w.Code
+	}()
+	select {
+	case code := <-done:
+		if code != http.StatusOK {
+			t.Fatalf("status = %d, want 200", code)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("the tick waited past its limit for the match sync")
+	}
 }
