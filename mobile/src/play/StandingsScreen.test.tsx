@@ -1,4 +1,4 @@
-import { fireEvent, screen } from '@testing-library/react-native'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react-native'
 import * as SecureStore from 'expo-secure-store'
 import { renderWithProviders } from '../test/render'
 import { fakeApi } from '../test/fakeApi'
@@ -71,5 +71,21 @@ describe('StandingsScreen', () => {
     await renderWithProviders(<StandingsScreen />)
     await screen.findByText('Ana')
     expect(screen.queryByRole('link', { name: /Hall dos Campeões/ })).toBeNull()
+  })
+
+  it('refetches the standings on pull to refresh', async () => {
+    const calls = fakeApi(routes())
+    await renderWithProviders(<StandingsScreen />)
+    await screen.findByText('Ana')
+    const before = calls.filter((c) => c.path === '/boloes/b-1/classification').length
+
+    const control = screen.getByTestId('standings-list').props.refreshControl
+    expect(control.props.refreshing).toBe(false)
+    await act(async () => {
+      await control.props.onRefresh()
+    })
+
+    await waitFor(() => expect(calls.filter((c) => c.path === '/boloes/b-1/classification').length).toBe(before + 1))
+    expect(screen.getByTestId('standings-list').props.refreshControl.props.refreshing).toBe(false)
   })
 })

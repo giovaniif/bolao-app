@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ActivityIndicator, FlatList, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { getRoundsSummary, getStandings, type Standing } from '../api/play';
 import { useCurrentBolao } from '../bolao/useCurrentBolao';
@@ -8,6 +8,7 @@ import { ChampionsEntryCard } from '../champions/ChampionsEntryCard';
 import { useSeasons } from '../champions/useSeasons';
 import { Chip } from '../components/Chip';
 import { ExploreScreen } from '../boloes/ExploreScreen';
+import { usePullToRefresh } from '../components/usePullToRefresh';
 
 function StandingRow({ rank, item, leader }: { rank: number; item: Standing; leader: boolean }) {
   return (
@@ -51,6 +52,7 @@ export function StandingsScreen() {
     queryFn: () => getStandings(bolaoId, round ?? undefined),
     enabled: !!bolaoId,
   });
+  const pull = usePullToRefresh([['rounds', bolaoId], ['classification', bolaoId]]);
 
   if (isLoading) {
     return <ActivityIndicator style={{ marginTop: 48 }} color={colors.primary} />;
@@ -64,6 +66,8 @@ export function StandingsScreen() {
 
   return (
     <FlatList
+      testID="standings-list"
+      refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={colors.primary} colors={[colors.primary]} />}
       data={data}
       keyExtractor={(s) => s.id}
       contentContainerStyle={{ padding: 16, gap: 8, paddingBottom: 32 }}

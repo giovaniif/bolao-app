@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { getRoundsSummary } from '../api/play';
 import { getMembers } from '../api/round';
 import { useCurrentBolao } from '../bolao/useCurrentBolao';
 import { colors } from '../theme';
+import { usePullToRefresh } from '../components/usePullToRefresh';
 import { PartialsPanel } from './PartialsPanel';
 import { PlayersPanel } from './PlayersPanel';
 
@@ -26,6 +27,13 @@ export function RoundScreen() {
   const members = useQuery({ queryKey: ['members', bolaoId], queryFn: () => getMembers(bolaoId), enabled: !!bolaoId });
   const round = chosenRound ?? summary.data?.active ?? 0;
   const players = (members.data ?? []).filter((m) => m.status === 'active');
+  const pull = usePullToRefresh([
+    ['rounds', bolaoId],
+    ['members', bolaoId],
+    ['partials', bolaoId],
+    ['matches', bolaoId],
+    ['predictions', bolaoId],
+  ]);
 
   if (isLoading) {
     return <ActivityIndicator style={{ marginTop: 48 }} color={colors.primary} />;
@@ -42,7 +50,11 @@ export function RoundScreen() {
   }
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 40 }}>
+    <ScrollView
+      testID="round-scroll"
+      refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={colors.primary} colors={[colors.primary]} />}
+      contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 40 }}
+    >
       <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
         <Text style={{ color: colors.text, fontSize: 26, fontWeight: '900' }}>{round > 0 ? `Rodada ${round}` : 'Rodada'}</Text>
         <Text style={{ color: colors.muted, fontSize: 13, fontWeight: '700' }}>{members.data ? `${players.length} jogadores` : ''}</Text>
