@@ -83,6 +83,19 @@ Every night at 06:00 UTC, `.github/workflows/sync-dev-db.yml` replaces the dev d
 The database runs on Supabase (managed PostgreSQL). Migrations run automatically on API startup.
 Use the **session pooler** URL (IPv4) to avoid connectivity issues.
 
+### API – Cloud Run
+
+The API is moving from Render to Cloud Run ([ADR 0018](adr/0018-api-on-cloud-run.md)). The repo variable `API_HOST` picks the host in `deploy.yml` and `sync-dev-db.yml`: `render` (default), `both` or `cloudrun`.
+
+Repo variables for Cloud Run: `GCP_PROJECT_ID`, `GCP_REGION` (default `us-central1`), `GCP_WIF_PROVIDER`, `GCP_DEPLOY_SA`, `GCP_RUNTIME_SA` (the service runs as this account, which has no roles). Set the runtime env vars from the Render table below once per service, for example:
+
+```bash
+gcloud run services update bolao-api-dev --region us-central1 \
+  --update-env-vars VAPID_SUBJECT=mailto:you@example.com
+```
+
+A deploy keeps the existing env vars and sets only `RENDER_GIT_COMMIT`. Cloud Run sets `PORT`.
+
 ### API – Render
 
 The API is deployed on Render via Docker (`render.yaml` at the project root).

@@ -11,6 +11,7 @@ concurrency:
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   sync:
@@ -23,7 +24,9 @@ jobs:
 
       - name: Check secrets
         run: |
-          for name in PROD_DATABASE_URL DEV_DATABASE_URL RENDER_DEPLOY_HOOK_DEV; do
+          names="PROD_DATABASE_URL DEV_DATABASE_URL"
+          [ "$API_HOST" = cloudrun ] || names="$names RENDER_DEPLOY_HOOK_DEV"
+          for name in $names; do
             if [ -z "${!name}" ]; then
               echo "::error::secret $name is not set"
               exit 1
@@ -33,11 +36,29 @@ jobs:
           PROD_DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
           DEV_DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
           RENDER_DEPLOY_HOOK_DEV: ${{ secrets.RENDER_DEPLOY_HOOK_DEV }}
+          API_HOST: ${{ vars.API_HOST }}
 
       - name: Copy, scrub and redeploy dev
         run: tools/sync-dev-db/sync.sh
         env:
           PROD_DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
           DEV_DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
-          RENDER_DEPLOY_HOOK_DEV: ${{ secrets.RENDER_DEPLOY_HOOK_DEV }}
+          RENDER_DEPLOY_HOOK_DEV: ${{ vars.API_HOST != 'cloudrun' && secrets.RENDER_DEPLOY_HOOK_DEV || '' }}
           PG_CLIENT_IMAGE: postgres:17
+
+      - name: Authenticate to Google Cloud
+        if: vars.GCP_PROJECT_ID != ''
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SA }}
+
+      - name: Restart bolao-api-dev on Cloud Run so its migrations run
+        if: vars.GCP_PROJECT_ID != ''
+        uses: google-github-actions/setup-gcloud@v2
+      - if: vars.GCP_PROJECT_ID != ''
+        run: >
+          gcloud run services update bolao-api-dev
+          --project "${{ vars.GCP_PROJECT_ID }}"
+          --region "${{ vars.GCP_REGION || 'us-central1' }}"
+          --update-env-vars "DEV_DB_SYNCED_AT=$(date -u +%Y%m%dT%H%M%SZ)"

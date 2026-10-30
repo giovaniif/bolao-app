@@ -1,6 +1,6 @@
 # ADR 0005: Render, Vercel and Supabase on free plans
 
-Status: accepted, 2026-07-23.
+Status: accepted, 2026-07-23. The API host is superseded by [ADR 0018](0018-api-on-cloud-run.md) once `API_HOST` is `cloudrun`.
 
 ## Decision
 

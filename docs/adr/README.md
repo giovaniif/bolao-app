@@ -21,3 +21,4 @@ One file per decision, numbered in order. A record does not change after it is a
 | [0015](0015-matches-from-football-data.md) | Matches come from football-data.org |
 | [0016](0016-thesportsdb-as-backup-feed.md) | TheSportsDB is the backup feed for results |
 | [0017](0017-nightly-prod-snapshot-into-dev.md) | A nightly prod snapshot, scrubbed, replaces the dev database |
+| [0018](0018-api-on-cloud-run.md) | The API moves from Render to Cloud Run (proposed) |
