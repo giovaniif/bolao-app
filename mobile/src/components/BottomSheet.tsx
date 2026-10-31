@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Animated, Modal, PanResponder, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../theme';
@@ -8,9 +8,7 @@ const DISMISS_VELOCITY = 1;
 
 export function BottomSheet({ visible, onClose, testID, children }: { visible: boolean; onClose: () => void; testID?: string; children: ReactNode }) {
   const insets = useSafeAreaInsets();
-  const drag = useRef(new Animated.Value(0)).current;
-  const close = useRef(onClose);
-  close.current = onClose;
+  const [drag] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     if (visible) {
@@ -18,19 +16,21 @@ export function BottomSheet({ visible, onClose, testID, children }: { visible: b
     }
   }, [visible, drag]);
 
-  const pan = useRef(
-    PanResponder.create({
+  const pan = useMemo(
+    () =>
+      PanResponder.create({
       onMoveShouldSetPanResponder: (_, g) => g.dy > 4 && Math.abs(g.dy) > Math.abs(g.dx),
       onPanResponderMove: (_, g) => drag.setValue(Math.max(0, g.dy)),
       onPanResponderRelease: (_, g) => {
         if (g.dy > DISMISS_DISTANCE || g.vy > DISMISS_VELOCITY) {
-          close.current();
+          onClose();
         } else {
           Animated.spring(drag, { toValue: 0, useNativeDriver: true }).start();
         }
       },
-    })
-  ).current;
+      }),
+    [drag, onClose]
+  );
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
