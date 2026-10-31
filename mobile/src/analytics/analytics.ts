@@ -24,6 +24,13 @@ export async function startAnalytics(): Promise<void> {
     host: 'https://us.i.posthog.com',
     defaultOptIn: false,
     captureAppLifecycleEvents: false,
+    enableSessionReplay: false,
+    disableSurveys: true,
+    preloadFeatureFlags: false,
+    sendFeatureFlagEvent: false,
+    disableRemoteConfig: true,
+    personProfiles: 'identified_only',
+    errorTracking: { autocapture: { uncaughtExceptions: false, unhandledRejections: false, console: false } },
   });
   consent = await readConsent();
   if (consent === 'granted') {

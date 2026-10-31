@@ -26,11 +26,29 @@ describe('analytics', () => {
     expect(await a.needsConsent()).toBe(false)
   })
 
-  it('starts opted out on the EU servers and asks for consent', async () => {
+  it('starts opted out on the US servers and asks for consent', async () => {
     const a = load('phc_key')
     await a.startAnalytics()
     expect(mockCtor).toHaveBeenCalledWith('phc_key', expect.objectContaining({ host: 'https://us.i.posthog.com', defaultOptIn: false }))
     expect(await a.needsConsent()).toBe(true)
+  })
+
+  it('turns off every PostHog feature except events and screen views', async () => {
+    const a = load('phc_key')
+    await a.startAnalytics()
+    expect(mockCtor).toHaveBeenCalledWith(
+      'phc_key',
+      expect.objectContaining({
+        enableSessionReplay: false,
+        disableSurveys: true,
+        preloadFeatureFlags: false,
+        sendFeatureFlagEvent: false,
+        disableRemoteConfig: true,
+        captureAppLifecycleEvents: false,
+        personProfiles: 'identified_only',
+        errorTracking: { autocapture: { uncaughtExceptions: false, unhandledRejections: false, console: false } },
+      })
+    )
   })
 
   it('tracks only after the user accepts, and stops after a refusal', async () => {
