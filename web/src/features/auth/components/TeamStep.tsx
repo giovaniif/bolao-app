@@ -1,4 +1,4 @@
-import { TeamCrest } from '../../../shared/components/TeamCrest';
+import { TeamBadge } from '../../../shared/components/TeamBadge';
 import { OnboardingScreen } from './OnboardingScreen';
 
 interface TeamStepProps {
@@ -47,7 +47,7 @@ export function TeamStep({ teams, query, selected, saving, error, onQueryChange,
                   : 'border-transparent bg-[var(--color-card)] text-slate-300'
               }`}
             >
-              <TeamCrest team={team} />
+              <TeamBadge team={team} />
               <span className="w-full leading-tight [overflow-wrap:anywhere]">{team}</span>
             </button>
           );
