@@ -101,3 +101,23 @@ describe('AppHeader admin entry', () => {
     expect(screen.queryByRole('menuitem', { name: 'Admin' })).toBeNull()
   })
 })
+
+describe('AppHeader profile sheet', () => {
+  it('opens the profile actions in a bottom sheet with the user name', async () => {
+    fakeApi([{ path: /^\/me\/boloes$/, body: MINE }, { path: /^\/me$/, body: { display_name: 'Ana Souza' } }])
+    await renderWithProviders(<AppHeader title="Palpites" />)
+    await fireEvent.press(await screen.findByRole('button', { name: 'Meu perfil' }))
+    const sheet = screen.getByTestId('profile-sheet')
+    expect(sheet.props.accessibilityViewIsModal).toBe(true)
+    expect(screen.getByRole('header', { name: 'Ana Souza' })).toBeTruthy()
+    expect(screen.getByLabelText('Arraste para baixo para fechar')).toBeTruthy()
+  })
+
+  it('closes the sheet when the backdrop is tapped', async () => {
+    fakeApi([{ path: /^\/me\/boloes$/, body: MINE }, { path: /^\/me$/, body: { display_name: 'Ana Souza' } }])
+    await renderWithProviders(<AppHeader title="Palpites" />)
+    await fireEvent.press(await screen.findByRole('button', { name: 'Meu perfil' }))
+    await fireEvent.press(screen.getByLabelText('Fechar menu', { includeHiddenElements: true }))
+    expect(screen.queryByTestId('profile-sheet')).toBeNull()
+  })
+})
