@@ -18,4 +18,17 @@ describe('scrubEvent', () => {
     expect(got.message).toBe('erro para [email]')
     expect(got.breadcrumbs?.[0].message).toBe('POST [email]')
   })
+
+  it('hides bearer tokens and JWTs in messages, breadcrumbs and exceptions', () => {
+    const jwt = 'eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiMSJ9.c2lnbmF0dXJl'
+    const got = scrubEvent({
+      type: undefined,
+      message: 'call failed with Bearer abc.def-123',
+      breadcrumbs: [{ message: `token ${jwt}` }],
+      exception: { values: [{ value: `bad ${jwt}` }] },
+    })
+    expect(got.message).toBe('call failed with Bearer [token]')
+    expect(got.breadcrumbs?.[0].message).toBe('token [token]')
+    expect(got.exception?.values?.[0].value).toBe('bad [token]')
+  })
 })
