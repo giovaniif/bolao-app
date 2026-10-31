@@ -58,8 +58,30 @@ export function usernameAvailable(username: string): Promise<UsernameAvailabilit
   return api<UsernameAvailability>(`/auth/username-available?username=${encodeURIComponent(username)}`);
 }
 
-export async function deleteAccount(): Promise<void> {
-  await api('/me', { method: 'DELETE' });
+export interface DeletionCandidate {
+  user_id: string;
+  display_name: string;
+  role: string;
+}
+
+export interface DeletionBlocker {
+  bolao_id: string;
+  bolao_name: string;
+  suggested_owner_id: string;
+  members: DeletionCandidate[];
+}
+
+export async function getDeletionBlockers(): Promise<DeletionBlocker[]> {
+  const res = await api<{ blockers: DeletionBlocker[] }>('/me/deletion-check');
+  return res.blockers;
+}
+
+export async function deleteAccount(newOwners: Record<string, string> = {}): Promise<void> {
+  if (Object.keys(newOwners).length === 0) {
+    await api('/me', { method: 'DELETE' });
+    return;
+  }
+  await api('/me', { method: 'DELETE', body: JSON.stringify({ new_owners: newOwners }) });
 }
 
 export interface Profile {

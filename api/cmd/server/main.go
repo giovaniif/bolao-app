@@ -129,6 +129,7 @@ func main() {
 		api.POST("/push/expo-tokens", pushHandler.RegisterExpoToken)
 		api.DELETE("/push/expo-tokens", pushHandler.UnregisterExpoToken)
 		api.PUT("/me", userHandler.UpdateMe)
+		api.GET("/me/deletion-check", userHandler.DeletionCheck)
 		api.DELETE("/me", userHandler.DeleteMe)
 		api.PUT("/parciais/match/:id", partialHandler.SetPartial)
 		api.DELETE("/parciais/match/:id", partialHandler.ClearPartial)

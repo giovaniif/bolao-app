@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"errors"
+	"io"
 	"net/http"
 	"strings"
 
@@ -21,7 +22,8 @@ type userStore interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*models.User, error)
 	GetByUsernameExcluding(ctx context.Context, username string, excludeID uuid.UUID) (*models.User, error)
 	Update(ctx context.Context, user *models.User) error
-	DeleteAccount(ctx context.Context, userID uuid.UUID) error
+	DeleteAccount(ctx context.Context, userID uuid.UUID, newOwners map[uuid.UUID]uuid.UUID) error
+	DeletionBlockers(ctx context.Context, userID uuid.UUID) ([]models.DeletionBlocker, error)
 }
 
 type userBolaoStore interface {
@@ -270,8 +272,34 @@ func contains(s []string, e string) bool {
 	return false
 }
 
+func (h *UserHandler) DeletionCheck(c *gin.Context) {
+	blockers, err := h.userRepo.DeletionBlockers(c.Request.Context(), c.MustGet("user_id").(uuid.UUID))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if blockers == nil {
+		blockers = []models.DeletionBlocker{}
+	}
+	c.JSON(http.StatusOK, gin.H{"blockers": blockers})
+}
+
 func (h *UserHandler) DeleteMe(c *gin.Context) {
-	err := h.userRepo.DeleteAccount(c.Request.Context(), c.MustGet("user_id").(uuid.UUID))
+	var req struct {
+		NewOwners map[uuid.UUID]uuid.UUID `json:"new_owners"`
+	}
+	if c.Request.ContentLength != 0 {
+		if err := c.ShouldBindJSON(&req); err != nil && !errors.Is(err, io.EOF) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "dados inválidos"})
+			return
+		}
+	}
+	err := h.userRepo.DeleteAccount(c.Request.Context(), c.MustGet("user_id").(uuid.UUID), req.NewOwners)
+	var blocked *repository.OwnershipBlockedError
+	if errors.As(err, &blocked) {
+		c.JSON(http.StatusConflict, gin.H{"error": err.Error(), "blockers": blocked.Blockers})
+		return
+	}
 	if errors.Is(err, repository.ErrOwnsActiveBolao) {
 		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 		return
