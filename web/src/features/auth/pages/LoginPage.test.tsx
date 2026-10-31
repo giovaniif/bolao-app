@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { screen, fireEvent } from '@testing-library/react'
 import { renderWithProviders } from '../../../test/renderWithProviders'
 import { LoginPage } from './LoginPage'
+import { setLoginNotice } from '../../../shared/api/session'
 
 function failWith(status: number, error: string) {
   vi.stubGlobal(
@@ -45,5 +46,11 @@ describe('LoginPage', () => {
 
     expect(await screen.findByText('Erro interno')).toBeTruthy()
     expect(screen.queryByRole('link', { name: 'Esqueci minha senha' })).toBeNull()
+  })
+
+  it('shows why the user was sent back to the login', async () => {
+    setLoginNotice('Sua sessão expirou. Entre de novo.')
+    renderWithProviders(<LoginPage />, { route: '/login' })
+    expect(await screen.findByText('Sua sessão expirou. Entre de novo.')).toBeTruthy()
   })
 })

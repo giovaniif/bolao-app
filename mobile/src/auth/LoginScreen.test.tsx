@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor } from '@testing-library/react-native'
 import * as SecureStore from 'expo-secure-store'
 import { renderWithProviders } from '../test/render'
 import { LoginScreen } from './LoginScreen'
+import { setLoginNotice } from '../api/session'
 import { SignupScreen } from './SignupScreen'
 
 const mockReplace = jest.fn()
@@ -111,5 +112,11 @@ describe('SignupScreen', () => {
 
     await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/meus-boloes'))
     expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual({ username: 'ana', display_name: 'Ana Souza', email: 'ana@example.com', password: 'segredo123' })
+  })
+
+  it('shows why the user was sent back to the login', async () => {
+    setLoginNotice('Sua sessão expirou. Entre de novo.')
+    await renderWithProviders(<LoginScreen />)
+    expect(await screen.findByText('Sua sessão expirou. Entre de novo.')).toBeTruthy()
   })
 })
