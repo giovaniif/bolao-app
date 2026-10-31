@@ -3,9 +3,11 @@ import * as SecureStore from 'expo-secure-store'
 import { renderWithProviders } from '../test/render'
 import { fakeApi } from '../test/fakeApi'
 import { router } from '../test/routerMock'
+import { bottomSheetCalls } from '../test/bottomSheetMock'
 import { AppHeader } from './AppHeader'
 
 jest.mock('expo-router', () => jest.requireActual('../test/routerMock').routerModule())
+jest.mock('@gorhom/bottom-sheet', () => jest.requireActual('../test/bottomSheetMock').bottomSheetModule())
 
 const MINE = [
   { id: 'b-1', name: 'Bolão 2026', status: 'active', role: 'participant', member_status: 'active', member_count: 20 },
@@ -107,17 +109,18 @@ describe('AppHeader profile sheet', () => {
     fakeApi([{ path: /^\/me\/boloes$/, body: MINE }, { path: /^\/me$/, body: { display_name: 'Ana Souza' } }])
     await renderWithProviders(<AppHeader title="Palpites" />)
     await fireEvent.press(await screen.findByRole('button', { name: 'Meu perfil' }))
-    const sheet = screen.getByTestId('profile-sheet')
-    expect(sheet.props.accessibilityViewIsModal).toBe(true)
+    expect(screen.getByTestId('profile-sheet')).toBeTruthy()
+    expect(bottomSheetCalls.present).toBeGreaterThan(0)
     expect(screen.getByRole('header', { name: 'Ana Souza' })).toBeTruthy()
-    expect(screen.getByLabelText('Arraste para baixo para fechar')).toBeTruthy()
+    expect(screen.getByRole('menuitem', { name: 'Sair' })).toBeTruthy()
   })
 
   it('closes the sheet when the backdrop is tapped', async () => {
     fakeApi([{ path: /^\/me\/boloes$/, body: MINE }, { path: /^\/me$/, body: { display_name: 'Ana Souza' } }])
     await renderWithProviders(<AppHeader title="Palpites" />)
     await fireEvent.press(await screen.findByRole('button', { name: 'Meu perfil' }))
-    await fireEvent.press(screen.getByLabelText('Fechar menu', { includeHiddenElements: true }))
+    await fireEvent.press(screen.getByLabelText('Fechar menu'))
     expect(screen.queryByTestId('profile-sheet')).toBeNull()
+    expect(screen.queryByRole('menuitem', { name: 'Sair' })).toBeNull()
   })
 })
