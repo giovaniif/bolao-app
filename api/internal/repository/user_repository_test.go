@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/bolao-app/api/internal/models"
@@ -14,7 +15,11 @@ func TestUserRepository_Create_GetByUsername(t *testing.T) {
 		t.Skip("skipping integration test in short mode")
 	}
 	ctx := context.Background()
-	pool, err := pgxpool.New(ctx, "postgres://postgres:postgres@localhost:5432/bolao_test?sslmode=disable")
+	url := os.Getenv("TEST_DATABASE_URL")
+	if url == "" {
+		url = "postgres://postgres:postgres@localhost:5432/bolao_test?sslmode=disable"
+	}
+	pool, err := pgxpool.New(ctx, url)
 	if err != nil {
 		t.Skipf("database not available: %v", err)
 	}
