@@ -59,9 +59,16 @@ function MyBoloesList() {
               <Text style={{ color: pending ? colors.accent : colors.muted, fontSize: 12, fontWeight: '700' }}>{pending ? 'Aguardando aprovação' : ROLE[b.role]}</Text>
             </Pressable>
             {manages && b.status === 'active' && (
-              <Pressable accessibilityRole="button" accessibilityLabel={`Gerenciar ${b.name}`} onPress={() => router.push({ pathname: '/membros', params: { id: b.id } })} style={{ paddingHorizontal: 14, paddingBottom: 12 }}>
-                <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 13 }}>Convidar e gerenciar</Text>
-              </Pressable>
+              <View style={{ paddingHorizontal: 14, paddingBottom: 14 }}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Gerenciar ${b.name}`}
+                  onPress={() => router.push({ pathname: '/membros', params: { id: b.id } })}
+                  style={({ pressed }) => ({ minHeight: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16, borderRadius: 10, borderWidth: 1, borderColor: colors.primary, opacity: pressed ? 0.7 : 1 })}
+                >
+                  <Text style={{ color: colors.primary, fontWeight: '800', fontSize: 15 }}>Convidar e gerenciar</Text>
+                </Pressable>
+              </View>
             )}
           </View>
         );

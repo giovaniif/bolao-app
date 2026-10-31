@@ -47,6 +47,15 @@ describe('MyBoloesScreen', () => {
     await fireEvent.press(await screen.findByRole('button', { name: 'Gerenciar Firma' }))
     expect(router.push).toHaveBeenCalledWith({ pathname: '/membros', params: { id: 'b-2' } })
   })
+
+  it('gives the manage button a tap area of at least 44 points', async () => {
+    fakeApi([{ path: /^\/me\/boloes$/, body: MINE }])
+    await renderWithProviders(<MyBoloesScreen />)
+    const button = await screen.findByRole('button', { name: 'Gerenciar Firma' })
+    const style = Object.assign({}, ...[button.props.style].flat())
+    expect(style.minHeight).toBeGreaterThanOrEqual(44)
+    expect(screen.getByText('Convidar e gerenciar')).toBeTruthy()
+  })
 })
 
 describe('CreateBolaoScreen', () => {
