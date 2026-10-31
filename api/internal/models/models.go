@@ -210,3 +210,16 @@ type SyncTarget struct {
 	BolaoStartedAt time.Time
 	LastSyncedAt   *time.Time
 }
+
+type DeletionCandidate struct {
+	UserID      uuid.UUID `json:"user_id"`
+	DisplayName string    `json:"display_name"`
+	Role        string    `json:"role"`
+}
+
+type DeletionBlocker struct {
+	BolaoID          uuid.UUID           `json:"bolao_id"`
+	BolaoName        string              `json:"bolao_name"`
+	SuggestedOwnerID uuid.UUID           `json:"suggested_owner_id"`
+	Members          []DeletionCandidate `json:"members"`
+}

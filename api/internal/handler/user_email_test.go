@@ -38,7 +38,12 @@ func (f *fakeUserStore) Update(_ context.Context, u *models.User) error {
 	f.updated = u
 	return nil
 }
-func (f *fakeUserStore) DeleteAccount(context.Context, uuid.UUID) error { return nil }
+func (f *fakeUserStore) DeleteAccount(context.Context, uuid.UUID, map[uuid.UUID]uuid.UUID) error {
+	return nil
+}
+func (f *fakeUserStore) DeletionBlockers(context.Context, uuid.UUID) ([]models.DeletionBlocker, error) {
+	return nil, nil
+}
 
 func meRouter(t *testing.T, store *fakeUserStore) (*gin.Engine, map[string]string) {
 	t.Helper()

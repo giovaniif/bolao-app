@@ -7,6 +7,7 @@ import (
 
 	"github.com/bolao-app/api/internal/models"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -156,23 +157,92 @@ func (r *UserRepository) ListSharingBolaoWith(ctx context.Context, userID uuid.U
 
 var ErrOwnsActiveBolao = errors.New("passe seus bolões ativos para outra pessoa antes de excluir a conta")
 
-func (r *UserRepository) DeleteAccount(ctx context.Context, userID uuid.UUID) error {
+type OwnershipBlockedError struct {
+	Blockers []models.DeletionBlocker
+}
+
+func (e *OwnershipBlockedError) Error() string { return ErrOwnsActiveBolao.Error() }
+
+func (e *OwnershipBlockedError) Unwrap() error { return ErrOwnsActiveBolao }
+
+type queryer interface {
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+}
+
+func deletionBlockers(ctx context.Context, q queryer, userID uuid.UUID) ([]models.DeletionBlocker, error) {
+	rows, err := q.Query(ctx, `
+		SELECT b.id, b.name, u.id, u.display_name, p.role
+		FROM boloes b
+		JOIN bolao_participants p ON p.bolao_id = b.id AND p.user_id <> $1 AND p.status = 'active'
+		JOIN users u ON u.id = p.user_id
+		WHERE b.owner_id = $1 AND b.status = 'active'
+		ORDER BY b.name, b.id, CASE p.role WHEN 'admin' THEN 0 ELSE 1 END, p.joined_at, u.id`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var blockers []models.DeletionBlocker
+	for rows.Next() {
+		var bolaoID uuid.UUID
+		var name string
+		var c models.DeletionCandidate
+		if err := rows.Scan(&bolaoID, &name, &c.UserID, &c.DisplayName, &c.Role); err != nil {
+			return nil, err
+		}
+		if len(blockers) == 0 || blockers[len(blockers)-1].BolaoID != bolaoID {
+			blockers = append(blockers, models.DeletionBlocker{BolaoID: bolaoID, BolaoName: name, SuggestedOwnerID: c.UserID})
+		}
+		last := &blockers[len(blockers)-1]
+		last.Members = append(last.Members, c)
+	}
+	return blockers, rows.Err()
+}
+
+func (r *UserRepository) DeletionBlockers(ctx context.Context, userID uuid.UUID) ([]models.DeletionBlocker, error) {
+	return deletionBlockers(ctx, r.pool, userID)
+}
+
+func validNewOwner(b models.DeletionBlocker, newOwners map[uuid.UUID]uuid.UUID) (uuid.UUID, bool) {
+	to, ok := newOwners[b.BolaoID]
+	if !ok {
+		return uuid.Nil, false
+	}
+	for _, m := range b.Members {
+		if m.UserID == to {
+			return to, true
+		}
+	}
+	return uuid.Nil, false
+}
+
+func (r *UserRepository) DeleteAccount(ctx context.Context, userID uuid.UUID, newOwners map[uuid.UUID]uuid.UUID) error {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
-	var ownsWithMembers bool
-	if err := tx.QueryRow(ctx, `
-		SELECT EXISTS (
-			SELECT 1 FROM boloes b
-			WHERE b.owner_id = $1 AND b.status = 'active'
-			  AND EXISTS (SELECT 1 FROM bolao_participants p WHERE p.bolao_id = b.id AND p.user_id <> $1 AND p.status = 'active')
-		)`, userID).Scan(&ownsWithMembers); err != nil {
+	blockers, err := deletionBlockers(ctx, tx, userID)
+	if err != nil {
 		return err
 	}
-	if ownsWithMembers {
-		return ErrOwnsActiveBolao
+	transfers := make(map[uuid.UUID]uuid.UUID, len(blockers))
+	for _, b := range blockers {
+		to, ok := validNewOwner(b, newOwners)
+		if !ok {
+			return &OwnershipBlockedError{Blockers: blockers}
+		}
+		transfers[b.BolaoID] = to
+	}
+	for bolaoID, to := range transfers {
+		if _, err := tx.Exec(ctx, `UPDATE bolao_participants SET role = 'admin' WHERE bolao_id = $1 AND user_id = $2`, bolaoID, userID); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `UPDATE bolao_participants SET role = 'owner' WHERE bolao_id = $1 AND user_id = $2`, bolaoID, to); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `UPDATE boloes SET owner_id = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $1`, bolaoID, to); err != nil {
+			return err
+		}
 	}
 	statements := []string{
 		`UPDATE boloes SET status = 'finished', finished_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE owner_id = $1 AND status = 'active'`,
