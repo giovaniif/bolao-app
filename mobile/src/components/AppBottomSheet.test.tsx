@@ -81,5 +81,15 @@ describe('AppBottomSheet', () => {
     await act(async () => bottomSheetCalls.panDown())
     expect(onClose).toHaveBeenCalledTimes(1)
   })
+
+  it('does not dismiss again after the sheet closed itself', async () => {
+    const onClose = jest.fn()
+    const view = await render(<Sheet open onClose={onClose} />)
+    await act(async () => bottomSheetCalls.panDown())
+    await view.rerender(<Sheet open={false} onClose={onClose} />)
+    expect(bottomSheetCalls.dismiss).toBe(0)
+    await view.rerender(<Sheet open onClose={onClose} />)
+    expect(bottomSheetCalls.present).toBe(2)
+  })
 })
 
