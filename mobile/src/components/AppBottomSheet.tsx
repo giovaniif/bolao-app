@@ -23,11 +23,27 @@ export function AppBottomSheet({ open, onClose, children, testID, closeLabel = '
   const sheet = useRef<BottomSheetModal>(null);
   const insets = useSafeAreaInsets();
   const wasOpen = useRef(false);
+  const reported = useRef(true);
+
+  const reportClose = useCallback(() => {
+    if (reported.current) return;
+    reported.current = true;
+    wasOpen.current = false;
+    onClose();
+  }, [onClose]);
+
+  const handleChange = useCallback(
+    (index: number) => {
+      if (index >= 0) reported.current = false;
+      else reportClose();
+    },
+    [reportClose]
+  );
 
   useEffect(() => {
-    if (open) {
+    if (open && !wasOpen.current) {
       sheet.current?.present();
-    } else if (wasOpen.current) {
+    } else if (!open && wasOpen.current) {
       sheet.current?.dismiss();
     }
     wasOpen.current = open;
@@ -42,10 +58,6 @@ export function AppBottomSheet({ open, onClose, children, testID, closeLabel = '
     return () => subscription.remove();
   }, [open, onClose]);
 
-  const handleDismiss = useCallback(() => {
-    if (open) onClose();
-  }, [open, onClose]);
-
   const renderBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => (
       <BottomSheetBackdrop
@@ -53,12 +65,11 @@ export function AppBottomSheet({ open, onClose, children, testID, closeLabel = '
         appearsOnIndex={0}
         disappearsOnIndex={-1}
         opacity={0.6}
-        pressBehavior="none"
-        onPress={onClose}
+        pressBehavior="close"
         accessibilityLabel={closeLabel}
       />
     ),
-    [onClose, closeLabel]
+    [closeLabel]
   );
 
   return (
@@ -68,7 +79,8 @@ export function AppBottomSheet({ open, onClose, children, testID, closeLabel = '
       enablePanDownToClose
       animationConfigs={SPRING}
       backdropComponent={renderBackdrop}
-      onDismiss={handleDismiss}
+      onChange={handleChange}
+      onDismiss={reportClose}
       backgroundStyle={{ backgroundColor: colors.card }}
       handleIndicatorStyle={{ backgroundColor: colors.muted, width: 40 }}
       accessibilityLabel="Arraste para baixo para fechar"

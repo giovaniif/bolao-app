@@ -3,15 +3,23 @@ import type { ReactNode } from 'react'
 type ModalProps = {
   children?: ReactNode
   onDismiss?: () => void
+  onChange?: (index: number) => void
   backdropComponent?: (props: Record<string, unknown>) => ReactNode
   enablePanDownToClose?: boolean
   bottomInset?: number
   accessibilityLabel?: string
 }
 
-type BackdropProps = { onPress?: () => void; accessibilityLabel?: string }
+type BackdropProps = { onPress?: () => void; accessibilityLabel?: string; pressBehavior?: string; close?: () => void }
 
-export const bottomSheetCalls: { present: number; dismiss: number; lastProps: ModalProps | null } = { present: 0, dismiss: 0, lastProps: null }
+export const bottomSheetCalls: {
+  present: number
+  dismiss: number
+  lastProps: ModalProps | null
+  panDown: () => void
+  lastBackdropProps: BackdropProps | null
+  firesOnDismiss: boolean
+} = { present: 0, dismiss: 0, lastProps: null, panDown: () => undefined, lastBackdropProps: null, firesOnDismiss: true }
 
 export function bottomSheetModule() {
   const React = jest.requireActual('react')
@@ -19,35 +27,59 @@ export function bottomSheetModule() {
 
   const BottomSheetModal = React.forwardRef(function BottomSheetModal(props: ModalProps, ref: unknown) {
     const [open, setOpen] = React.useState(false)
-    const onDismiss = props.onDismiss
+    const latest = React.useRef(props)
+    React.useEffect(() => {
+      latest.current = props
+    })
+    const close = React.useCallback(() => {
+      setOpen((wasOpen: boolean) => {
+        if (wasOpen) {
+          latest.current.onChange?.(-1)
+          if (bottomSheetCalls.firesOnDismiss) setTimeout(() => latest.current.onDismiss?.(), 0)
+        }
+        return false
+      })
+    }, [])
     React.useImperativeHandle(
       ref,
       () => ({
         present: () => {
           bottomSheetCalls.present += 1
           setOpen(true)
+          latest.current.onChange?.(0)
         },
         dismiss: () => {
           bottomSheetCalls.dismiss += 1
-          setOpen(false)
-          onDismiss?.()
+          close()
         },
       }),
-      [onDismiss]
+      [close]
     )
     bottomSheetCalls.lastProps = props
+    bottomSheetCalls.panDown = close
     if (!open) return null
     const Backdrop = props.backdropComponent
     return (
       <View testID="bottom-sheet-modal" accessibilityLabel={props.accessibilityLabel}>
-        {Backdrop ? <Backdrop animatedIndex={{ value: 0 }} animatedPosition={{ value: 0 }} style={{}} /> : null}
+        {Backdrop ? <Backdrop animatedIndex={{ value: 0 }} animatedPosition={{ value: 0 }} style={{}} close={close} /> : null}
         {props.children}
       </View>
     )
   })
 
-  function BottomSheetBackdrop({ onPress, accessibilityLabel }: BackdropProps) {
-    return <Pressable accessibilityLabel={accessibilityLabel} onPress={onPress} />
+  function BottomSheetBackdrop(props: BackdropProps) {
+    const { onPress, accessibilityLabel, pressBehavior = 'close', close } = props
+    bottomSheetCalls.lastBackdropProps = props
+    if (pressBehavior === 'none') return <View accessibilityLabel={accessibilityLabel} />
+    return (
+      <Pressable
+        accessibilityLabel={accessibilityLabel}
+        onPress={() => {
+          onPress?.()
+          if (pressBehavior === 'close') close?.()
+        }}
+      />
+    )
   }
 
   function BottomSheetView({ children }: { children?: ReactNode }) {
