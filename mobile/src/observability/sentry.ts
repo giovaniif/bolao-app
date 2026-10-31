@@ -12,3 +12,7 @@ export function initSentry() {
     beforeSend: scrubEvent,
   });
 }
+
+export function clearSentryUser() {
+  Sentry.setUser(null);
+}

@@ -9,10 +9,12 @@ import { TextField } from '../components/TextField';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { colors } from '../theme';
 import { SocialSignIn } from './SocialSignIn';
+import { consumeLoginNotice } from '../api/session';
 
 export function LoginScreen() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [notice] = useState(consumeLoginNotice);
   const { signIn } = useAuth();
   const router = useRouter();
   const { voltar } = useLocalSearchParams<{ voltar?: string }>();
@@ -33,6 +35,11 @@ export function LoginScreen() {
           <Text style={{ color: colors.primary, fontSize: 32, fontWeight: '900' }}>Bolão</Text>
           <Text style={{ color: colors.muted, marginTop: 4 }}>Usuário e senha para acessar</Text>
         </View>
+        {notice && !mutation.error && (
+          <Text accessibilityRole="alert" style={{ color: colors.accent, textAlign: 'center' }}>
+            {notice}
+          </Text>
+        )}
         <TextField label="Usuário" value={username} onChangeText={setUsername} autoCapitalize="none" autoCorrect={false} textContentType="username" />
         <TextField label="Senha" value={password} onChangeText={setPassword} secureTextEntry textContentType="password" />
         {wrongPassword && (

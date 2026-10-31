@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { deleteAccount, getDeletionBlockers, type DeletionBlocker } from '../api/auth';
+import { ACCOUNT_DELETED } from '../api/session';
 import { useAuth } from './AuthProvider';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { colors } from '../theme';
@@ -43,7 +44,7 @@ export function DeleteAccount() {
     mutationFn: () => deleteAccount(newOwners),
     onSuccess: async () => {
       queryClient.clear();
-      await signOut();
+      await signOut(ACCOUNT_DELETED);
     },
   });
 
