@@ -46,3 +46,18 @@ func TestConfigured(t *testing.T) {
 		t.Error("Configured(dsn) = false, want true")
 	}
 }
+
+func TestScrub_HidesBearerTokensAndJWTsInText(t *testing.T) {
+	jwt := "eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiMSJ9.c2lnbmF0dXJl"
+	event := &sentry.Event{
+		Message:   "call failed with Bearer abc.def-123",
+		Exception: []sentry.Exception{{Value: "bad token " + jwt}},
+	}
+	got := Scrub(event)
+	if got.Message != "call failed with Bearer [token]" {
+		t.Errorf("message = %q", got.Message)
+	}
+	if got.Exception[0].Value != "bad token [token]" {
+		t.Errorf("exception = %q", got.Exception[0].Value)
+	}
+}

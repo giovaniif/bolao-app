@@ -27,7 +27,8 @@
       "extends": "production",
       "env": {
         "EXPO_PUBLIC_API_URL": "https://bolao-api-dev-1030775803263.us-central1.run.app/api"
-      }
+      },
+      "environment": "preview"
     }
   },
   "submit": {
