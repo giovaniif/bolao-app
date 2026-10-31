@@ -73,7 +73,7 @@ export function StandingsScreen() {
       contentContainerStyle={{ padding: 16, gap: 8, paddingBottom: 32 }}
       ListHeaderComponent={
         <View style={{ gap: 8, marginBottom: 8 }}>
-          {seasons.length > 0 && <ChampionsEntryCard latest={seasons[0]} />}
+          <ChampionsEntryCard latest={seasons[0]} />
           <Text style={{ color: colors.muted, fontSize: 13 }}>{round ? `Classificação da Rodada ${round}` : 'Classificação geral'}</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
             <Chip label="Geral" active={round === null} onPress={() => setRound(null)} />

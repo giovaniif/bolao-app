@@ -3,10 +3,10 @@ import { useRouter } from 'expo-router';
 import { colors } from '../theme';
 import type { Season } from './season';
 
-export function ChampionsEntryCard({ latest }: { latest: Season }) {
+export function ChampionsEntryCard({ latest }: { latest?: Season }) {
   const router = useRouter();
-  const champion = latest.champion?.display_name;
-  const subtitle = champion ? `Último: ${champion} · ${latest.year}` : 'Temporadas encerradas';
+  const champion = latest?.champion?.display_name;
+  const subtitle = latest && champion ? `Último: ${champion} · ${latest.year}` : 'Campeões das temporadas encerradas';
   return (
     <Pressable
       accessibilityRole="link"
