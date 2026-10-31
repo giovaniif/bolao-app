@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Modal, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -9,7 +9,7 @@ import { getProfile } from '../api/auth';
 import { adminKeys, getAdminRoundsSummary } from '../api/admin';
 import { colors } from '../theme';
 import { initials } from './initials';
-import { BottomSheet } from '../components/BottomSheet';
+import { AppBottomSheet } from '../components/AppBottomSheet';
 
 function MenuItem({ label, onPress, detail, active, badge }: { label: string; onPress: () => void; detail?: string; active?: boolean; badge?: number }) {
   return (
@@ -45,6 +45,7 @@ export function AppHeader({ title }: { title?: string }) {
   const pendingBolaoId = bolao?.id ?? '';
   const pending = useQuery({ queryKey: adminKeys.summary(pendingBolaoId), queryFn: () => getAdminRoundsSummary(pendingBolaoId), enabled: !!token && isAdmin && !!pendingBolaoId });
   const [menu, setMenu] = useState<'bolao' | 'profile' | null>(null);
+  const closeMenu = useCallback(() => setMenu(null), []);
   const playable = boloes.filter((b) => b.member_status === 'active');
   const name = profile.data?.display_name ?? user?.username ?? '';
   const menuTop = insets.top + 56;
@@ -86,7 +87,7 @@ export function AppHeader({ title }: { title?: string }) {
           />
         ))}
       </Dropdown>
-      <BottomSheet visible={menu === 'profile'} onClose={() => setMenu(null)} testID="profile-sheet">
+      <AppBottomSheet open={menu === 'profile'} onClose={closeMenu} testID="profile-sheet" closeLabel="Fechar menu">
         {!!name && (
           <Text accessibilityRole="header" style={{ color: colors.text, fontSize: 17, fontWeight: '800', paddingHorizontal: 16, paddingBottom: 8 }}>
             {name}
@@ -104,7 +105,7 @@ export function AppHeader({ title }: { title?: string }) {
             router.replace('/login');
           }}
         />
-      </BottomSheet>
+      </AppBottomSheet>
     </View>
   );
 }
