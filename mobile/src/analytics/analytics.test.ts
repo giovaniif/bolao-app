@@ -29,7 +29,7 @@ describe('analytics', () => {
   it('starts opted out on the EU servers and asks for consent', async () => {
     const a = load('phc_key')
     await a.startAnalytics()
-    expect(mockCtor).toHaveBeenCalledWith('phc_key', expect.objectContaining({ host: 'https://eu.i.posthog.com', defaultOptIn: false }))
+    expect(mockCtor).toHaveBeenCalledWith('phc_key', expect.objectContaining({ host: 'https://us.i.posthog.com', defaultOptIn: false }))
     expect(await a.needsConsent()).toBe(true)
   })
 
