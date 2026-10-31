@@ -132,6 +132,26 @@ func TestMembershipRepository_ListsTheBoloesOfAUser(t *testing.T) {
 	}
 }
 
+func TestMembershipRepository_ListsTheSettingsOfEachBolao(t *testing.T) {
+	pool, repo, bolaoID := membershipFixture(t)
+	ctx := context.Background()
+	user := newUser(t, pool)
+	if err := repo.Add(ctx, bolaoID, user, models.MemberRoleOwner, models.MemberStatusActive); err != nil {
+		t.Fatalf("Add: %v", err)
+	}
+	if err := NewBolaoRepository(pool).UpdateSettings(ctx, bolaoID, "Amigos", "public", false); err != nil {
+		t.Fatalf("UpdateSettings: %v", err)
+	}
+
+	boloes, err := repo.ListBoloesOfUser(ctx, user)
+	if err != nil {
+		t.Fatalf("ListBoloesOfUser: %v", err)
+	}
+	if len(boloes) != 1 || boloes[0].Visibility != "public" || boloes[0].RequiresApproval {
+		t.Errorf("boloes = %+v, want visibility public without approval", boloes)
+	}
+}
+
 func TestPushRepository_SkipsMembersThatAreNotActive(t *testing.T) {
 	pool, repo, bolaoID := membershipFixture(t)
 	ctx := context.Background()
