@@ -9,6 +9,7 @@ import { getProfile } from '../api/auth';
 import { adminKeys, getAdminRoundsSummary } from '../api/admin';
 import { colors } from '../theme';
 import { initials } from './initials';
+import { BottomSheet } from '../components/BottomSheet';
 
 function MenuItem({ label, onPress, detail, active, badge }: { label: string; onPress: () => void; detail?: string; active?: boolean; badge?: number }) {
   return (
@@ -85,7 +86,12 @@ export function AppHeader({ title }: { title?: string }) {
           />
         ))}
       </Dropdown>
-      <Dropdown visible={menu === 'profile'} onClose={() => setMenu(null)} top={menuTop} align="right">
+      <BottomSheet visible={menu === 'profile'} onClose={() => setMenu(null)} testID="profile-sheet">
+        {!!name && (
+          <Text accessibilityRole="header" style={{ color: colors.text, fontSize: 17, fontWeight: '800', paddingHorizontal: 16, paddingBottom: 8 }}>
+            {name}
+          </Text>
+        )}
         <MenuItem label="Meus bolões" onPress={() => go('/meus-boloes')} />
         <MenuItem label="Perfil" onPress={() => go('/perfil')} />
         <MenuItem label="Hall dos Campeões" onPress={() => go('/campeoes')} />
@@ -98,7 +104,7 @@ export function AppHeader({ title }: { title?: string }) {
             router.replace('/login');
           }}
         />
-      </Dropdown>
+      </BottomSheet>
     </View>
   );
 }
