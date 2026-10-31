@@ -6,11 +6,17 @@ import { RootStack } from './RootStack'
 
 jest.mock('expo-router', () => {
   const { Text: RNText, View } = jest.requireActual('react-native')
-  const Stack = ({ children }: { children: ReactNode }) => <View>{children}</View>
-  Stack.Screen = ({ name, options }: { name: string; options?: { gestureEnabled?: boolean } }) => (
-    <RNText>{`screen:${name}${options?.gestureEnabled === false ? ':nogesture' : ''}`}</RNText>
-  )
-  Stack.Protected = ({ guard, children }: { guard: boolean; children: ReactNode }) => (guard ? <View>{children}</View> : null)
+  function Stack({ children }: { children: ReactNode }) {
+    return <View>{children}</View>
+  }
+  function Screen({ name, options }: { name: string; options?: { gestureEnabled?: boolean } }) {
+    return <RNText>{`screen:${name}${options?.gestureEnabled === false ? ':nogesture' : ''}`}</RNText>
+  }
+  function Protected({ guard, children }: { guard: boolean; children: ReactNode }) {
+    return guard ? <View>{children}</View> : null
+  }
+  Stack.Screen = Screen
+  Stack.Protected = Protected
   return { Stack }
 })
 
