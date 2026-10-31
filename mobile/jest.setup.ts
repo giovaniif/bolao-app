@@ -43,8 +43,16 @@ jest.mock('react-native-reanimated', () => {
   return {
     __esModule: true,
     default: { View },
-    useSharedValue: (value: number) => ({ value }),
+    useSharedValue: (initial: number) => {
+      const shared = { value: initial, get: () => shared.value, set: (v: number) => { shared.value = v } }
+      return shared
+    },
     useAnimatedStyle: (style: () => object) => style(),
     withTiming: (value: number) => value,
+    withSpring: (value: number) => value,
   }
 })
+
+jest.mock('react-native-worklets', () => ({
+  scheduleOnRN: (fn: (...args: unknown[]) => unknown, ...args: unknown[]) => fn(...args),
+}))

@@ -102,4 +102,28 @@ describe('PredictScreen', () => {
     await renderWithProviders(<PredictScreen />)
     expect(await screen.findByText('Entre em um bolão para palpitar.')).toBeTruthy()
   })
+
+  it('saves a changed palpite in the background when the user moves to the next card', async () => {
+    const calls = fakeApi(routes())
+    await renderWithProviders(<PredictScreen />)
+    await screen.findByText('Flamengo')
+
+    await fireEvent.press(screen.getByLabelText('Mais um gol de Flamengo'))
+    await fireEvent.press(screen.getByRole('button', { name: 'Próximo' }))
+
+    expect(screen.getByText('Jogo 2 de 2')).toBeTruthy()
+    await waitFor(() => expect(calls.filter((c) => c.method === 'POST')).toHaveLength(1))
+    const post = calls.find((c) => c.method === 'POST')
+    expect(JSON.parse(post!.body!)).toEqual({ predictions: [{ match_id: 'm-1', home_goals: 1, away_goals: 0 }] })
+    expect(await screen.findByText('Flamengo × Palmeiras salvo')).toBeTruthy()
+  })
+
+  it('does not save when the user leaves a card without changing it', async () => {
+    const calls = fakeApi(routes())
+    await renderWithProviders(<PredictScreen />)
+    await screen.findByText('Flamengo')
+    await fireEvent.press(screen.getByRole('button', { name: 'Próximo' }))
+    await fireEvent.press(screen.getByRole('button', { name: 'Anterior' }))
+    expect(calls.filter((c) => c.method === 'POST')).toHaveLength(0)
+  })
 })
