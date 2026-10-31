@@ -28,6 +28,7 @@ export function AppBottomSheet({ open, onClose, children, testID, closeLabel = '
   const reportClose = useCallback(() => {
     if (reported.current) return;
     reported.current = true;
+    wasOpen.current = false;
     onClose();
   }, [onClose]);
 
