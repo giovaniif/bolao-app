@@ -66,11 +66,13 @@ describe('StandingsScreen', () => {
     expect(router.push).toHaveBeenCalledWith('/campeoes')
   })
 
-  it('hides the Hall dos Campeões card when no bolão has finished', async () => {
+  it('shows the Hall dos Campeões card to every member, even before a bolão has finished', async () => {
     fakeApi(routes())
     await renderWithProviders(<StandingsScreen />)
     await screen.findByText('Ana')
-    expect(screen.queryByRole('link', { name: /Hall dos Campeões/ })).toBeNull()
+    expect(screen.getByText('Campeões das temporadas encerradas')).toBeTruthy()
+    await fireEvent.press(screen.getByRole('link', { name: /Hall dos Campeões/ }))
+    expect(router.push).toHaveBeenCalledWith('/campeoes')
   })
 
   it('refetches the standings on pull to refresh', async () => {
