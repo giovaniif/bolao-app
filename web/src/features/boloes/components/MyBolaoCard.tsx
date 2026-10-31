@@ -27,12 +27,12 @@ export function MyBolaoCard({ bolao }: { bolao: MyBolao }) {
   }
   const manages = bolao.role === 'owner' || bolao.role === 'admin';
   return (
-    <div className="space-y-1">
+    <div className="space-y-2">
       <Link to={`/?bolao=${bolao.id}`} className={`${className} hover:border-primary/60`}>
         {body}
       </Link>
       {manages && bolao.status === 'active' && (
-        <Link to={`/membros?bolao=${bolao.id}`} className="block text-right text-xs font-semibold text-primary px-2">
+        <Link to={`/membros?bolao=${bolao.id}`} className="flex min-h-11 items-center justify-center rounded-lg border border-primary px-4 text-sm font-semibold text-primary hover:bg-primary/10">
           Convidar e gerenciar
         </Link>
       )}
