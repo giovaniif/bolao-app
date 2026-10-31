@@ -16,6 +16,7 @@ function Sheet({ open, onClose }: { open: boolean; onClose: () => void }) {
 beforeEach(() => {
   bottomSheetCalls.present = 0
   bottomSheetCalls.dismiss = 0
+  bottomSheetCalls.firesOnDismiss = true
 })
 
 describe('AppBottomSheet', () => {
@@ -67,4 +68,18 @@ describe('AppBottomSheet', () => {
     expect(handlers).toHaveLength(0)
     spy.mockRestore()
   })
+
+  it('lets the backdrop close the sheet itself', async () => {
+    await render(<Sheet open onClose={jest.fn()} />)
+    expect(bottomSheetCalls.lastBackdropProps).toEqual(expect.objectContaining({ pressBehavior: 'close', appearsOnIndex: 0, disappearsOnIndex: -1 }))
+  })
+
+  it('reports the close when the sheet reaches index -1 even without onDismiss', async () => {
+    bottomSheetCalls.firesOnDismiss = false
+    const onClose = jest.fn()
+    await render(<Sheet open onClose={onClose} />)
+    await act(async () => bottomSheetCalls.panDown())
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
 })
+

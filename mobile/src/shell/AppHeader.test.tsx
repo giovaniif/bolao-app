@@ -1,4 +1,5 @@
-import { fireEvent, screen } from '@testing-library/react-native'
+import { act, fireEvent, screen } from '@testing-library/react-native'
+import { BackHandler } from 'react-native'
 import * as SecureStore from 'expo-secure-store'
 import { renderWithProviders } from '../test/render'
 import { fakeApi } from '../test/fakeApi'
@@ -124,3 +125,93 @@ describe('AppHeader profile sheet', () => {
     expect(screen.queryByRole('menuitem', { name: 'Sair' })).toBeNull()
   })
 })
+
+describe('AppHeader profile sheet lifecycle', () => {
+  function routes() {
+    fakeApi([{ path: /^\/me\/boloes$/, body: MINE }, { path: /^\/me$/, body: { display_name: 'Ana Souza' } }])
+  }
+
+  async function openSheet() {
+    await fireEvent.press(await screen.findByRole('button', { name: 'Meu perfil' }))
+    expect(await screen.findByTestId('profile-sheet')).toBeTruthy()
+  }
+
+  async function settle() {
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    })
+  }
+
+  it('lists Perfil first', async () => {
+    routes()
+    await renderWithProviders(<AppHeader title="Palpites" />)
+    await openSheet()
+    expect(screen.getAllByRole('menuitem')[0].props.accessibilityLabel).toBe('Perfil')
+  })
+
+  it('opens again after closing from the backdrop, three times', async () => {
+    routes()
+    await renderWithProviders(<AppHeader title="Palpites" />)
+    for (let i = 0; i < 3; i++) {
+      await openSheet()
+      await fireEvent.press(screen.getByLabelText('Fechar menu'))
+      await settle()
+      expect(screen.queryByTestId('profile-sheet')).toBeNull()
+    }
+  })
+
+  it('opens again after a pan down closes it, three times', async () => {
+    routes()
+    await renderWithProviders(<AppHeader title="Palpites" />)
+    for (let i = 0; i < 3; i++) {
+      await openSheet()
+      await act(async () => bottomSheetCalls.panDown())
+      await settle()
+      expect(screen.queryByTestId('profile-sheet')).toBeNull()
+    }
+  })
+
+  it('opens again after a pan down that only reports index -1, three times', async () => {
+    bottomSheetCalls.firesOnDismiss = false
+    routes()
+    await renderWithProviders(<AppHeader title="Palpites" />)
+    for (let i = 0; i < 3; i++) {
+      await openSheet()
+      await act(async () => bottomSheetCalls.panDown())
+      await settle()
+      expect(screen.queryByTestId('profile-sheet')).toBeNull()
+    }
+    bottomSheetCalls.firesOnDismiss = true
+  })
+
+  it('opens again after an item closes it, three times', async () => {
+    routes()
+    await renderWithProviders(<AppHeader title="Palpites" />)
+    for (let i = 0; i < 3; i++) {
+      await openSheet()
+      await fireEvent.press(screen.getByRole('menuitem', { name: 'Hall dos Campeões' }))
+      await settle()
+      expect(screen.queryByTestId('profile-sheet')).toBeNull()
+    }
+  })
+
+  it('opens again after Android back closes it, three times', async () => {
+    const handlers: (() => boolean | null | undefined)[] = []
+    const spy = jest.spyOn(BackHandler, 'addEventListener').mockImplementation((_event, handler) => {
+      handlers.push(handler as () => boolean)
+      return { remove: () => handlers.splice(handlers.indexOf(handler as () => boolean), 1) }
+    })
+    routes()
+    await renderWithProviders(<AppHeader title="Palpites" />)
+    for (let i = 0; i < 3; i++) {
+      await openSheet()
+      await act(async () => {
+        handlers[handlers.length - 1]()
+      })
+      await settle()
+      expect(screen.queryByTestId('profile-sheet')).toBeNull()
+    }
+    spy.mockRestore()
+  })
+})
+
