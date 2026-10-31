@@ -30,7 +30,7 @@ export function LoginPage() {
         is_admin: res.is_admin,
         must_change_password: res.must_change_password,
       });
-      navigate(res.must_change_password ? '/alterar-senha' : next);
+      navigate(res.must_change_password ? '/alterar-senha' : next, { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao entrar');
       setWrongPassword(err instanceof Error && 'status' in err && err.status === 401);
