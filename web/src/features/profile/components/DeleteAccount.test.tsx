@@ -3,6 +3,7 @@ import { screen, waitFor, fireEvent } from '@testing-library/react'
 import { Route, Routes } from 'react-router-dom'
 import { renderWithProviders } from '../../../test/renderWithProviders'
 import { DeleteAccount } from './DeleteAccount'
+import { consumeLoginNotice } from '../../../shared/api/session'
 
 let requests: { url: string; method: string; body?: string }[] = []
 
@@ -60,6 +61,7 @@ describe('DeleteAccount', () => {
     await waitFor(() => expect(screen.getByText('tela de login')).toBeTruthy())
     expect(deletes()).toEqual([{ url: expect.stringMatching(/\/me$/), method: 'DELETE', body: undefined }])
     expect(localStorage.getItem('token')).toBeNull()
+    expect(consumeLoginNotice()).toBe('Sua conta foi excluída')
   })
 
   it('shows the API error when the deletion fails', async () => {

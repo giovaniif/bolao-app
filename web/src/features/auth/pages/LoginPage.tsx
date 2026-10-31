@@ -5,6 +5,7 @@ import { login } from '../api/authApi';
 import { Button } from '../../../shared/components/Button';
 import { Input } from '../../../shared/components/Input';
 import { SocialSignIn } from '../components/SocialSignIn';
+import { consumeLoginNotice } from '../../../shared/api/session';
 
 export function LoginPage() {
   const [username, setUsername] = useState('');
@@ -12,6 +13,7 @@ export function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [wrongPassword, setWrongPassword] = useState(false);
+  const [notice] = useState(consumeLoginNotice);
   const { login: doLogin } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -72,6 +74,9 @@ export function LoginPage() {
                 Esqueci minha senha
               </Link>
             </p>
+          )}
+          {notice && !error && (
+            <p role="status" className="text-[var(--color-accent)] text-sm text-center">{notice}</p>
           )}
           {error && (
             <p className="text-red-400 text-sm text-center">{error}</p>

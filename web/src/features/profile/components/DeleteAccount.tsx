@@ -4,6 +4,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { Button } from '../../../shared/components/Button';
 import { useAuth } from '../../../shared/hooks/useAuth';
 import { deleteAccount, getDeletionBlockers, type DeletionBlocker } from '../api/profileApi';
+import { ACCOUNT_DELETED } from '../../../shared/api/session';
 
 function OwnerPicker({ blocker, value, onChange }: { blocker: DeletionBlocker; value: string; onChange: (userId: string) => void }) {
   return (
@@ -38,8 +39,8 @@ export function DeleteAccount() {
   const remove = useMutation({
     mutationFn: () => deleteAccount(newOwners),
     onSuccess: () => {
-      logout();
-      navigate('/login');
+      logout(ACCOUNT_DELETED);
+      navigate('/login', { replace: true });
     },
   });
 

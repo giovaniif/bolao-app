@@ -51,5 +51,14 @@ describe('RootStack', () => {
     await renderWithProviders(<RootStack />)
     expect(await screen.findByText('screen:boas-vindas:nogesture')).toBeTruthy()
   })
-})
 
+  it('registers no signed-in screen while signed out, but keeps invites and onboarding', async () => {
+    await renderWithProviders(<RootStack />)
+    await screen.findByText('screen:login')
+    for (const name of ['perfil', 'meus-boloes', 'admin', 'alterar-senha', 'membros', 'campeoes', 'criar-bolao', 'entrar']) {
+      expect(screen.queryByText(`screen:${name}`)).toBeNull()
+    }
+    expect(screen.getByText('screen:convite/[code]')).toBeTruthy()
+    expect(screen.getByText('screen:boas-vindas:nogesture')).toBeTruthy()
+  })
+})

@@ -4,6 +4,7 @@ import * as SecureStore from 'expo-secure-store'
 import { renderWithProviders } from '../test/render'
 import { fakeApi } from '../test/fakeApi'
 import { useAuth } from './AuthProvider'
+import * as push from '../notifications/push'
 
 function SignOutButton() {
   const { ready, signOut } = useAuth()
@@ -27,5 +28,18 @@ describe('AuthProvider', () => {
     await waitFor(() => expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith('token'))
     expect(calls).toEqual([{ method: 'DELETE', path: '/push/expo-tokens', body: JSON.stringify({ token: 'ExponentPushToken[test]' }) }])
     expect(await SecureStore.getItemAsync('push-token')).toBeNull()
+  })
+
+  it('still clears the session when removing the push token fails', async () => {
+    await SecureStore.setItemAsync('token', 'jwt')
+    jest.spyOn(push, 'unregisterForPush').mockRejectedValueOnce(new Error('token inválido'))
+
+    await renderWithProviders(<SignOutButton />)
+    await waitFor(() => expect(SecureStore.getItemAsync).toHaveBeenCalledWith('token'))
+    await fireEvent.press(screen.getByRole('button', { name: 'Sair' }))
+
+    await waitFor(() => expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith('token'))
+    expect(await SecureStore.getItemAsync('token')).toBeNull()
+    expect(await SecureStore.getItemAsync('user')).toBeNull()
   })
 })

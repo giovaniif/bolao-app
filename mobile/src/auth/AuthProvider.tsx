@@ -1,6 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { AppState } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
-import { setToken } from '../api/client';
+import { useQueryClient } from '@tanstack/react-query';
+import { getToken, refreshSession, setToken } from '../api/client';
+import { configureSession, expireSession, needsRefresh, setLoginNotice } from '../api/session';
+import { resetAnalytics } from '../analytics/analytics';
+import { clearSentryUser } from '../observability/sentry';
 import type { LoginResponse } from '../api/auth';
 import { unregisterForPush } from '../notifications/push';
 
@@ -15,7 +20,7 @@ interface AuthState {
   token: string | null;
   user: SessionUser | null;
   signIn: (res: LoginResponse) => Promise<void>;
-  signOut: () => Promise<void>;
+  signOut: (notice?: string) => Promise<void>;
 }
 
 const TOKEN_KEY = 'token';
@@ -27,6 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [token, setTokenState] = useState<string | null>(null);
   const [user, setUser] = useState<SessionUser | null>(null);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     Promise.all([SecureStore.getItemAsync(TOKEN_KEY), SecureStore.getItemAsync(USER_KEY)])
@@ -47,13 +53,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await SecureStore.setItemAsync(USER_KEY, JSON.stringify(next));
   }, []);
 
-  const signOut = useCallback(async () => {
-    await unregisterForPush();
+  const clearSession = useCallback(async () => {
     setToken(null);
     setTokenState(null);
     setUser(null);
-    await SecureStore.deleteItemAsync(TOKEN_KEY);
-    await SecureStore.deleteItemAsync(USER_KEY);
+    queryClient.clear();
+    resetAnalytics();
+    clearSentryUser();
+    await Promise.allSettled([SecureStore.deleteItemAsync(TOKEN_KEY), SecureStore.deleteItemAsync(USER_KEY)]);
+  }, [queryClient]);
+
+  const signOut = useCallback(
+    async (notice?: string) => {
+      await unregisterForPush().catch(() => undefined);
+      if (notice) setLoginNotice(notice);
+      await clearSession();
+    },
+    [clearSession]
+  );
+
+  useEffect(() => {
+    configureSession({
+      onRefreshed: async (next) => {
+        setToken(next);
+        setTokenState(next);
+        await SecureStore.setItemAsync(TOKEN_KEY, next);
+      },
+      onExpired: clearSession,
+    });
+  }, [clearSession]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      const current = getToken();
+      if (state !== 'active' || !current || !needsRefresh(current)) return;
+      void refreshSession().then((result) => {
+        if (result.kind === 'unauthorized') void expireSession(current);
+      });
+    });
+    return () => subscription.remove();
   }, []);
 
   const value = useMemo(() => ({ ready, token, user, signIn, signOut }), [ready, token, user, signIn, signOut]);

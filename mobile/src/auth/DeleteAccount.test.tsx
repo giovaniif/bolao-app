@@ -3,6 +3,7 @@ import * as SecureStore from 'expo-secure-store'
 import { renderWithProviders } from '../test/render'
 import { fakeApi, type Route } from '../test/fakeApi'
 import { DeleteAccount } from './DeleteAccount'
+import { consumeLoginNotice } from '../api/session'
 
 const NO_BLOCKERS: Route = { path: /^\/me\/deletion-check$/, body: { blockers: [] } }
 const BLOCKER = {
@@ -28,6 +29,7 @@ describe('DeleteAccount', () => {
     await fireEvent.press(await screen.findByRole('button', { name: 'Sim, excluir' }))
     await waitFor(() => expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith('token'))
     expect(calls.filter((c) => c.method === 'DELETE')).toEqual([{ method: 'DELETE', path: '/me', body: undefined }])
+    expect(consumeLoginNotice()).toBe('Sua conta foi excluída')
   })
 
   it('shows the API error when the deletion fails', async () => {

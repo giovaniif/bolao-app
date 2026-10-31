@@ -56,3 +56,5 @@ jest.mock('react-native-reanimated', () => {
 jest.mock('react-native-worklets', () => ({
   scheduleOnRN: (fn: (...args: unknown[]) => unknown, ...args: unknown[]) => fn(...args),
 }))
+
+jest.mock('@sentry/react-native', () => ({ init: jest.fn(), setUser: jest.fn(), captureException: jest.fn(), wrap: (c: unknown) => c }))
