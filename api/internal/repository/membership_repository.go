@@ -76,7 +76,7 @@ func (r *MembershipRepository) ListByBolao(ctx context.Context, bolaoID uuid.UUI
 }
 
 func (r *MembershipRepository) ListBoloesOfUser(ctx context.Context, userID uuid.UUID) ([]models.MyBolao, error) {
-	query := `SELECT b.id, b.name, b.status, b.started_at, b.finished_at, b.created_at, b.updated_at, bp.role, bp.status,
+	query := `SELECT b.id, b.name, b.status, b.visibility, b.requires_approval, b.started_at, b.finished_at, b.created_at, b.updated_at, bp.role, bp.status,
 			(SELECT COUNT(*) FROM bolao_participants a WHERE a.bolao_id = b.id AND a.status = 'active')
 		FROM bolao_participants bp
 		JOIN boloes b ON b.id = bp.bolao_id
@@ -90,7 +90,7 @@ func (r *MembershipRepository) ListBoloesOfUser(ctx context.Context, userID uuid
 	var boloes []models.MyBolao
 	for rows.Next() {
 		var b models.MyBolao
-		if err := rows.Scan(&b.ID, &b.Name, &b.Status, &b.StartedAt, &b.FinishedAt, &b.CreatedAt, &b.UpdatedAt, &b.Role, &b.MemberStatus, &b.MemberCount); err != nil {
+		if err := rows.Scan(&b.ID, &b.Name, &b.Status, &b.Visibility, &b.RequiresApproval, &b.StartedAt, &b.FinishedAt, &b.CreatedAt, &b.UpdatedAt, &b.Role, &b.MemberStatus, &b.MemberCount); err != nil {
 			return nil, err
 		}
 		boloes = append(boloes, b)
