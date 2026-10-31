@@ -11,7 +11,7 @@ export interface AuthContextType {
   user: User | null;
   token: string | null;
   login: (token: string, user: User) => void;
-  logout: () => void;
+  logout: (notice?: string) => void;
   updateUser: (updates: Partial<User>) => void;
   isAdmin: () => boolean;
 }

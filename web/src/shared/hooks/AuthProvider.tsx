@@ -1,4 +1,7 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { getToken, refreshSession } from '../api/client';
+import { configureSession, expireSession, needsRefresh, setLoginNotice } from '../api/session';
 import type { ReactNode } from 'react';
 import { AuthContext } from './useAuth';
 import type { User } from './useAuth';
@@ -25,11 +28,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('user', JSON.stringify(u));
   }, []);
 
-  const logout = useCallback(() => {
-    setToken(null);
-    setUser(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+  const queryClient = useQueryClient();
+
+  const logout = useCallback(
+    (notice?: string) => {
+      if (notice) setLoginNotice(notice);
+      setToken(null);
+      setUser(null);
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      queryClient.clear();
+    },
+    [queryClient]
+  );
+
+  useEffect(() => {
+    configureSession({
+      onRefreshed: (next) => {
+        setToken(next);
+        localStorage.setItem('token', next);
+      },
+      onExpired: () => logout(),
+    });
+  }, [logout]);
+
+  useEffect(() => {
+    const onFocus = () => {
+      const current = getToken();
+      if (!current || !needsRefresh(current)) return;
+      void refreshSession().then((result) => {
+        if (result.kind === 'unauthorized') void expireSession(current);
+      });
+    };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
   }, []);
 
   const updateUser = useCallback((updates: Partial<User>) => {
