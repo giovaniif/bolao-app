@@ -12,7 +12,15 @@ import (
 var (
 	secretHeaders = []string{"Authorization", "Cookie", "X-Cron-Secret"}
 	emailPattern  = regexp.MustCompile(`[^\s@]+@[^\s@]+\.[^\s@]+`)
+	bearerPattern = regexp.MustCompile(`(?i)(bearer\s+)[^\s"']+`)
+	jwtPattern    = regexp.MustCompile(`eyJ[\w-]+\.[\w-]+\.[\w-]+`)
 )
+
+func hideSecrets(text string) string {
+	text = emailPattern.ReplaceAllString(text, "[email]")
+	text = bearerPattern.ReplaceAllString(text, "${1}[token]")
+	return jwtPattern.ReplaceAllString(text, "[token]")
+}
 
 func Configured(dsn string) bool {
 	return dsn != ""
@@ -27,9 +35,9 @@ func Scrub(event *sentry.Event) *sentry.Event {
 		event.Request.Data = ""
 	}
 	event.User = sentry.User{ID: event.User.ID}
-	event.Message = emailPattern.ReplaceAllString(event.Message, "[email]")
+	event.Message = hideSecrets(event.Message)
 	for i := range event.Exception {
-		event.Exception[i].Value = emailPattern.ReplaceAllString(event.Exception[i].Value, "[email]")
+		event.Exception[i].Value = hideSecrets(event.Exception[i].Value)
 	}
 	return event
 }
