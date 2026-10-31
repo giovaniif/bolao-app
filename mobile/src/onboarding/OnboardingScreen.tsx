@@ -8,8 +8,8 @@ import { PrimaryButton } from '../components/PrimaryButton';
 import { colors } from '../theme';
 import { getPendingSignup, setPendingSignup, type PendingSignup } from './pendingSignup';
 import { deriveUsername, USERNAME_PATTERN } from './deriveUsername';
-import { shortTeamName } from './crests';
-import { TeamCrest } from './TeamCrest';
+import { shortTeamName } from '../teams/teamNames';
+import { TeamBadge } from '../teams/TeamBadge';
 
 const CHECK_DELAY_MS = 400;
 const FORMAT_HINT = 'Use de 3 a 30 letras, números, ponto ou _';
@@ -129,7 +129,7 @@ function TeamStep({ onDone }: { onDone: () => void }) {
                 backgroundColor: t === team ? 'rgba(0,166,81,0.15)' : colors.card,
               }}
             >
-              <TeamCrest team={t} size={36} />
+              <TeamBadge team={t} size={36} />
               <Text numberOfLines={1} style={{ color: t === team ? colors.primary : colors.text, fontSize: 11, fontWeight: '700' }}>{shortTeamName(t)}</Text>
             </Pressable>
           </View>

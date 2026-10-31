@@ -10,7 +10,7 @@ import { analyticsEnabled, hasConsent, setConsent } from '../analytics/analytics
 import { PrimaryButton } from '../components/PrimaryButton';
 import { TextField } from '../components/TextField';
 import { colors } from '../theme';
-import { TeamCrest } from '../onboarding/TeamCrest';
+import { TeamBadge } from '../teams/TeamBadge';
 
 type Edits = Partial<{ username: string; display_name: string; favorite_team: string }>;
 
@@ -59,7 +59,7 @@ export function ProfileScreen() {
           style={{ backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            {form.favorite_team ? <TeamCrest team={form.favorite_team} size={24} /> : null}
+            {form.favorite_team ? <TeamBadge team={form.favorite_team} size={24} /> : null}
             <Text style={{ color: form.favorite_team ? colors.text : colors.muted, fontSize: 16 }}>{form.favorite_team || 'Selecione'}</Text>
           </View>
           <Text style={{ color: colors.muted }}>▾</Text>
