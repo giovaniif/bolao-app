@@ -126,6 +126,17 @@ func validEmail(email string) bool {
 	return err == nil && addr.Address == email && strings.Contains(email[strings.LastIndex(email, "@"):], ".")
 }
 
+func (h *AuthHandler) Refresh(c *gin.Context) {
+	user, err := h.userRepo.GetByID(c.Request.Context(), c.MustGet("user_id").(uuid.UUID))
+	if err != nil || strings.HasPrefix(user.Username, deletedUsernamePrefix) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "sessão expirada"})
+		return
+	}
+	h.respondWithToken(c, http.StatusOK, user)
+}
+
+const deletedUsernamePrefix = "excluido_"
+
 func (h *AuthHandler) respondWithToken(c *gin.Context, status int, user *models.User) {
 	token, err := auth.GenerateToken(user.ID, user.Username, user.IsAdmin, h.jwtSecret)
 	if err != nil {

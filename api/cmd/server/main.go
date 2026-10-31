@@ -120,6 +120,7 @@ func main() {
 	api.Use(handler.AuthMiddleware(cfg.JWTSecret))
 	{
 		api.POST("/auth/change-password", authHandler.ChangePassword)
+		api.POST("/auth/refresh", authHandler.Refresh)
 		api.GET("/classification", classificationHandler.Get)
 		api.GET("/matches/rounds/summary", matchHandler.ListRoundsSummary)
 		api.GET("/users", userHandler.List)
