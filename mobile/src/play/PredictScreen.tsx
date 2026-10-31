@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getMatches, getMyPredictions, getRoundsSummary, savePredictions, type Match } from '../api/play';
 import { useCurrentBolao } from '../bolao/useCurrentBolao';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { PredictCard } from './PredictCard';
+import { createAutoSaver, type SaveStatus } from './autoSave';
 import { colors } from '../theme';
 import { track } from '../analytics/analytics';
 
@@ -87,10 +88,31 @@ export function PredictScreen() {
     return all;
   }, [list, saved.data, edits]);
 
+  const [saveStatus, setSaveStatus] = useState<Record<string, SaveStatus>>({});
+  const [lastLeft, setLastLeft] = useState<string | null>(null);
+  const saver = useMemo(
+    () =>
+      createAutoSaver({
+        save: (matchId, score) => savePredictions(bolaoId, [{ match_id: matchId, home_goals: score.home, away_goals: score.away }]),
+        onStatus: (matchId, status) => setSaveStatus((prev) => ({ ...prev, [matchId]: status })),
+      }),
+    [bolaoId],
+  );
+  useEffect(() => () => saver.dispose(), [saver]);
+  useEffect(() => {
+    if (!saved.data) return;
+    const fromServer = new Map(saved.data.map((p) => [p.match_id, p]));
+    for (const m of list) {
+      const p = fromServer.get(m.id);
+      saver.setBaseline(m.id, p ? { home: Math.max(p.home_goals, 0), away: Math.max(p.away_goals, 0) } : { home: 0, away: 0 });
+    }
+  }, [saver, saved.data, list]);
+
   const open = list.filter((m) => !isClosed(m, now));
   const save = useMutation({
     mutationFn: () => savePredictions(bolaoId, open.map((m) => ({ match_id: m.id, home_goals: scores[m.id].home, away_goals: scores[m.id].away }))),
     onSuccess: () => {
+      for (const m of open) saver.markSaved(m.id, scores[m.id]);
       track('predictions_saved', { round, count: open.length });
       setMode('list');
       queryClient.invalidateQueries({ queryKey: ['predictions', bolaoId, round] });
@@ -108,7 +130,18 @@ export function PredictScreen() {
     );
   }
 
-  const current = list[Math.min(index, list.length - 1)];
+  const currentIndex = Math.min(index, list.length - 1);
+  const current = list[currentIndex];
+  const goTo = (next: number) => {
+    const target = Math.max(0, Math.min(next, list.length - 1));
+    if (current && target !== currentIndex) {
+      saver.leave(current.id, scores[current.id], isClosed(current, now));
+      setLastLeft(current.id);
+    }
+    setIndex(target);
+  };
+  const leftMatch = lastLeft ? list.find((m) => m.id === lastLeft) : undefined;
+  const leftStatus = lastLeft ? saveStatus[lastLeft] : undefined;
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 40 }}>
@@ -116,8 +149,10 @@ export function PredictScreen() {
         rounds={summary.data?.rounds ?? []}
         round={round}
         onSelect={(r) => {
+          if (current) saver.leave(current.id, scores[current.id], isClosed(current, now));
           setChosenRound(r);
           setEdits({});
+          setLastLeft(null);
           setIndex(0);
           setMode('card');
           save.reset();
@@ -137,16 +172,27 @@ export function PredictScreen() {
       ) : (
         <>
           <PredictCard
-            match={current}
-            home={scores[current.id]?.home ?? 0}
-            away={scores[current.id]?.away ?? 0}
-            onChange={(home, away) => setEdits((prev) => ({ ...prev, [current.id]: { home, away } }))}
-            onNext={() => setIndex((i) => Math.min(i + 1, list.length - 1))}
-            onPrev={() => setIndex((i) => Math.max(i - 1, 0))}
-            index={Math.min(index, list.length - 1)}
-            total={list.length}
-            disabled={isClosed(current, now)}
+            items={list.map((m) => ({ id: m.id, match: m, home: scores[m.id]?.home ?? 0, away: scores[m.id]?.away ?? 0, disabled: isClosed(m, now) }))}
+            index={currentIndex}
+            onIndexChange={goTo}
+            onChange={(id, home, away) => setEdits((prev) => ({ ...prev, [id]: { home, away } }))}
           />
+          {leftMatch && leftStatus && (
+            <Pressable
+              accessibilityRole={leftStatus === 'error' ? 'button' : 'text'}
+              disabled={leftStatus !== 'error'}
+              onPress={() => saver.leave(leftMatch.id, scores[leftMatch.id], isClosed(leftMatch, now))}
+              style={{ alignSelf: 'center', paddingVertical: 4, paddingHorizontal: 12 }}
+            >
+              <Text style={{ color: leftStatus === 'error' ? colors.danger : colors.muted, fontSize: 12 }}>
+                {leftStatus === 'saving'
+                  ? `Salvando ${leftMatch.home_team} × ${leftMatch.away_team}…`
+                  : leftStatus === 'saved'
+                    ? `${leftMatch.home_team} × ${leftMatch.away_team} salvo`
+                    : `Não salvou ${leftMatch.home_team} × ${leftMatch.away_team}. Tentando de novo`}
+              </Text>
+            </Pressable>
+          )}
           <View style={{ backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: colors.border }}>
             <Pressable accessibilityRole="button" accessibilityLabel="Ver resumo dos jogos" accessibilityState={{ expanded: summaryOpen }} onPress={() => setSummaryOpen((o) => !o)} style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
               <Text style={{ color: colors.muted, fontSize: 14 }}>{summaryOpen ? '▾' : '▸'} Ver resumo dos jogos</Text>
@@ -160,7 +206,7 @@ export function PredictScreen() {
                       key={m.id}
                       accessibilityRole="button"
                       accessibilityLabel={`${m.home_team} × ${m.away_team}`}
-                      onPress={() => setIndex(i)}
+                      onPress={() => goTo(i)}
                       style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, backgroundColor: i === index ? '#0b3b29' : 'transparent' }}
                     >
                       <Text numberOfLines={1} style={{ color: colors.text, fontSize: 14, flex: 1 }}>

@@ -101,19 +101,19 @@ export function PartialsPanel({ bolaoId, round }: { bolaoId: string; round: numb
           {(() => {
             const i = Math.min(index, list.length - 1);
             const m = list[i];
-            const p = partials[m.id];
             return (
               <>
                 <PredictCard
-                  match={{ home_team: m.home_team, away_team: m.away_team, home_goals: m.real_home_goals, away_goals: m.real_away_goals }}
-                  home={p.h ?? 0}
-                  away={p.a ?? 0}
-                  onChange={(h, a) => setEdits((prev) => ({ ...prev, [m.id]: { h, a } }))}
-                  onNext={() => setIndex((n) => Math.min(n + 1, list.length - 1))}
-                  onPrev={() => setIndex((n) => Math.max(n - 1, 0))}
+                  items={list.map((x) => ({
+                    id: x.id,
+                    match: { home_team: x.home_team, away_team: x.away_team, home_goals: x.real_home_goals, away_goals: x.real_away_goals },
+                    home: partials[x.id].h ?? 0,
+                    away: partials[x.id].a ?? 0,
+                    disabled: false,
+                  }))}
                   index={i}
-                  total={list.length}
-                  disabled={false}
+                  onIndexChange={(n) => setIndex(Math.max(0, Math.min(n, list.length - 1)))}
+                  onChange={(id, h, a) => setEdits((prev) => ({ ...prev, [id]: { h, a } }))}
                 />
                 {m.partial_home != null && m.partial_away != null && (
                   <Pressable accessibilityRole="button" accessibilityLabel="Limpar parcial" disabled={clear.isPending} onPress={() => { setMessage(null); clear.mutate(m.id); }} style={{ borderColor: colors.danger, borderWidth: 1, borderRadius: 12, paddingVertical: 10, alignItems: 'center', opacity: clear.isPending ? 0.5 : 1 }}>
