@@ -93,8 +93,8 @@ export function AppHeader({ title }: { title?: string }) {
             {name}
           </Text>
         )}
-        <MenuItem label="Meus bolões" onPress={() => go('/meus-boloes')} />
         <MenuItem label="Perfil" onPress={() => go('/perfil')} />
+        <MenuItem label="Meus bolões" onPress={() => go('/meus-boloes')} />
         <MenuItem label="Hall dos Campeões" onPress={() => go('/campeoes')} />
         {isAdmin && <MenuItem label="Admin" badge={pending.data?.pending_results} onPress={() => go('/admin')} />}
         <MenuItem

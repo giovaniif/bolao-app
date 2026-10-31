@@ -46,6 +46,7 @@ export function bottomSheetModule() {
         present: () => {
           bottomSheetCalls.present += 1
           setOpen(true)
+          latest.current.onChange?.(0)
         },
         dismiss: () => {
           bottomSheetCalls.dismiss += 1
