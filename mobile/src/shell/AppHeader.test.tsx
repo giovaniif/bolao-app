@@ -54,12 +54,12 @@ describe('AppHeader', () => {
     expect(router.push).toHaveBeenCalledWith('/meus-boloes')
   })
 
-  it('opens the Hall dos Campeões from the profile menu', async () => {
+  it('leaves the Hall dos Campeões out of the profile menu', async () => {
     fakeApi([{ path: /^\/me\/boloes$/, body: MINE }, { path: /^\/me$/, body: { display_name: 'Ana Souza' } }])
     await renderWithProviders(<AppHeader title="Palpites" />)
     await fireEvent.press(await screen.findByRole('button', { name: 'Meu perfil' }))
-    await fireEvent.press(screen.getByRole('menuitem', { name: 'Hall dos Campeões' }))
-    expect(router.push).toHaveBeenCalledWith('/campeoes')
+    expect(screen.getByRole('menuitem', { name: 'Perfil' })).toBeTruthy()
+    expect(screen.queryByRole('menuitem', { name: 'Hall dos Campeões' })).toBeNull()
   })
 
   it('signs out from the profile menu', async () => {
@@ -189,7 +189,7 @@ describe('AppHeader profile sheet lifecycle', () => {
     await renderWithProviders(<AppHeader title="Palpites" />)
     for (let i = 0; i < 3; i++) {
       await openSheet()
-      await fireEvent.press(screen.getByRole('menuitem', { name: 'Hall dos Campeões' }))
+      await fireEvent.press(screen.getByRole('menuitem', { name: 'Meus bolões' }))
       await settle()
       expect(screen.queryByTestId('profile-sheet')).toBeNull()
     }
