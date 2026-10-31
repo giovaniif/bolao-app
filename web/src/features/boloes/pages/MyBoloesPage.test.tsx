@@ -37,6 +37,15 @@ describe('MyBoloesPage', () => {
     expect(screen.queryByRole('link', { name: /Família/ })).toBeNull()
   })
 
+  it('gives the manage link a tap area of at least 44 pixels', async () => {
+    stub([{ id: 'b-2', name: 'Firma', status: 'active', role: 'owner', member_status: 'active', member_count: 5 }])
+    renderWithProviders(<MyBoloesPage />)
+
+    const manage = await screen.findByRole('link', { name: 'Convidar e gerenciar' })
+    expect(manage.className).toContain('min-h-11')
+    expect(manage.getAttribute('href')).toBe('/membros?bolao=b-2')
+  })
+
   it('invites a user without bolões to create or join one', async () => {
     stub([])
     renderWithProviders(<MyBoloesPage />)
