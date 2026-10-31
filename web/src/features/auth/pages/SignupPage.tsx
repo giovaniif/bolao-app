@@ -40,7 +40,7 @@ export function SignupPage() {
       const res = await signup({ username: username.trim().toLowerCase(), display_name: displayName.trim(), email: email.trim(), password });
       login(res.token, { id: res.user_id, username: res.username, is_admin: res.is_admin, must_change_password: false });
       track('signed_up');
-      navigate(next);
+      navigate(next, { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao criar a conta');
     } finally {

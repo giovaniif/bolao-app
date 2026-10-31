@@ -19,7 +19,7 @@ export function SocialSignIn({ next }: SocialSignInProps) {
   const social = useSocialSignIn((res, isNewAccount) => {
     login(res.token, { id: res.user_id, username: res.username, is_admin: res.is_admin, must_change_password: res.must_change_password });
     if (isNewAccount) setChoosingTeam(true);
-    else navigate(next);
+    else navigate(next, { replace: true });
   });
   const apple = appleServiceId() !== '';
   const google = googleClientId() !== '';
@@ -27,7 +27,7 @@ export function SocialSignIn({ next }: SocialSignInProps) {
   if (!apple && !google) return null;
 
   if (choosingTeam) {
-    return <TeamOnboarding onDone={() => navigate(next)} />;
+    return <TeamOnboarding onDone={() => navigate(next, { replace: true })} />;
   }
 
   if (social.pending) {
