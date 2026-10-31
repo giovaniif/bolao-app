@@ -21,7 +21,7 @@ export async function needsConsent(): Promise<boolean> {
 export async function startAnalytics(): Promise<void> {
   if (!KEY || client) return;
   client = new PostHog(KEY, {
-    host: 'https://eu.i.posthog.com',
+    host: 'https://us.i.posthog.com',
     defaultOptIn: false,
     captureAppLifecycleEvents: false,
   });
