@@ -6,8 +6,6 @@ import { router } from '../test/routerMock'
 import { OnboardingScreen } from './OnboardingScreen'
 import { setPendingSignup } from './pendingSignup'
 import { deriveUsername } from './deriveUsername'
-import { TeamCrest } from './TeamCrest'
-import { crestUrl } from './crests'
 
 jest.mock('expo-router', () => jest.requireActual('../test/routerMock').routerModule())
 
@@ -107,21 +105,15 @@ describe('deriveUsername', () => {
   })
 })
 
-describe('TeamCrest', () => {
-  it('maps the team to its crest image', () => {
-    expect(crestUrl('Flamengo')).toBe('https://crests.football-data.org/1783.png')
-    expect(crestUrl('São Paulo')).toBe('https://crests.football-data.org/1776.png')
-    expect(crestUrl('Time Novo')).toBeNull()
-  })
+describe('team step badges', () => {
+  it('shows a generic initials badge for each team', async () => {
+    fakeApi(step1Routes())
+    await renderWithProviders(<OnboardingScreen />)
+    await screen.findByText('Disponível')
+    await fireEvent.press(screen.getByRole('button', { name: 'Continuar' }))
+    await screen.findByText('Pra qual time você torce?')
 
-  it('falls back to the initials when the image fails', async () => {
-    await renderWithProviders(<TeamCrest team="São Paulo" size={40} />)
-    await fireEvent(screen.getByTestId('crest:São Paulo'), 'error')
-    expect(screen.getByText('SP')).toBeTruthy()
-  })
-
-  it('shows the initials for a team without a crest', async () => {
-    await renderWithProviders(<TeamCrest team="Time Novo" size={40} />)
-    expect(screen.getByText('TN')).toBeTruthy()
+    expect(await screen.findByTestId('badge:Flamengo')).toBeTruthy()
+    expect(screen.getByText('FLA')).toBeTruthy()
   })
 })

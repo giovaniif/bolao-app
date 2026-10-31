@@ -32,10 +32,10 @@ describe('ProfileScreen', () => {
     expect(screen.getByRole('button', { name: 'Time do coração: Flamengo' })).toBeTruthy()
   })
 
-  it('shows the crest of the favorite team', async () => {
+  it('shows the badge of the favorite team', async () => {
     fakeApi(routes())
     await renderWithProviders(<ProfileScreen />)
-    expect(await screen.findByTestId('crest:Flamengo')).toBeTruthy()
+    expect(await screen.findByTestId('badge:Flamengo')).toBeTruthy()
   })
 
   it('saves the name and the favorite team', async () => {
