@@ -9,6 +9,8 @@ const posthog = {
   reset: vi.fn(),
 }
 vi.mock('posthog-js', () => ({ default: posthog }))
+const gate = vi.hoisted(() => ({ allowed: true }))
+vi.mock('../observability/reporting', () => ({ reportingAllowed: () => gate.allowed }))
 
 async function freshModule() {
   vi.resetModules()
@@ -16,11 +18,20 @@ async function freshModule() {
 }
 
 beforeEach(() => {
+  gate.allowed = true
   localStorage.clear()
   Object.values(posthog).forEach((f) => f.mockReset())
 })
 
 describe('analytics', () => {
+  it('does nothing in local runs even with a key', async () => {
+    gate.allowed = false
+    const a = await freshModule()
+    await a.startAnalytics('phc_key')
+    expect(posthog.init).not.toHaveBeenCalled()
+    expect(a.needsConsent('phc_key')).toBe(false)
+  })
+
   it('does nothing without a key', async () => {
     const a = await freshModule()
     await a.startAnalytics(undefined)

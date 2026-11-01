@@ -39,11 +39,29 @@ func TestScrub_RemovesSecretsAndPersonalData(t *testing.T) {
 }
 
 func TestConfigured(t *testing.T) {
-	if Configured("") {
-		t.Error("Configured(\"\") = true, want false: no DSN means Sentry is off")
+	dsn := "https://key@o1.ingest.sentry.io/1"
+	cases := []struct {
+		dsn, environment string
+		want             bool
+	}{
+		{"", "prod", false},
+		{dsn, "", false},
+		{dsn, "local", false},
+		{dsn, "test", false},
+		{dsn, "dev", true},
+		{dsn, "prod", true},
+		{dsn, "production", true},
 	}
-	if !Configured("https://key@o1.ingest.sentry.io/1") {
-		t.Error("Configured(dsn) = false, want true")
+	for _, c := range cases {
+		if got := Configured(c.dsn, c.environment); got != c.want {
+			t.Errorf("Configured(%q, %q) = %v, want %v", c.dsn, c.environment, got, c.want)
+		}
+	}
+}
+
+func TestEnabled_IsOffInsideGoTest(t *testing.T) {
+	if Enabled("https://key@o1.ingest.sentry.io/1", "prod") {
+		t.Error("Enabled under go test = true, want false: tests must never report to Sentry")
 	}
 }
 

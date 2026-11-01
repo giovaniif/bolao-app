@@ -1,6 +1,7 @@
 const mockClient = { optIn: jest.fn(), optOut: jest.fn(), capture: jest.fn(), identify: jest.fn(), reset: jest.fn() }
 const mockCtor = jest.fn(() => mockClient)
 jest.mock('posthog-react-native', () => ({ __esModule: true, default: mockCtor, PostHog: mockCtor }))
+jest.mock('../observability/reporting', () => ({ reportingAllowed: () => true }))
 
 type Store = { setItemAsync: (k: string, v: string) => Promise<void> }
 
