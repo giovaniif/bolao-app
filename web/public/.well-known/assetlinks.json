@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.giovaniif.bolao",
+      "sha256_cert_fingerprints": [
+        "72:B2:18:AD:2E:2C:A4:FB:B5:7D:1A:DA:85:09:1B:6C:EC:6A:F9:B8:50:17:86:44:1F:C4:50:EF:12:B8:7B:AF"
+      ]
+    }
+  }
+]
