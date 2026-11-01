@@ -80,4 +80,17 @@ describe('analytics', () => {
     expect(mockClient.register).toHaveBeenCalledWith({ environment: 'production' })
     delete process.env.EXPO_PUBLIC_SENTRY_ENVIRONMENT
   })
+
+  it('keeps consent and the environment after a reset on sign-out', async () => {
+    process.env.EXPO_PUBLIC_SENTRY_ENVIRONMENT = 'dev'
+    const a = load('phc_key', 'granted')
+    await a.startAnalytics()
+    mockClient.optIn.mockClear()
+    mockClient.register.mockClear()
+    await a.resetAnalytics()
+    expect(mockClient.reset).toHaveBeenCalled()
+    expect(mockClient.optIn).toHaveBeenCalled()
+    expect(mockClient.register).toHaveBeenCalledWith({ environment: 'dev' })
+    delete process.env.EXPO_PUBLIC_SENTRY_ENVIRONMENT
+  })
 })

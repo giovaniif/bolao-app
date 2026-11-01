@@ -35,7 +35,7 @@ export async function startAnalytics(key: string | undefined): Promise<void> {
     capture_exceptions: false,
     person_profiles: 'identified_only',
   });
-  posthog.register({ environment: import.meta.env.VITE_SENTRY_ENVIRONMENT ?? import.meta.env.MODE });
+  tagEnvironment(posthog);
   client = posthog;
   if (readConsent() === 'granted') {
     posthog.opt_in_capturing();
@@ -65,6 +65,13 @@ export function identify(userId: string) {
   }
 }
 
+function tagEnvironment(posthog: PostHog) {
+  posthog.register({ environment: import.meta.env.VITE_SENTRY_ENVIRONMENT ?? import.meta.env.MODE });
+}
+
 export function resetAnalytics() {
-  client?.reset();
+  if (!client) return;
+  client.reset();
+  tagEnvironment(client);
+  if (readConsent() === 'granted') client.opt_in_capturing();
 }
