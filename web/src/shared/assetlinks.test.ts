@@ -1,9 +1,8 @@
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { describe, expect, it } from 'vitest'
+import links from '../../public/.well-known/assetlinks.json'
 
 describe('assetlinks.json', () => {
   it('lets the Android app open bolao.giovani.app links with its signing key', () => {
-    const links = JSON.parse(readFileSync(resolve(__dirname, '../../public/.well-known/assetlinks.json'), 'utf8'))
     expect(links[0].target).toEqual(
       expect.objectContaining({ namespace: 'android_app', package_name: 'com.giovaniif.bolao' })
     )
