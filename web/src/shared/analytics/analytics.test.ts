@@ -97,4 +97,18 @@ describe('analytics', () => {
     expect(posthog.register).toHaveBeenCalledWith({ environment: 'production' })
     vi.unstubAllEnvs()
   })
+
+  it('keeps consent and the environment after a reset on sign-out', async () => {
+    vi.stubEnv('VITE_SENTRY_ENVIRONMENT', 'dev')
+    localStorage.setItem('analytics-consent', 'granted')
+    const a = await freshModule()
+    await a.startAnalytics('phc_key')
+    posthog.opt_in_capturing.mockClear()
+    posthog.register.mockClear()
+    a.resetAnalytics()
+    expect(posthog.reset).toHaveBeenCalled()
+    expect(posthog.opt_in_capturing).toHaveBeenCalled()
+    expect(posthog.register).toHaveBeenCalledWith({ environment: 'dev' })
+    vi.unstubAllEnvs()
+  })
 })
