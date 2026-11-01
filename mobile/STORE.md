@@ -42,15 +42,15 @@ Data collection: **Yes**. Tracking (across apps of other companies): **No**. No 
 | Identifiers: User ID | Yes (username, internal id) | Yes | App functionality, Analytics |
 | Identifiers: Device ID | Yes (Expo push token, only after the user allows notifications) | Yes | App functionality |
 | Usage data: Product interaction | Yes, only after consent (PostHog) | Yes (`identify` with the user id) | Analytics |
-| Diagnostics: Crash data | Yes (Sentry) | No | App functionality |
-| Diagnostics: Performance data | Yes (Sentry) | No | App functionality |
-| Diagnostics: Other diagnostic data | Yes (Sentry: device, OS, app version) | No | App functionality |
+| Diagnostics: Crash data | Yes (Sentry) | Yes (user id) | App functionality |
+| Diagnostics: Performance data | Yes (Sentry) | Yes (user id) | App functionality |
+| Diagnostics: Other diagnostic data | Yes (Sentry: device, OS, app version) | Yes (user id) | App functionality |
 
 Not collected: location, contacts, photos, health, financial info, purchases, browsing history, search history, sensitive info, device ID for advertising.
 
 Notes:
 
-- Sentry runs with `sendDefaultPii: false`, and `scrubEvent` removes headers, cookies, request bodies and emails, and keeps only the user id. If Sentry gets the user id, change crash data to "Linked to the user".
+- Sentry runs with `sendDefaultPii: false`, and `scrubEvent` removes headers, cookies, request bodies and emails, and keeps only the user id. Sentry gets the user id, so the diagnostics rows are "Linked to the user".
 - PostHog starts opted out (`defaultOptIn: false`). It sends events only after the user accepts, and the profile has a switch to stop it.
 - The mobile app registers an Expo push token after the user allows notifications, and deletes it at sign out. The token is linked to the user and is used only for round reminders.
 - Sign in with Apple and Google sends an ID token to the API. The API keeps the provider, the subject id and the email of the token, linked to the user.
