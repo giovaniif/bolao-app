@@ -32,4 +32,16 @@ describe('app config', () => {
   it('turns on Sign in with Apple for iOS', () => {
     expect(appJson.expo.ios.usesAppleSignIn).toBe(true)
   })
+
+  it('points Android at the google-services.json from the EAS file variable', () => {
+    const previous = process.env.GOOGLE_SERVICES_JSON
+    process.env.GOOGLE_SERVICES_JSON = '/tmp/eas/google-services.json'
+    try {
+      const config = appConfig({ config: base, projectRoot: '', staticConfigPath: null, packageJsonPath: null })
+      expect(config.android?.googleServicesFile).toBe('/tmp/eas/google-services.json')
+    } finally {
+      if (previous === undefined) delete process.env.GOOGLE_SERVICES_JSON
+      else process.env.GOOGLE_SERVICES_JSON = previous
+    }
+  })
 })
