@@ -1,10 +1,11 @@
 import * as SecureStore from 'expo-secure-store';
 import PostHog from 'posthog-react-native';
+import { reportingAllowed } from '../observability/reporting';
 
 export type Consent = 'granted' | 'denied';
 
 const CONSENT_KEY = 'analytics-consent';
-const KEY = process.env.EXPO_PUBLIC_POSTHOG_KEY;
+const KEY = reportingAllowed() ? process.env.EXPO_PUBLIC_POSTHOG_KEY : undefined;
 
 let client: PostHog | null = null;
 let consent: Consent | null = null;

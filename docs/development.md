@@ -41,6 +41,22 @@ npm run dev
 Frontend available at http://localhost:5173. The dev server proxies `/api` to
 `http://localhost:3333` by default; set `VITE_API_URL` to point it elsewhere.
 
+### Error reporting and analytics
+
+Local runs never report to Sentry or PostHog: dev servers, `go test`, Jest, Vitest, Playwright and agent harnesses all stay silent, even when a DSN or key is set.
+
+- **API**: Sentry starts only when `SENTRY_DSN` is set and `SENTRY_ENVIRONMENT` is `dev`, `prod` or `production`. It never starts inside `go test`. `SENTRY_ENVIRONMENT` has no default.
+- **Mobile**: Sentry and PostHog are off when `__DEV__` is true or under Jest. EAS builds (development, preview, testflight-dev, production) report as before.
+- **Web**: Sentry and PostHog are off in `npm run dev`, in test mode, and when `VITE_SENTRY_ENVIRONMENT` (or the Vite mode when unset) is not `dev`, `prod` or `production`.
+
+To report from a local API run on purpose, for example to check a Sentry setup, set both variables and send events to the dev environment only:
+
+```bash
+SENTRY_DSN=<dev DSN> SENTRY_ENVIRONMENT=dev go run ./cmd/server
+```
+
+For web, run a production build with `VITE_SENTRY_ENVIRONMENT=dev` (`npm run build && npm run preview`). Mobile only reports from an EAS build.
+
 ## CI
 
 Build and test run as separate actions per area, each only triggering when files in that area

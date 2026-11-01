@@ -54,7 +54,7 @@ func Load() *Config {
 		GoogleClientIDs: getList("GOOGLE_CLIENT_IDS"),
 
 		SentryDSN:         os.Getenv("SENTRY_DSN"),
-		SentryEnvironment: getEnv("SENTRY_ENVIRONMENT", "dev"),
+		SentryEnvironment: os.Getenv("SENTRY_ENVIRONMENT"),
 		Release:           os.Getenv("RENDER_GIT_COMMIT"),
 	}
 }
