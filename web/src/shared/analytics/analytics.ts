@@ -35,6 +35,7 @@ export async function startAnalytics(key: string | undefined): Promise<void> {
     capture_exceptions: false,
     person_profiles: 'identified_only',
   });
+  posthog.register({ environment: import.meta.env.VITE_SENTRY_ENVIRONMENT ?? import.meta.env.MODE });
   client = posthog;
   if (readConsent() === 'granted') {
     posthog.opt_in_capturing();

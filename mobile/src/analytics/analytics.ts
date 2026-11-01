@@ -33,6 +33,7 @@ export async function startAnalytics(): Promise<void> {
     personProfiles: 'identified_only',
     errorTracking: { autocapture: { uncaughtExceptions: false, unhandledRejections: false, console: false } },
   });
+  client.register({ environment: process.env.EXPO_PUBLIC_SENTRY_ENVIRONMENT ?? 'dev' });
   consent = await readConsent();
   if (consent === 'granted') {
     await client.optIn();
