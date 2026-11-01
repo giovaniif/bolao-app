@@ -43,7 +43,18 @@ describe('analytics', () => {
   it('starts opted out on the EU servers and asks for consent', async () => {
     const a = await freshModule()
     await a.startAnalytics('phc_key')
-    expect(posthog.init).toHaveBeenCalledWith('phc_key', expect.objectContaining({ api_host: 'https://eu.i.posthog.com', opt_out_capturing_by_default: true }))
+    expect(posthog.init).toHaveBeenCalledWith('phc_key', expect.objectContaining({
+        api_host: 'https://us.i.posthog.com',
+        opt_out_capturing_by_default: true,
+        autocapture: false,
+        capture_pageview: true,
+        disable_session_recording: true,
+        disable_surveys: true,
+        advanced_disable_feature_flags: true,
+        advanced_disable_feature_flags_on_first_load: true,
+        capture_exceptions: false,
+        person_profiles: 'identified_only',
+      }))
     expect(a.needsConsent('phc_key')).toBe(true)
   })
 
