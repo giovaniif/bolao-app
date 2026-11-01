@@ -29,6 +29,15 @@
         "EXPO_PUBLIC_API_URL": "https://bolao-api-dev-1030775803263.us-central1.run.app/api"
       },
       "environment": "preview"
+    },
+    "play-internal": {
+      "extends": "preview",
+      "distribution": "store",
+      "autoIncrement": true,
+      "environment": "preview",
+      "android": {
+        "buildType": "app-bundle"
+      }
     }
   },
   "submit": {
