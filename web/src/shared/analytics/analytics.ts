@@ -23,12 +23,17 @@ export async function startAnalytics(key: string | undefined): Promise<void> {
   if (!key || client || !reportingAllowed()) return;
   const { default: posthog } = await import('posthog-js');
   posthog.init(key, {
-    api_host: 'https://eu.i.posthog.com',
+    api_host: import.meta.env.VITE_POSTHOG_HOST ?? 'https://us.i.posthog.com',
     opt_out_capturing_by_default: true,
     persistence: 'localStorage',
     autocapture: false,
     capture_pageview: true,
     disable_session_recording: true,
+    disable_surveys: true,
+    advanced_disable_feature_flags: true,
+    advanced_disable_feature_flags_on_first_load: true,
+    capture_exceptions: false,
+    person_profiles: 'identified_only',
   });
   client = posthog;
   if (readConsent() === 'granted') {
