@@ -2,9 +2,11 @@ import type { ErrorEvent } from '@sentry/react';
 
 const SECRET_HEADERS = ['authorization', 'cookie', 'x-cron-secret'];
 const EMAIL = /[^\s@]+@[^\s@]+\.[^\s@]+/g;
+const BEARER = /(bearer\s+)[^\s"']+/gi;
+const JWT = /eyJ[\w-]+\.[\w-]+\.[\w-]+/g;
 
 function hideEmails(text?: string): string | undefined {
-  return text?.replace(EMAIL, '[email]');
+  return text?.replace(EMAIL, '[email]').replace(BEARER, '$1[token]').replace(JWT, '[token]');
 }
 
 export function scrubEvent(event: ErrorEvent): ErrorEvent {

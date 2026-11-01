@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
+import { sentryVitePlugin } from '@sentry/vite-plugin'
 
 export default defineConfig(({ command, mode }) => {
   const fileEnv = loadEnv(mode, __dirname, 'VITE_')
@@ -15,7 +16,11 @@ export default defineConfig(({ command, mode }) => {
     )
   }
 
+  const sentryAuthToken = process.env.SENTRY_AUTH_TOKEN
+  const uploadSourceMaps = command === 'build' && !!sentryAuthToken
+
   return {
+    build: uploadSourceMaps ? { sourcemap: 'hidden' } : undefined,
     plugins: [
       react(),
       tailwindcss(),
@@ -42,6 +47,14 @@ export default defineConfig(({ command, mode }) => {
           ],
         },
       }),
+      uploadSourceMaps &&
+        sentryVitePlugin({
+          org: 'bolao',
+          project: 'bolao-web',
+          authToken: sentryAuthToken,
+          sourcemaps: { filesToDeleteAfterUpload: ['./dist/**/*.map'] },
+          telemetry: false,
+        }),
     ],
     base: process.env.VITE_BASE_PATH || '/',
     resolve: {
