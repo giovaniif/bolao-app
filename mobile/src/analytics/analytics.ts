@@ -33,7 +33,7 @@ export async function startAnalytics(): Promise<void> {
     personProfiles: 'identified_only',
     errorTracking: { autocapture: { uncaughtExceptions: false, unhandledRejections: false, console: false } },
   });
-  client.register({ environment: process.env.EXPO_PUBLIC_SENTRY_ENVIRONMENT ?? 'dev' });
+  tagEnvironment(client);
   consent = await readConsent();
   if (consent === 'granted') {
     await client.optIn();
@@ -59,8 +59,15 @@ export function identify(userId: string) {
   }
 }
 
-export function resetAnalytics() {
-  client?.reset();
+function tagEnvironment(posthog: PostHog) {
+  posthog.register({ environment: process.env.EXPO_PUBLIC_SENTRY_ENVIRONMENT ?? 'dev' });
+}
+
+export async function resetAnalytics(): Promise<void> {
+  if (!client) return;
+  client.reset();
+  tagEnvironment(client);
+  if (consent === 'granted') await client.optIn();
 }
 
 export const analyticsEnabled = !!KEY;
