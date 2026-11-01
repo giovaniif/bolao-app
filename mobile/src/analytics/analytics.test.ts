@@ -1,4 +1,4 @@
-const mockClient = { optIn: jest.fn(), optOut: jest.fn(), capture: jest.fn(), identify: jest.fn(), reset: jest.fn() }
+const mockClient = { optIn: jest.fn(), optOut: jest.fn(), capture: jest.fn(), identify: jest.fn(), reset: jest.fn(), register: jest.fn() }
 const mockCtor = jest.fn(() => mockClient)
 jest.mock('posthog-react-native', () => ({ __esModule: true, default: mockCtor, PostHog: mockCtor }))
 jest.mock('../observability/reporting', () => ({ reportingAllowed: () => true }))
@@ -71,5 +71,13 @@ describe('analytics', () => {
     await a.startAnalytics()
     a.identify('u-1')
     expect(mockClient.identify).toHaveBeenCalledWith('u-1')
+  })
+
+  it('tags every event with the Sentry environment, so dev and prod stay apart', async () => {
+    process.env.EXPO_PUBLIC_SENTRY_ENVIRONMENT = 'production'
+    const a = load('phc_key')
+    await a.startAnalytics()
+    expect(mockClient.register).toHaveBeenCalledWith({ environment: 'production' })
+    delete process.env.EXPO_PUBLIC_SENTRY_ENVIRONMENT
   })
 })

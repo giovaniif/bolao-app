@@ -7,6 +7,7 @@ const posthog = {
   capture: vi.fn(),
   identify: vi.fn(),
   reset: vi.fn(),
+  register: vi.fn(),
 }
 vi.mock('posthog-js', () => ({ default: posthog }))
 const gate = vi.hoisted(() => ({ allowed: true }))
@@ -87,5 +88,13 @@ describe('analytics', () => {
     await a.startAnalytics('phc_key')
     expect(a.needsConsent('phc_key')).toBe(false)
     expect(posthog.opt_in_capturing).not.toHaveBeenCalled()
+  })
+
+  it('tags every event with the Sentry environment, so dev and prod stay apart', async () => {
+    vi.stubEnv('VITE_SENTRY_ENVIRONMENT', 'production')
+    const a = await freshModule()
+    await a.startAnalytics('phc_key')
+    expect(posthog.register).toHaveBeenCalledWith({ environment: 'production' })
+    vi.unstubAllEnvs()
   })
 })
