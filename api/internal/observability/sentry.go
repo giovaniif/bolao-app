@@ -2,6 +2,8 @@ package observability
 
 import (
 	"regexp"
+	"slices"
+	"testing"
 	"time"
 
 	"github.com/getsentry/sentry-go"
@@ -14,6 +16,7 @@ var (
 	emailPattern  = regexp.MustCompile(`[^\s@]+@[^\s@]+\.[^\s@]+`)
 	bearerPattern = regexp.MustCompile(`(?i)(bearer\s+)[^\s"']+`)
 	jwtPattern    = regexp.MustCompile(`eyJ[\w-]+\.[\w-]+\.[\w-]+`)
+	reportingEnvs = []string{"dev", "prod", "production"}
 )
 
 func hideSecrets(text string) string {
@@ -22,8 +25,12 @@ func hideSecrets(text string) string {
 	return jwtPattern.ReplaceAllString(text, "[token]")
 }
 
-func Configured(dsn string) bool {
-	return dsn != ""
+func Configured(dsn, environment string) bool {
+	return dsn != "" && slices.Contains(reportingEnvs, environment)
+}
+
+func Enabled(dsn, environment string) bool {
+	return Configured(dsn, environment) && !testing.Testing()
 }
 
 func Scrub(event *sentry.Event) *sentry.Event {
@@ -43,7 +50,7 @@ func Scrub(event *sentry.Event) *sentry.Event {
 }
 
 func Init(dsn, environment, release string) (func(), error) {
-	if !Configured(dsn) {
+	if !Enabled(dsn, environment) {
 		return func() {}, nil
 	}
 	err := sentry.Init(sentry.ClientOptions{
@@ -61,8 +68,8 @@ func Init(dsn, environment, release string) (func(), error) {
 	return func() { sentry.Flush(2 * time.Second) }, nil
 }
 
-func Middleware(dsn string) gin.HandlerFunc {
-	if !Configured(dsn) {
+func Middleware(dsn, environment string) gin.HandlerFunc {
+	if !Enabled(dsn, environment) {
 		return func(c *gin.Context) { c.Next() }
 	}
 	return sentrygin.New(sentrygin.Options{Repanic: true})

@@ -97,7 +97,7 @@ func main() {
 	defer flushSentry()
 
 	r := gin.Default()
-	r.Use(observability.Middleware(cfg.SentryDSN))
+	r.Use(observability.Middleware(cfg.SentryDSN, cfg.SentryEnvironment))
 
 	r.Use(corsMiddleware())
 

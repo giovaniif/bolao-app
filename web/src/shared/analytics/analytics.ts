@@ -1,4 +1,5 @@
 import type { PostHog } from 'posthog-js';
+import { reportingAllowed } from '../observability/reporting';
 
 export type Consent = 'granted' | 'denied';
 
@@ -15,11 +16,11 @@ function readConsent(): Consent | null {
 }
 
 export function needsConsent(key: string | undefined): boolean {
-  return !!key && readConsent() === null;
+  return !!key && reportingAllowed() && readConsent() === null;
 }
 
 export async function startAnalytics(key: string | undefined): Promise<void> {
-  if (!key || client) return;
+  if (!key || client || !reportingAllowed()) return;
   const { default: posthog } = await import('posthog-js');
   posthog.init(key, {
     api_host: 'https://eu.i.posthog.com',
