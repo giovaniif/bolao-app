@@ -90,6 +90,7 @@ export function ProfileScreen() {
           }}
         />
         <DeleteAccount />
+        <Text style={{ color: colors.muted, fontSize: 12, textAlign: 'center', marginTop: 8 }}>Dados de futebol fornecidos pela API Football-Data.org</Text>
       </View>
 
       <Modal visible={picking} transparent animationType="fade" onRequestClose={() => setPicking(false)}>

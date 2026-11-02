@@ -105,6 +105,10 @@ export function PrivacyPage() {
           </p>
         </Section>
 
+        <p className="text-sm text-[var(--color-text-muted)]">
+          Dados de futebol fornecidos pela API Football-Data.org (Football data provided by the Football-Data.org API).
+        </p>
+
         <p>
           <Link className="underline" to="/login">Voltar para o app</Link>
         </p>
