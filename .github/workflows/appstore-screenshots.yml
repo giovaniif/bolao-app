@@ -100,6 +100,10 @@ jobs:
         run: |
           mkdir -p "$SHOTS"
           xcrun simctl io "$UDID" screenshot "$SHOTS/failure.png" || true
+          xcrun simctl launch --console-pty "$UDID" com.giovaniif.bolao 2>&1 | head -60 || true
+          report=$(ls -t ~/Library/Logs/DiagnosticReports/*.ips 2>/dev/null | head -1)
+          if [ -n "$report" ]; then head -c 6000 "$report"; fi
+          xcrun simctl spawn "$UDID" log show --last 5m --style compact --predicate 'subsystem CONTAINS "bolao" OR process CONTAINS "Bolao"' 2>/dev/null | tail -80 || true
 
       - uses: actions/upload-artifact@v4
         if: always()
