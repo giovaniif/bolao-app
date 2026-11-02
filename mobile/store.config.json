@@ -2,13 +2,26 @@
   "configVersion": 0,
   "apple": {
     "copyright": "2026 Giovani Farias",
-    "categories": ["SPORTS"],
+    "categories": [
+      "SPORTS"
+    ],
     "info": {
       "pt-BR": {
         "title": "Bolão",
         "subtitle": "Palpites do Brasileirão",
         "description": "O Bolão é o jeito simples de fazer o bolão do Brasileirão com os amigos, a família ou a firma.\n\nCrie um bolão, mande o link de convite e pronto: cada participante palpita o placar dos jogos de cada rodada, e o app soma os pontos e monta a classificação sozinho.\n\n• Palpites por rodada, com prazo até o início dos jogos\n• Pontuação automática: placar exato, vencedor, gols e muito mais\n• Classificação geral e da rodada, atualizada a cada resultado\n• Parciais ao vivo durante os jogos\n• Veja os palpites da galera depois que a rodada fecha\n• Vários bolões na mesma conta, públicos ou privados\n• Hall dos campeões das temporadas anteriores\n\nO app não recebe, não processa e não paga dinheiro. Não há apostas, compras nem prêmios dentro do app: é só a diversão de palpitar e disputar a liderança com quem você conhece.",
-        "keywords": ["bolão", "brasileirão", "palpites", "futebol", "placar", "rodada", "classificação", "campeonato", "amigos", "série a"],
+        "keywords": [
+          "bolão",
+          "brasileirão",
+          "palpites",
+          "futebol",
+          "placar",
+          "rodada",
+          "classificação",
+          "campeonato",
+          "amigos",
+          "série a"
+        ],
         "promoText": "Monte o bolão do Brasileirão com os amigos: palpites por rodada, pontos automáticos e classificação ao vivo.",
         "releaseNotes": "Primeira versão do Bolão no iPhone.",
         "marketingUrl": "https://bolao.giovani.app",
@@ -19,7 +32,17 @@
         "title": "Bolão",
         "subtitle": "Brazilian league score picks",
         "description": "Bolão is a simple way to run a score prediction pool for the Brazilian football championship with your friends, family or coworkers.\n\nCreate a pool, share the invite link, and you are done: each player predicts the score of every match in the round, and the app scores the predictions and keeps the standings.\n\n• Predictions per round, open until kickoff\n• Automatic scoring: exact score, winner, goals and more\n• Overall and round standings, updated with every result\n• Live partials during the matches\n• See everyone's predictions after the round closes\n• Many pools on one account, public or private\n• Hall of champions from past seasons\n\nThe app does not take, process or pay out money. There are no bets, purchases or prizes in the app: it is just for the fun of predicting and competing with people you know.",
-        "keywords": ["bolao", "brasileirao", "predictions", "football", "soccer", "score", "pool", "standings", "brazil"],
+        "keywords": [
+          "bolao",
+          "brasileirao",
+          "predictions",
+          "football",
+          "soccer",
+          "score",
+          "pool",
+          "standings",
+          "brazil"
+        ],
         "promoText": "Run a Brazilian league prediction pool with friends: picks per round, automatic scoring and live standings.",
         "releaseNotes": "First release of Bolão on iPhone.",
         "marketingUrl": "https://bolao.giovani.app",
@@ -28,21 +51,33 @@
       }
     },
     "advisory": {
+      "ageRatingOverride": "NONE",
       "alcoholTobaccoOrDrugUseOrReferences": "NONE",
       "contests": "INFREQUENT_OR_MILD",
+      "gambling": false,
       "gamblingSimulated": "NONE",
       "horrorOrFearThemes": "NONE",
+      "kidsAgeBand": null,
+      "koreaAgeRatingOverride": "NONE",
+      "lootBox": false,
       "matureOrSuggestiveThemes": "NONE",
       "medicalOrTreatmentInformation": "NONE",
       "profanityOrCrudeHumor": "NONE",
       "sexualContentGraphicAndNudity": "NONE",
       "sexualContentOrNudity": "NONE",
+      "unrestrictedWebAccess": false,
       "violenceCartoonOrFantasy": "NONE",
       "violenceRealistic": "NONE",
       "violenceRealisticProlongedGraphicOrSadistic": "NONE",
-      "gambling": false,
-      "unrestrictedWebAccess": false,
-      "kidsAgeBand": null,
+      "advertising": false,
+      "ageAssurance": false,
+      "ageRatingOverrideV2": "NONE",
+      "developerAgeRatingInfoUrl": null,
+      "gunsOrOtherWeapons": "NONE",
+      "healthOrWellnessTopics": false,
+      "messagingAndChat": false,
+      "parentalControls": false,
+      "userGeneratedContent": false,
       "seventeenPlus": false
     },
     "review": {
@@ -50,10 +85,10 @@
       "lastName": "Farias",
       "email": "suporte@giovani.app",
       "phone": "+55 00 00000-0000",
-      "demoUsername": "REPLACE_WITH_DEMO_USERNAME",
-      "demoPassword": "REPLACE_WITH_DEMO_PASSWORD",
+      "demoUsername": "revisao.apple",
+      "demoPassword": "SET_IN_APP_STORE_CONNECT",
       "demoRequired": true,
-      "notes": "Bolão is a free score prediction game for private groups of friends. Players predict match scores for the Brazilian football championship and earn points; the app shows the standings.\n\nThe app has no real-money gambling. It does not take, process or pay out money, has no in-app purchases and no prizes. Some groups agree on an entry fee among themselves outside the app; the pool admin can only mark who paid, as a note. No payment happens in or through the app.\n\nDemo account: sign in with the username and password above. It is a member of a demo bolão with open and closed rounds. To delete an account: Perfil > Excluir minha conta."
+      "notes": "Bolão is a free score-prediction game for private groups of friends. Players predict the scores of Brazilian football championship matches, earn points, and see the standings. It is not gambling: the app does not take, hold, process or pay out any money, has no in-app purchases, no bets and no prizes. Some friend groups agree on an entry fee among themselves outside the app; the pool admin can only tick who paid as a private note. No payment happens in or through the app.\n\nDemo account: username revisao.apple with the password above (sign in with username and password on the first screen). It owns a private demo pool, \"Bolão da Revisão\", with predictions for the current round; other players cannot see it. Palpites tab: predict scores. Rodada tab: live partials. Classificação: standings.\n\nSign in with Apple is offered next to Google sign-in.\nAccount deletion: Perfil > Excluir minha conta (deletes the account in the app; owners pick who keeps their pools)."
     }
   }
 }
