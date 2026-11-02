@@ -1,0 +1,16 @@
+appId: com.giovaniif.bolao
+---
+- tapOn: "Palpitar"
+- extendedWaitUntil:
+    visible: "Mais um gol de .*"
+    timeout: 30000
+- tapOn:
+    text: "Mais um gol de .*"
+    index: 0
+- tapOn:
+    text: "Mais um gol de .*"
+    index: 0
+- tapOn:
+    text: "Mais um gol de .*"
+    index: 1
+- waitForAnimationToEnd

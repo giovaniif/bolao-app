@@ -1,0 +1,108 @@
+name: App Store screenshots
+
+on:
+  workflow_dispatch:
+    inputs:
+      label:
+        description: Name for the screenshot artifact
+        required: false
+        default: dryrun
+
+permissions:
+  contents: read
+
+jobs:
+  screenshots:
+    name: iPhone 16 Pro Max screenshots
+    runs-on: macos-latest
+    timeout-minutes: 90
+    env:
+      EXPO_PUBLIC_API_URL: https://api.bolao.giovani.sh/api
+      EXPO_PUBLIC_SENTRY_ENVIRONMENT: screenshots
+      MAESTRO_PASSWORD: ${{ secrets.APPLE_REVIEW_PASSWORD }}
+      DEVICE_NAME: iPhone 16 Pro Max
+      SHOTS: ${{ github.workspace }}/shots
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use the newest Xcode
+        run: |
+          latest=$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)
+          sudo xcode-select -s "$latest"
+          xcodebuild -version
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        working-directory: mobile
+        run: npm ci
+
+      - name: Prebuild iOS
+        working-directory: mobile
+        run: npx expo prebuild -p ios --clean --no-install
+
+      - name: Install pods
+        working-directory: mobile/ios
+        run: pod install
+
+      - name: Build for the simulator
+        working-directory: mobile/ios
+        run: |
+          workspace=$(ls -d *.xcworkspace | head -1)
+          scheme="${workspace%.xcworkspace}"
+          xcodebuild -workspace "$workspace" -scheme "$scheme" -configuration Release \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build CODE_SIGNING_ALLOWED=NO | tail -40
+          app=$(ls -d build/Build/Products/Release-iphonesimulator/*.app | head -1)
+          echo "APP_PATH=$PWD/$app" >> "$GITHUB_ENV"
+
+      - name: Boot the simulator in pt-BR with a clean status bar
+        run: |
+          runtime=$(xcrun simctl list runtimes -j | python3 -c 'import json,sys;r=[x for x in json.load(sys.stdin)["runtimes"] if x["platform"]=="iOS" and x["isAvailable"]];print(r[-1]["identifier"])')
+          udid=$(xcrun simctl create shots "$DEVICE_NAME" "$runtime")
+          echo "UDID=$udid" >> "$GITHUB_ENV"
+          xcrun simctl boot "$udid"
+          xcrun simctl bootstatus "$udid" -b
+          xcrun simctl spawn "$udid" defaults write -g AppleLanguages -array pt-BR
+          xcrun simctl spawn "$udid" defaults write -g AppleLocale -string pt_BR
+          xcrun simctl shutdown "$udid"
+          xcrun simctl boot "$udid"
+          xcrun simctl bootstatus "$udid" -b
+          xcrun simctl status_bar "$udid" override --time 9:41 --dataNetwork wifi --wifiMode active --wifiBars 3 --cellularMode active --cellularBars 4 --batteryState charged --batteryLevel 100
+          xcrun simctl install "$udid" "$APP_PATH"
+
+      - name: Install Maestro
+        run: |
+          curl -Ls https://get.maestro.mobile.dev | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      - name: Capture the screens
+        working-directory: mobile/.maestro/appstore
+        run: |
+          mkdir -p "$SHOTS"
+          shot() { sleep 2; xcrun simctl io "$UDID" screenshot "$SHOTS/$1.png"; }
+          maestro --device "$UDID" test -e MAESTRO_PASSWORD="$MAESTRO_PASSWORD" login.yaml
+          shot 1-classificacao
+          maestro --device "$UDID" test palpites.yaml
+          shot 2-palpites
+          maestro --device "$UDID" test rodada.yaml
+          shot 3-parciais
+          maestro --device "$UDID" test perfil.yaml
+          shot 4-perfil
+          maestro --device "$UDID" test meus-boloes.yaml
+          shot 5-meus-boloes
+          for f in "$SHOTS"/*.png; do sips -g pixelWidth -g pixelHeight "$f" | tail -2; done
+
+      - name: Capture the failure screen
+        if: failure()
+        run: |
+          mkdir -p "$SHOTS"
+          xcrun simctl io "$UDID" screenshot "$SHOTS/failure.png" || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: appstore-screenshots-${{ inputs.label }}
+          path: shots

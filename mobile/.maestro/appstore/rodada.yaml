@@ -1,0 +1,10 @@
+appId: com.giovaniif.bolao
+---
+- tapOn:
+    text: "Rodada"
+    index: 0
+- extendedWaitUntil:
+    visible: "Parciais"
+    timeout: 30000
+- tapOn: "Parciais"
+- waitForAnimationToEnd

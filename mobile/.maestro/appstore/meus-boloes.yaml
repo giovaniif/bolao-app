@@ -1,0 +1,7 @@
+appId: com.giovaniif.bolao
+---
+- tapOn: "Meus bolões"
+- extendedWaitUntil:
+    visible: "Bolão da Revisão"
+    timeout: 30000
+- waitForAnimationToEnd
