@@ -54,6 +54,9 @@ export function createAutoSaver({ save, onStatus, retryDelays = [2000, 5000, 150
       clearTimeout(timers.get(matchId));
       void run(matchId, 0);
     },
+    isDirty(matchId: string, score: Score) {
+      return pending.has(matchId) || !same(saved.get(matchId), score);
+    },
     markSaved(matchId: string, score: Score) {
       saved.set(matchId, score);
       pending.delete(matchId);
