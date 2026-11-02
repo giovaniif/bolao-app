@@ -49,17 +49,6 @@ jobs:
         working-directory: mobile/ios
         run: pod install
 
-      - name: Build for the simulator
-        working-directory: mobile/ios
-        run: |
-          workspace=$(ls -d *.xcworkspace | head -1)
-          scheme="${workspace%.xcworkspace}"
-          xcodebuild -workspace "$workspace" -scheme "$scheme" -configuration Release \
-            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
-            -derivedDataPath build CODE_SIGNING_ALLOWED=NO | tail -40
-          app=$(ls -d build/Build/Products/Release-iphonesimulator/*.app | head -1)
-          echo "APP_PATH=$PWD/$app" >> "$GITHUB_ENV"
-
       - name: Boot the simulator in pt-BR with a clean status bar
         run: |
           runtime=$(xcrun simctl list runtimes -j | python3 -c 'import json,sys;r=[x for x in json.load(sys.stdin)["runtimes"] if x["platform"]=="iOS" and x["isAvailable"]];print(r[-1]["identifier"])')
@@ -73,7 +62,16 @@ jobs:
           xcrun simctl boot "$udid"
           xcrun simctl bootstatus "$udid" -b
           xcrun simctl status_bar "$udid" override --time 9:41 --dataNetwork wifi --wifiMode active --wifiBars 3 --cellularMode active --cellularBars 4 --batteryState charged --batteryLevel 100
-          xcrun simctl install "$udid" "$APP_PATH"
+
+      - name: Build and install the Release app
+        working-directory: mobile
+        run: |
+          npx expo run:ios --configuration Release --device "$UDID" --no-bundler --no-install 2>&1 | tail -60
+          app=$(find ios/build ~/Library/Developer/Xcode/DerivedData -path '*Release-iphonesimulator/*.app' -maxdepth 8 -type d 2>/dev/null | head -1)
+          echo "built app: $app"
+          ls "$app/Frameworks" | head -40 || true
+          xcrun simctl install "$UDID" "$app"
+          xcrun simctl terminate "$UDID" com.giovaniif.bolao || true
 
       - name: Install Maestro
         run: |
