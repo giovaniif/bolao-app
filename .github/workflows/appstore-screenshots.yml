@@ -19,6 +19,8 @@ jobs:
     env:
       EXPO_PUBLIC_API_URL: https://api.bolao.giovani.sh/api
       EXPO_PUBLIC_SENTRY_ENVIRONMENT: screenshots
+      EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID: ${{ secrets.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID }}
+      EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: ${{ secrets.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID }}
       MAESTRO_PASSWORD: ${{ secrets.APPLE_REVIEW_PASSWORD }}
       DEVICE_NAME: iPhone 16 Pro Max
       SHOTS: ${{ github.workspace }}/shots
