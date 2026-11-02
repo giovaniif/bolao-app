@@ -85,7 +85,7 @@ describe('PredictScreen', () => {
     await fireEvent.press(screen.getByLabelText('Mais um gol de Flamengo'))
     await fireEvent.press(screen.getByLabelText('Mais um gol de Flamengo'))
     await fireEvent.press(screen.getByLabelText('Mais um gol de Palmeiras'))
-    await fireEvent.press(screen.getByRole('button', { name: 'Salvar palpites' }))
+    await fireEvent.press(screen.getByRole('button', { name: 'Salvar' }))
 
     await waitFor(() => expect(screen.getByText('Palpites salvos!')).toBeTruthy())
     const post = calls.find((c) => c.method === 'POST')
@@ -125,5 +125,35 @@ describe('PredictScreen', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Próximo' }))
     await fireEvent.press(screen.getByRole('button', { name: 'Anterior' }))
     expect(calls.filter((c) => c.method === 'POST')).toHaveLength(0)
+  })
+
+  it('shows a sticky save bar instead of the inline button', async () => {
+    fakeApi(routes())
+    await renderWithProviders(<PredictScreen />)
+    await screen.findByText('Flamengo')
+    expect(screen.getByTestId('save-bar')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Salvar palpites' })).toBeNull()
+    expect(screen.getByText('✓ Tudo salvo')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Salvar' }).props.accessibilityState).toMatchObject({ disabled: true })
+  })
+
+  it('counts unsaved palpites and enables Salvar', async () => {
+    const calls = fakeApi(routes())
+    await renderWithProviders(<PredictScreen />)
+    await screen.findByText('Flamengo')
+    await fireEvent.press(screen.getByLabelText('Mais um gol de Flamengo'))
+    expect(screen.getByText('● 1 não salvos')).toBeTruthy()
+    const button = screen.getByRole('button', { name: 'Salvar' })
+    expect(button.props.accessibilityState).toMatchObject({ disabled: false })
+    await fireEvent.press(button)
+    await waitFor(() => expect(calls.filter((c) => c.method === 'POST')).toHaveLength(1))
+    expect(await screen.findByText('✓ Tudo salvo')).toBeTruthy()
+  })
+
+  it('shows Rodada encerrada and no Salvar button when every match is closed', async () => {
+    fakeApi([{ path: /^\/boloes\/b-1\/matches\/round\/32$/, body: [MATCHES[1]] }, ...routes()])
+    await renderWithProviders(<PredictScreen />)
+    expect(await screen.findByText('Rodada encerrada')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Salvar' })).toBeNull()
   })
 })
