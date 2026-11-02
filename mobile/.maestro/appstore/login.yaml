@@ -1,0 +1,21 @@
+appId: com.giovaniif.bolao
+---
+- launchApp:
+    clearState: true
+    permissions:
+      notifications: deny
+- extendedWaitUntil:
+    visible: "Entrar"
+    timeout: 60000
+- tapOn: "Usuário"
+- inputText: "revisao.apple"
+- tapOn: "Senha"
+- inputText: ${MAESTRO_PASSWORD}
+- hideKeyboard
+- tapOn:
+    text: "Entrar"
+    index: 0
+- extendedWaitUntil:
+    visible: "Hall dos Campeões.*"
+    timeout: 60000
+- waitForAnimationToEnd

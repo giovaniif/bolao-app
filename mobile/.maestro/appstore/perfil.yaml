@@ -1,0 +1,13 @@
+appId: com.giovaniif.bolao
+---
+- tapOn:
+    text: "Bolão"
+    index: 0
+- extendedWaitUntil:
+    visible: "Meu perfil"
+    timeout: 30000
+- tapOn: "Meu perfil"
+- extendedWaitUntil:
+    visible: "Meus bolões"
+    timeout: 15000
+- waitForAnimationToEnd
