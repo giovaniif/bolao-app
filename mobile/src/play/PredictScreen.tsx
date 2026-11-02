@@ -59,6 +59,43 @@ function SummaryList({ matches, scores, now }: { matches: Match[]; scores: Recor
   );
 }
 
+function SaveBar({ locked, unsaved, saving, failed, onSave }: { locked: boolean; unsaved: number; saving: boolean; failed: boolean; onSave: () => void }) {
+  const canSave = !locked && unsaved > 0 && !saving;
+  const status = locked ? (
+    <Text style={{ color: colors.muted, fontWeight: '700' }}>Rodada encerrada</Text>
+  ) : saving ? (
+    <Text style={{ color: colors.muted, fontWeight: '700' }}>Salvando…</Text>
+  ) : failed ? (
+    <Pressable accessibilityRole="button" accessibilityLabel="Não salvou. Tentar de novo" onPress={onSave} hitSlop={8}>
+      <Text style={{ color: colors.danger, fontWeight: '700' }}>Não salvou. Tentar de novo</Text>
+    </Pressable>
+  ) : unsaved > 0 ? (
+    <Text style={{ color: '#ffd700', fontWeight: '700' }}>{`● ${unsaved} não salvos`}</Text>
+  ) : (
+    <Text style={{ color: colors.primary, fontWeight: '700' }}>✓ Tudo salvo</Text>
+  );
+  return (
+    <View
+      testID="save-bar"
+      style={{ position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: '#131f35', borderTopWidth: 1, borderTopColor: '#1e293b' }}
+    >
+      <View style={{ flex: 1 }}>{status}</View>
+      {!locked && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Salvar"
+          accessibilityState={{ disabled: !canSave }}
+          disabled={!canSave}
+          onPress={onSave}
+          style={{ minHeight: 44, minWidth: 96, paddingHorizontal: 20, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: canSave ? colors.primary : '#334155' }}
+        >
+          <Text style={{ color: canSave ? '#0f172a' : colors.muted, fontWeight: '800' }}>Salvar</Text>
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
 export function PredictScreen() {
   const { bolao, isLoading } = useCurrentBolao();
   const bolaoId = bolao?.id ?? '';
@@ -140,11 +177,15 @@ export function PredictScreen() {
     }
     setIndex(target);
   };
+  const unsaved = saved.data ? open.filter((m) => !!edits[m.id] && saver.isDirty(m.id, scores[m.id])).length : 0;
+  const saving = save.isPending || Object.values(saveStatus).includes('saving');
+  const failed = !!save.error || Object.values(saveStatus).includes('error');
   const leftMatch = lastLeft ? list.find((m) => m.id === lastLeft) : undefined;
   const leftStatus = lastLeft ? saveStatus[lastLeft] : undefined;
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 40 }}>
+    <View style={{ flex: 1 }}>
+    <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 96 }} keyboardShouldPersistTaps="handled">
       <RoundChips
         rounds={summary.data?.rounds ?? []}
         round={round}
@@ -221,9 +262,18 @@ export function PredictScreen() {
               </View>
             )}
           </View>
-          {open.length > 0 && <PrimaryButton title="Salvar palpites" onPress={() => save.mutate()} loading={save.isPending} />}
         </>
       )}
     </ScrollView>
+      {list.length > 0 && (
+        <SaveBar
+          locked={open.length === 0}
+          unsaved={unsaved}
+          saving={saving}
+          failed={failed}
+          onSave={() => save.mutate()}
+        />
+      )}
+    </View>
   );
 }
