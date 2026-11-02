@@ -10,7 +10,7 @@ This file gives the App Store and Google Play answers for the mobile app, and th
 - The file has placeholders. Replace them before the push, and do not commit real values:
   - `review.demoUsername` and `review.demoPassword`: a demo account on the **production** API that is a member of a bolão with open and closed rounds.
   - `review.phone`: a real phone number.
-  - `review.email` and the contact on the privacy page: `suporte@giovani.app`. Make sure that this mailbox exists, or change both.
+  - `review.email` and the contact on the privacy page: `riccog.25@gmail.com` (the owner).
 - EAS Metadata supports the App Store only. Type the Google Play listing in the Play Console. The text in `store.config.json` fits there too (Play short description: 80 characters, use the promotional text).
 
 ### Age rating and gambling

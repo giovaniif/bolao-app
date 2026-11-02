@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 
-const CONTACT_EMAIL = 'suporte@giovani.app';
+const CONTACT_EMAIL = 'riccog.25@gmail.com';
 const UPDATED_AT = '21 de outubro de 2026';
 
 const collected: { name: string; detail: string }[] = [

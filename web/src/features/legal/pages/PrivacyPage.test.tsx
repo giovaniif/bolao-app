@@ -30,4 +30,10 @@ describe('PrivacyPage', () => {
     render(<App />)
     expect(screen.getByText(/não recebe, não processa e não paga dinheiro/)).toBeTruthy()
   })
+
+  it('gives a contact email that reaches the owner', async () => {
+    render(<App />)
+    const links = await screen.findAllByRole('link', { name: 'riccog.25@gmail.com' })
+    expect(links[0].getAttribute('href')).toBe('mailto:riccog.25@gmail.com')
+  })
 })
