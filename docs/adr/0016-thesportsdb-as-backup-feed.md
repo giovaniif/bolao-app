@@ -1,6 +1,6 @@
 # ADR 0016: TheSportsDB is the backup feed for results
 
-Status: accepted, 2026-10-21.
+Status: accepted, 2026-10-21. Turned off on 2026-11-01: `THESPORTSDB_API_KEY` is not set on dev or prod, because the free key may not be used in a published app.
 
 ## Decision
 
@@ -33,4 +33,4 @@ We compared the providers on 2026-10-21:
 - A team name that differs between the providers needs an entry in the alias table of the fallback feed. A match without a name match stays as the primary last reported it.
 - Backup calls happen only after a primary failure and cover at most two days, so they do not count in the daily call budget.
 - TheSportsDB data is community-edited. The next good primary sync, or the platform admin, corrects a wrong score from the backup.
-- Check the TheSportsDB terms and buy the Patreon key before the public launch, as for football-data.org.
+- TheSportsDB's terms do not allow the free key in an app published to an app store. The key is off on dev and prod since 2026-11-01, so only football-data.org feeds results. To turn the backup on again, buy the Patreon key and set `THESPORTSDB_API_KEY`.
