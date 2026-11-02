@@ -36,4 +36,9 @@ describe('PrivacyPage', () => {
     const links = await screen.findAllByRole('link', { name: 'riccog.25@gmail.com' })
     expect(links[0].getAttribute('href')).toBe('mailto:riccog.25@gmail.com')
   })
+
+  it('credits football-data.org for the match data', async () => {
+    render(<App />)
+    expect(await screen.findByText('Dados de futebol fornecidos pela API Football-Data.org (Football data provided by the Football-Data.org API).')).toBeTruthy()
+  })
 })

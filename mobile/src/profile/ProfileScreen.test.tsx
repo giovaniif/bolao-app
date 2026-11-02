@@ -64,4 +64,10 @@ describe('ProfileScreen', () => {
     await fireEvent.press(await screen.findByRole('button', { name: 'Sair' }))
     await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/login'))
   })
+
+  it('credits football-data.org for the match data', async () => {
+    fakeApi(routes())
+    await renderWithProviders(<ProfileScreen />)
+    expect(await screen.findByText('Dados de futebol fornecidos pela API Football-Data.org')).toBeTruthy()
+  })
 })
