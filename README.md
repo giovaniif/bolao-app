@@ -11,7 +11,9 @@
 <p align="center">
   <a href="https://bolao.giovani.app"><strong>Abrir o app web</strong></a>
   ·
-  App Store e Google Play: em breve
+  <a href="https://apps.apple.com/br/app/id6825092951"><strong>Baixar na App Store</strong></a>
+  ·
+  Google Play: em breve
 </p>
 
 <p align="center">
@@ -59,7 +61,8 @@ Ainda tem bônus por placares exatos diferentes na rodada. As regras completas e
 ## Plataformas
 
 - **Web:** [bolao.giovani.app](https://bolao.giovani.app), no navegador do celular ou do computador. Instale na tela inicial para usar como app e receber os lembretes.
-- **iOS e Android:** app nativo, em breve na App Store e no Google Play.
+- **iOS:** app nativo na [App Store](https://apps.apple.com/br/app/id6825092951).
+- **Android:** app nativo, em breve no Google Play.
 
 ## Privacidade e suporte
 
