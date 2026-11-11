@@ -29,12 +29,27 @@ type fakeSyncStore struct {
 	failed   []uuid.UUID
 	budget   int
 	reserved int
+
+	fullReads   int
+	windowReads int
 }
 
 func (s *fakeSyncStore) ListSyncTargets(context.Context) ([]SyncTarget, error) { return s.targets, nil }
 
 func (s *fakeSyncStore) ListByCompetition(context.Context, uuid.UUID) ([]models.Match, error) {
+	s.fullReads++
 	return s.matches, nil
+}
+
+func (s *fakeSyncStore) ListKickedOffBetween(_ context.Context, _ uuid.UUID, from, to time.Time) ([]models.Match, error) {
+	s.windowReads++
+	var out []models.Match
+	for _, m := range s.matches {
+		if m.KickoffAt != nil && !m.KickoffAt.Before(from) && !m.KickoffAt.After(to) {
+			out = append(out, m)
+		}
+	}
+	return out, nil
 }
 
 func (s *fakeSyncStore) ApplyPlan(_ context.Context, plan ReconcilePlan) error {
@@ -165,5 +180,44 @@ func TestMatchSync_NeverInsertsARoundThatAlreadyStarted(t *testing.T) {
 	}
 	if len(store.plans) != 1 || len(store.plans[0].Inserts) != 0 {
 		t.Errorf("plans = %+v, want no insert of a round that started after the bolão but before now", store.plans)
+	}
+}
+
+func TestMatchSync_TheTickNeverReadsTheWholeCompetitionWhenNotDue(t *testing.T) {
+	old := syncNow.Add(-48 * time.Hour)
+	oldLive := models.Match{KickoffAt: &old, Status: models.MatchStatusLive}
+	tests := []struct {
+		name        string
+		last        time.Duration
+		matches     []models.Match
+		windowReads int
+	}{
+		{"inside the results interval", time.Minute, []models.Match{liveMatch()}, 0},
+		{"no open match in the results window", time.Hour, []models.Match{oldLive}, 1},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := &fakeSyncStore{targets: []SyncTarget{target(ago(tt.last))}, matches: tt.matches, budget: 10}
+			feed := &fakeFeed{}
+			report, err := NewMatchSyncService(feed, store, func() time.Time { return syncNow }).RunOnce(context.Background())
+			if err != nil {
+				t.Fatal(err)
+			}
+			if report.Skipped != 1 || len(feed.calls) != 0 || store.fullReads != 0 || store.windowReads != tt.windowReads {
+				t.Errorf("report=%+v calls=%d fullReads=%d windowReads=%d, want skipped with %d window reads", report, len(feed.calls), store.fullReads, store.windowReads, tt.windowReads)
+			}
+		})
+	}
+}
+
+func TestMatchSync_ALiveMatchInTheWindowTriggersAFullSync(t *testing.T) {
+	store := &fakeSyncStore{targets: []SyncTarget{target(ago(time.Hour))}, matches: []models.Match{liveMatch()}, budget: 10}
+	feed := &fakeFeed{}
+	report, err := NewMatchSyncService(feed, store, func() time.Time { return syncNow }).RunOnce(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report.Synced != 1 || len(feed.calls) != 1 || store.fullReads != 1 || store.windowReads != 1 {
+		t.Errorf("report=%+v calls=%d fullReads=%d windowReads=%d", report, len(feed.calls), store.fullReads, store.windowReads)
 	}
 }
