@@ -57,6 +57,18 @@ SENTRY_DSN=<dev DSN> SENTRY_ENVIRONMENT=dev go run ./cmd/server
 
 For web, run a production build with `VITE_SENTRY_ENVIRONMENT=dev` (`npm run build && npm run preview`). Mobile only reports from an EAS build.
 
+#### Which Sentry project each app uses
+
+Each app has its own Sentry project in the `bolao` org. Never reuse another app's DSN: events land in the wrong project, and symbols uploaded for the right project never match them.
+
+| App | Sentry project | DSN variable | Where it is set |
+| --- | --- | --- | --- |
+| Mobile (Expo) | `bolao-mobile` | `EXPO_PUBLIC_SENTRY_DSN` | EAS environment variables |
+| Web | `bolao-web` | `VITE_SENTRY_DSN` | Web hosting build env |
+| API | `bolao-api` | `SENTRY_DSN` | API service env |
+
+Mobile symbol upload (dSYMs and source maps) runs in EAS builds through the `@sentry/react-native/expo` plugin and needs `SENTRY_AUTH_TOKEN` as an EAS secret. A mobile reporting build without `EXPO_PUBLIC_SENTRY_DSN` logs a warning and skips Sentry. See `mobile/.env.example`.
+
 ## CI
 
 Build and test run as separate actions per area, each only triggering when files in that area
