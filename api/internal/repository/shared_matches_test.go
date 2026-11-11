@@ -148,3 +148,21 @@ func TestCompetitionRepository_ListActive(t *testing.T) {
 		}
 	}
 }
+
+func TestListOpenRoundCloses_ReturnsOnlyTheEarliestCloseOfRoundsStillOpen(t *testing.T) {
+	f := newSharedFixture(t)
+	ctx := context.Background()
+	later := time.Now().Add(72 * time.Hour)
+	if _, err := f.pool.Exec(ctx, `INSERT INTO matches (bolao_id, competition_id, round, home_team, away_team, kickoff_at, market_closes_at, status)
+		VALUES ($1, $2, 31, 'Vasco', 'Grêmio', $3, $3, 'timed'), ($1, $2, 30, 'Vasco', 'Grêmio', $3, $3, 'timed')`, f.feedBolao, f.competition, later); err != nil {
+		t.Fatalf("match: %v", err)
+	}
+
+	closes, err := NewMatchRepository(f.pool).ListOpenRoundCloses(ctx, f.feedBolao)
+	if err != nil {
+		t.Fatalf("ListOpenRoundCloses: %v", err)
+	}
+	if len(closes) != 1 || closes[0].Round != 31 || closes[0].MarketClosesAt == nil || closes[0].MarketClosesAt.After(later.Add(-time.Hour)) {
+		t.Fatalf("closes = %+v; want only round 31 with its earliest close", closes)
+	}
+}
