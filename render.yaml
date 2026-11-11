@@ -21,26 +21,3 @@ services:
         sync: false
       - key: CRON_SECRET
         sync: false
-
-  - type: web
-    name: bolao-api-dev
-    runtime: docker
-    dockerfilePath: ./api/Dockerfile
-    dockerContext: ./api
-    plan: free
-    autoDeploy: false
-    envVars:
-      - key: PORT
-        value: 8080
-      - key: DATABASE_URL
-        sync: false
-      - key: JWT_SECRET
-        sync: false
-      - key: VAPID_PUBLIC_KEY
-        sync: false
-      - key: VAPID_PRIVATE_KEY
-        sync: false
-      - key: VAPID_SUBJECT
-        sync: false
-      - key: CRON_SECRET
-        sync: false
