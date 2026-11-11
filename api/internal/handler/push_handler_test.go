@@ -71,7 +71,7 @@ func (f fakeBolaos) ListActive(context.Context) ([]models.Bolao, error) {
 
 type fakeMatches struct{ matches []models.Match }
 
-func (f fakeMatches) ListAllByBolao(context.Context, uuid.UUID) ([]models.Match, error) {
+func (f fakeMatches) ListOpenRoundCloses(context.Context, uuid.UUID) ([]models.Match, error) {
 	return f.matches, nil
 }
 

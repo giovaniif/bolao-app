@@ -78,6 +78,26 @@ func (r *MatchRepository) ListAllByBolao(ctx context.Context, bolaoID uuid.UUID)
 	return matches, rows.Err()
 }
 
+func (r *MatchRepository) ListOpenRoundCloses(ctx context.Context, bolaoID uuid.UUID) ([]models.Match, error) {
+	query := `SELECT m.round, MIN(m.market_closes_at) FROM matches m WHERE ` + matchInBolao("$1") + `
+		GROUP BY m.round HAVING MIN(m.market_closes_at) > now() ORDER BY m.round`
+	rows, err := r.pool.Query(ctx, query, bolaoID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var matches []models.Match
+	for rows.Next() {
+		var m models.Match
+		if err := rows.Scan(&m.Round, &m.MarketClosesAt); err != nil {
+			return nil, err
+		}
+		matches = append(matches, m)
+	}
+	return matches, rows.Err()
+}
+
 func (r *MatchRepository) ListRounds(ctx context.Context, bolaoID uuid.UUID) ([]int, error) {
 	query := `SELECT DISTINCT m.round FROM matches m WHERE ` + matchInBolao("$1") + ` ORDER BY m.round`
 	rows, err := r.pool.Query(ctx, query, bolaoID)

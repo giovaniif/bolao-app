@@ -28,7 +28,7 @@ type activeBolaoLister interface {
 }
 
 type bolaoMatchLister interface {
-	ListAllByBolao(ctx context.Context, bolaoID uuid.UUID) ([]models.Match, error)
+	ListOpenRoundCloses(ctx context.Context, bolaoID uuid.UUID) ([]models.Match, error)
 }
 
 type RoundNotifier interface {
@@ -198,7 +198,7 @@ func (h *PushHandler) Tick(c *gin.Context) {
 	}
 	sent := 0
 	for _, b := range active {
-		matches, err := h.matches.ListAllByBolao(ctx, b.ID)
+		matches, err := h.matches.ListOpenRoundCloses(ctx, b.ID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(), "sent": sent})
 			return
