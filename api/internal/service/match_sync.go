@@ -32,6 +32,7 @@ type MatchFeed interface {
 type MatchSyncStore interface {
 	ListSyncTargets(ctx context.Context) ([]SyncTarget, error)
 	ListByCompetition(ctx context.Context, competitionID uuid.UUID) ([]models.Match, error)
+	ListKickedOffBetween(ctx context.Context, competitionID uuid.UUID, from, to time.Time) ([]models.Match, error)
 	ApplyPlan(ctx context.Context, plan ReconcilePlan) error
 	MarkSynced(ctx context.Context, competitionID uuid.UUID, at time.Time) error
 	MarkFailed(ctx context.Context, competitionID uuid.UUID) (int, error)
@@ -81,18 +82,19 @@ func (s *MatchSyncService) RunOnce(ctx context.Context) (SyncReport, error) {
 
 func (s *MatchSyncService) syncTarget(ctx context.Context, target SyncTarget) (bool, error) {
 	now := s.now()
-	local, err := s.store.ListByCompetition(ctx, target.CompetitionID)
-	if err != nil {
+	due, err := s.syncDue(ctx, target, now)
+	if err != nil || !due {
 		return false, err
-	}
-	if !SyncDue(target, local, now) {
-		return false, nil
 	}
 	allowed, err := s.store.ReserveCall(ctx, now, DailyProviderCallBudget)
 	if err != nil || !allowed {
 		return false, err
 	}
 	remote, err := s.feed.FeedMatches(ctx, target.Code, target.Season)
+	if err != nil {
+		return false, err
+	}
+	local, err := s.store.ListByCompetition(ctx, target.CompetitionID)
 	if err != nil {
 		return false, err
 	}
@@ -105,4 +107,18 @@ func (s *MatchSyncService) syncTarget(ctx context.Context, target SyncTarget) (b
 		return false, err
 	}
 	return true, s.store.MarkSynced(ctx, target.CompetitionID, now)
+}
+
+func (s *MatchSyncService) syncDue(ctx context.Context, target SyncTarget, now time.Time) (bool, error) {
+	if target.LastSyncedAt == nil || now.Sub(*target.LastSyncedAt) >= fixturesSyncInterval {
+		return true, nil
+	}
+	if now.Sub(*target.LastSyncedAt) < resultsSyncInterval {
+		return false, nil
+	}
+	recent, err := s.store.ListKickedOffBetween(ctx, target.CompetitionID, now.Add(-resultsSyncWindow), now)
+	if err != nil {
+		return false, err
+	}
+	return SyncDue(target, recent, now), nil
 }
