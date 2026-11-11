@@ -63,6 +63,25 @@ func (r *MatchSyncRepository) ListByCompetition(ctx context.Context, competition
 	return matches, rows.Err()
 }
 
+func (r *MatchSyncRepository) ListKickedOffBetween(ctx context.Context, competitionID uuid.UUID, from, to time.Time) ([]models.Match, error) {
+	query := `SELECT id, bolao_id, competition_id, provider_match_id, round, home_team, away_team, kickoff_at, market_closes_at, home_goals, away_goals, status, locked, created_at, updated_at
+		FROM matches WHERE competition_id = $1 AND kickoff_at BETWEEN $2 AND $3 ORDER BY round, kickoff_at`
+	rows, err := r.pool.Query(ctx, query, competitionID, from, to)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var matches []models.Match
+	for rows.Next() {
+		var m models.Match
+		if err := rows.Scan(&m.ID, &m.BolaoID, &m.CompetitionID, &m.ProviderMatchID, &m.Round, &m.HomeTeam, &m.AwayTeam, &m.KickoffAt, &m.MarketClosesAt, &m.HomeGoals, &m.AwayGoals, &m.Status, &m.Locked, &m.CreatedAt, &m.UpdatedAt); err != nil {
+			return nil, err
+		}
+		matches = append(matches, m)
+	}
+	return matches, rows.Err()
+}
+
 func (r *MatchSyncRepository) ApplyPlan(ctx context.Context, plan models.ReconcilePlan) error {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
