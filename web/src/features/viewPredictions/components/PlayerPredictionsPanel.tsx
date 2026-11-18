@@ -20,12 +20,12 @@ export function PlayerPredictionsPanel({ round }: PlayerPredictionsPanelProps) {
     if (!m.market_closes_at) return false;
     return new Date(m.market_closes_at) < new Date();
   }
-  const roundClosed =
-    round > 0 && matches.length > 0 && matches.every(isClosed);
+  const anyMarketClosed =
+    round > 0 && matches.length > 0 && matches.some(isClosed);
 
   const { data: predictions = [], isLoading: predsLoading } = usePredictionsByUser(
     round,
-    roundClosed ? userId : null
+    anyMarketClosed ? userId : null
   );
 
   const predByMatch = Object.fromEntries(
@@ -35,16 +35,16 @@ export function PlayerPredictionsPanel({ round }: PlayerPredictionsPanelProps) {
   return (
     <div className="space-y-4">
       <p className="text-sm text-[var(--color-text-muted)]">
-        Veja os palpites de qualquer jogador após o fechamento do mercado da rodada.
+        Veja os palpites de qualquer jogador nos jogos com mercado fechado.
       </p>
 
-      {round > 0 && matches.length > 0 && !roundClosed && (
+      {round > 0 && matches.length > 0 && !anyMarketClosed && (
         <p className="text-sm text-amber-400">
           O mercado desta rodada ainda não fechou. Os palpites dos jogadores só podem ser vistos após o fechamento.
         </p>
       )}
 
-      {roundClosed && (
+      {anyMarketClosed && (
         <>
           <div>
             <label className="block text-sm text-[var(--color-text-muted)] mb-1">
@@ -97,6 +97,11 @@ export function PlayerPredictionsPanel({ round }: PlayerPredictionsPanelProps) {
                                 </span>
                                 <span className="truncate">{m.away_team}</span>
                               </div>
+                              {!isClosed(m) && (
+                                <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
+                                  Palpite visível após o fechamento do mercado
+                                </p>
+                              )}
                               {m.home_goals != null && m.away_goals != null && (
                                 <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
                                   Resultado: {m.home_goals}×{m.away_goals}

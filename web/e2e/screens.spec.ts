@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { NOW, mockApi, signIn } from './fixtures/api';
+import { NOW, mockApi, partlyClosedRound, revealedPredictionsOf, signIn } from './fixtures/api';
 
 interface Screen {
   name: string;
@@ -24,6 +24,21 @@ const screens: Screen[] = [
     path: '/rodada?aba=galera&rodada=4',
     shows: 'Jogador',
     act: (page) => page.getByRole('combobox').selectOption({ label: 'Bruno Lima' }).then(() => undefined),
+  },
+  {
+    name: 'rodada-galera-parcial',
+    path: '/rodada?aba=galera&rodada=5',
+    shows: 'Jogador',
+    setup: async (page) => {
+      await page.route('**/api/boloes/*/matches/round/5', (route) => route.fulfill({ json: partlyClosedRound(5, 2) }));
+      await page.route('**/api/boloes/*/predictions/round/5/user/*', (route) =>
+        route.fulfill({ json: revealedPredictionsOf(5, route.request().url().split('/').pop() ?? '', 2) })
+      );
+    },
+    act: async (page) => {
+      await page.getByRole('combobox').selectOption({ label: 'Bruno Lima' });
+      await expect(page.getByText('Palpite visível após o fechamento do mercado').first()).toBeVisible();
+    },
   },
   { name: 'perfil', path: '/perfil', shows: 'Avisos de rodada' },
   {

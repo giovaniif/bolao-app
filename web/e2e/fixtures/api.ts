@@ -41,6 +41,15 @@ function matchesOf(round: number) {
 
 const allMatches = [1, 2, 3, 4, 5].flatMap(matchesOf);
 
+export function partlyClosedRound(round: number, closedCount: number) {
+  const closed = new Date(NOW.getTime() - 3 * 86_400_000).toISOString();
+  return matchesOf(round).map((m, i) => (i < closedCount ? { ...m, market_closes_at: closed } : m));
+}
+
+export function revealedPredictionsOf(round: number, userId: string, closedCount: number) {
+  return predictionsOf(round, userId).slice(0, closedCount);
+}
+
 function standings(scale = 1) {
   return people.map((p, i) => ({
     ...p,
