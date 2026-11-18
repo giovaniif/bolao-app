@@ -29,8 +29,18 @@ const MATCHES = [
   },
 ]
 
+const OPEN_MATCH = {
+  id: 'm-2',
+  round: 7,
+  home_team: 'Santos',
+  away_team: 'Corinthians',
+  market_closes_at: '2999-01-01T00:00:00Z',
+}
+
 let calls: string[] = []
 let myBoloes: unknown[] = []
+let matches: typeof MATCHES = MATCHES
+let predictions: unknown[] = []
 
 function mockFetch() {
   return vi.fn(async (url: string) => {
@@ -42,9 +52,10 @@ function mockFetch() {
       if (url.includes('/participants')) return PARTICIPANTS
       if (url.includes('/parciais/') && url.includes('/classification')) return []
       if (url.includes('/parciais/round/')) {
-        return MATCHES.map((m) => ({ ...m, partial_home: null, partial_away: null }))
+        return matches.map((m) => ({ ...m, partial_home: null, partial_away: null }))
       }
-      if (url.includes('/matches/round/')) return MATCHES
+      if (url.includes('/matches/round/')) return matches
+      if (url.includes('/predictions/round/')) return predictions
       if (url.includes('/members')) return PARTICIPANTS
       return []
     })()
@@ -54,6 +65,8 @@ function mockFetch() {
 
 beforeEach(() => {
   calls = []
+  matches = MATCHES
+  predictions = []
   myBoloes = [{ ...BOLAO, role: 'participant', member_status: 'active', member_count: 14 }]
   localStorage.setItem('token', 't')
   vi.stubGlobal('fetch', mockFetch())
@@ -146,5 +159,27 @@ describe('RoundPage', () => {
 
     expect(await heading('Rodada 6')).toBeTruthy()
     expect(tab('Galera').getAttribute('aria-selected')).toBe('true')
+  })
+
+  it('opens Galera when the first market of the round closes', async () => {
+    matches = [...MATCHES, OPEN_MATCH]
+    predictions = [{ user_id: 'u-3', match_id: 'm-1', home_goals: 3, away_goals: 0 }]
+    renderWithProviders(<RoundPage />, { route: '/rodada?aba=galera' })
+
+    const picker = await screen.findByRole('combobox')
+    expect(screen.queryByText(/O mercado desta rodada ainda não fechou/)).toBeNull()
+    fireEvent.change(picker, { target: { value: 'u-3' } })
+
+    expect(await screen.findByText('3 × 0')).toBeTruthy()
+    expect(calls.some((u) => u.includes('/predictions/round/7/user/u-3'))).toBe(true)
+    expect(screen.getAllByText('Palpite visível após o fechamento do mercado')).toHaveLength(1)
+  })
+
+  it('keeps Galera locked while no market of the round closed', async () => {
+    matches = [OPEN_MATCH]
+    renderWithProviders(<RoundPage />, { route: '/rodada?aba=galera' })
+
+    expect(await screen.findByText(/O mercado desta rodada ainda não fechou/)).toBeTruthy()
+    expect(screen.queryByRole('combobox')).toBeNull()
   })
 })
