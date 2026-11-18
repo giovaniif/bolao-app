@@ -121,4 +121,14 @@ describe('RoundScreen', () => {
     expect(count('/boloes/b-1/members')).toBe(members + 1)
     expect(screen.getByTestId('round-scroll').props.refreshControl.props.refreshing).toBe(false)
   })
+
+  it('opens Galera when the first market of the round closes', async () => {
+    fakeApi(routes([{ path: /^\/boloes\/b-1\/matches\/round\/5$/, body: [MATCHES[0], { ...MATCHES[1], market_closes_at: future }] }]))
+    await renderWithProviders(<RoundScreen />)
+    await fireEvent.press(await screen.findByRole('tab', { name: 'Galera' }))
+    await fireEvent.press(await screen.findByRole('button', { name: 'Bruno Lima' }))
+    expect(await screen.findByText('3 × 0')).toBeTruthy()
+    expect(screen.queryByText(/O mercado desta rodada ainda não fechou/)).toBeNull()
+    expect(screen.getAllByText('Palpite visível após o fechamento do mercado')).toHaveLength(1)
+  })
 })

@@ -14,24 +14,24 @@ export function PlayersPanel({ bolaoId, round, players }: { bolaoId: string; rou
   const [now] = useState(() => Date.now());
   const matches = useQuery({ queryKey: ['matches', bolaoId, round], queryFn: () => getMatches(bolaoId, round), enabled: round > 0 });
   const list = matches.data ?? [];
-  const closed = round > 0 && list.length > 0 && list.every((m) => isClosed(m, now));
+  const anyMarketClosed = round > 0 && list.length > 0 && list.some((m) => isClosed(m, now));
   const selected = players.find((p) => p.id === userId);
   const predictions = useQuery({
     queryKey: ['predictions', bolaoId, round, 'user', userId],
     queryFn: () => getPlayerPredictions(bolaoId, round, userId),
-    enabled: closed && !!selected,
+    enabled: anyMarketClosed && !!selected,
   });
   const byMatch = Object.fromEntries((predictions.data ?? []).map((p) => [p.match_id, p]));
   const sorted = players.slice().sort((a, b) => a.display_name.localeCompare(b.display_name));
 
   return (
     <View style={{ gap: 12 }}>
-      <Text style={{ color: colors.muted, fontSize: 13 }}>Veja os palpites de qualquer jogador após o fechamento do mercado da rodada.</Text>
-      {round > 0 && list.length > 0 && !closed && (
+      <Text style={{ color: colors.muted, fontSize: 13 }}>Veja os palpites de qualquer jogador nos jogos com mercado fechado.</Text>
+      {round > 0 && list.length > 0 && !anyMarketClosed && (
         <Text style={{ color: colors.accent, fontSize: 13 }}>O mercado desta rodada ainda não fechou. Os palpites dos jogadores só podem ser vistos após o fechamento.</Text>
       )}
       {round > 0 && !matches.isLoading && list.length === 0 && <Text style={{ color: colors.muted, fontSize: 13 }}>Nenhum jogo nesta rodada.</Text>}
-      {closed && (
+      {anyMarketClosed && (
         <>
           <Text style={{ color: colors.muted, fontSize: 13 }}>Jogador</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -67,6 +67,9 @@ export function PlayersPanel({ bolaoId, round, players }: { bolaoId: string; rou
                           <Text style={{ color: colors.muted }}>{p ? `${p.home_goals} × ${p.away_goals}` : '–'}</Text>
                           <Text style={{ color: colors.text }}>{m.away_team}</Text>
                         </View>
+                        {!isClosed(m, now) && (
+                          <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>Palpite visível após o fechamento do mercado</Text>
+                        )}
                         {m.home_goals != null && m.away_goals != null && (
                           <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>{`Resultado: ${m.home_goals} × ${m.away_goals}`}</Text>
                         )}
