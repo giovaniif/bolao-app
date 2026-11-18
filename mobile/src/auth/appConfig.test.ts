@@ -29,6 +29,14 @@ describe('app config', () => {
     expect(names).toContain('expo-apple-authentication')
   })
 
+  it('reads updates from the EAS Update URL of the project', () => {
+    expect(appJson.expo.updates?.url).toBe(`https://u.expo.dev/${appJson.expo.extra.eas.projectId}`)
+  })
+
+  it('sends an update only to builds with the same native fingerprint', () => {
+    expect(appJson.expo.runtimeVersion).toEqual({ policy: 'fingerprint' })
+  })
+
   it('turns on Sign in with Apple for iOS', () => {
     expect(appJson.expo.ios.usesAppleSignIn).toBe(true)
   })
