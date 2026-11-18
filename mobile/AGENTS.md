@@ -54,4 +54,14 @@ jest.setup.ts     mocks of native modules for jest
 
 EAS builds and submits the app (`npx eas-cli@latest build`, `submit`). The owner's Expo account and the Apple and Google store accounts sign the builds. See issue #87.
 
+### OTA updates
+
+A JavaScript-only change does not need a store build. `expo-updates` loads a new bundle from EAS Update on the next launch of the app ([Expo Update docs](https://docs.expo.dev/eas-update/getting-started/)).
+
+- Each build profile in `eas.json` has the `channel` of the API it talks to: `production`, `preview` (dev API) or `development`. A build only reads updates from its channel.
+- `runtimeVersion` uses the `fingerprint` policy. A change to native code (a new native package, a config plugin, `app.json` native fields) gives a new runtime version. Updates do not go to builds with a different runtime version, so make and submit a new store build for native changes.
+- A `v*` tag publishes an update to the `production` channel (`publish-mobile-update` in `.github/workflows/deploy.yml`). It needs the `EXPO_TOKEN` secret in the GitHub `production` environment.
+- Publish by hand with `npm run publish-update -- <build profile> "<message>"`. Do not run `eas update` directly: it does not apply the `env` of the build profile, so the bundle would use the dev API.
+- Undo a bad update with `npx eas-cli@latest update:rollback`.
+
 The App Store listing is in [store.config.json](store.config.json) (EAS Metadata). The privacy labels, the Play data safety answers and the manual store steps are in [STORE.md](STORE.md).

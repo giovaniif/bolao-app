@@ -88,7 +88,8 @@ variables and the deploy trigger — there's no separate Dockerfile or docker-co
 - **Push to `main`** → deploy to the **dev** (staging) environment: `bolao-api-dev` on Render + a
   "dev" deployment on Vercel, pointing at a Supabase dev database separate from production.
 - **Release tag** (`v*`) → deploy to **production**: `bolao-api` on Render + production
-  deployment on Vercel, pointing at production Supabase.
+  deployment on Vercel, pointing at production Supabase. The tag also publishes an OTA update of the
+  mobile app to the `production` channel. See [mobile/AGENTS.md](../mobile/AGENTS.md#ota-updates).
 
 See `.github/workflows/deploy.yml`. Two details in it:
 

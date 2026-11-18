@@ -5,6 +5,7 @@
   },
   "build": {
     "development": {
+      "channel": "development",
       "developmentClient": true,
       "distribution": "internal",
       "env": {
@@ -12,12 +13,14 @@
       }
     },
     "preview": {
+      "channel": "preview",
       "distribution": "internal",
       "env": {
         "EXPO_PUBLIC_API_URL": "https://bolao-api-dev-1030775803263.us-central1.run.app/api"
       }
     },
     "production": {
+      "channel": "production",
       "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.bolao.giovani.sh/api"
@@ -25,6 +28,7 @@
     },
     "testflight-dev": {
       "extends": "production",
+      "channel": "preview",
       "env": {
         "EXPO_PUBLIC_API_URL": "https://bolao-api-dev-1030775803263.us-central1.run.app/api"
       },
@@ -32,6 +36,7 @@
     },
     "play-internal": {
       "extends": "preview",
+      "channel": "preview",
       "distribution": "store",
       "autoIncrement": true,
       "environment": "preview",
@@ -41,6 +46,7 @@
     },
     "android-apk-prod": {
       "extends": "production",
+      "channel": "production",
       "distribution": "internal",
       "environment": "production",
       "android": {
