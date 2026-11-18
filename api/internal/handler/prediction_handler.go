@@ -97,23 +97,19 @@ func (h *PredictionHandler) GetByUserAndRound(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	now := time.Now()
-	for _, m := range matches {
-		if m.MarketClosesAt == nil || now.Before(*m.MarketClosesAt) {
-			c.JSON(http.StatusForbidden, gin.H{"error": "só é possível ver palpites de outros jogadores após o fechamento do mercado da rodada"})
-			return
-		}
-	}
-
 	predictions, err := h.predictionRepo.GetByUserAndRound(c.Request.Context(), userID, bolaoID, round)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	predictions = service.FillMissingPredictions(matches, userID, predictions, now)
+	revealed, ok := service.RevealedPredictions(matches, userID, predictions, time.Now())
+	if !ok {
+		c.JSON(http.StatusForbidden, gin.H{"error": "só é possível ver palpites de outros jogadores após o fechamento do mercado da rodada"})
+		return
+	}
 
-	c.JSON(http.StatusOK, predictions)
+	c.JSON(http.StatusOK, revealed)
 }
 
 func (h *PredictionHandler) UpsertPredictions(c *gin.Context) {
